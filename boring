@@ -1,0 +1,4 @@
+(^|/)_build($|/)
+^utop-.*\.tar\.gz$
+^setup\.data$
+^setup\.log$

@@ -1,0 +1,24 @@
+# +-------------------------------------------------------------------+
+# | Package parameters                                                |
+# +-------------------------------------------------------------------+
+
+OASISFormat: 0.1
+Name: utop
+Version: 1.0
+LicenseFile: LICENSE
+License: BSD3
+Authors: Jérémie Dimino
+Homepage: http://utop.forge.ocamlcore.org/
+BuildTools: ocamlbuild
+Plugins: DevFiles (0.2), META (0.2)
+Synopsis: utop
+Description: Universal toplevel for OCaml
+
+# +-------------------------------------------------------------------+
+# | Misc                                                              |
+# +-------------------------------------------------------------------+
+
+SourceRepository head
+  Type: darcs
+  Location: http://darcs.ocamlcore.org/repos/utop
+  Browser: http://darcs.ocamlcore.org/cgi-bin/darcsweb.cgi?r=utop;a=summary
