@@ -1,0 +1,7 @@
+# -*- conf -*-
+
+<**/*.ml>: syntax_camlp4o, pkg_lwt.syntax
+<src/*>: use_compiler_libs, pkg_lambda-term
+
+# OASIS_START
+# OASIS_STOP

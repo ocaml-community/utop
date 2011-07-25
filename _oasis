@@ -15,6 +15,17 @@ Synopsis: utop
 Description: Universal toplevel for OCaml
 
 # +-------------------------------------------------------------------+
+# | The toplevel                                                      |
+# +-------------------------------------------------------------------+
+
+Executable utop
+  Install: true
+  Path: src
+  CompiledObject: byte
+  MainIs: utop.ml
+  BuildDepends: findlib, lambda-term, lwt.syntax
+
+# +-------------------------------------------------------------------+
 # | Misc                                                              |
 # +-------------------------------------------------------------------+
 
