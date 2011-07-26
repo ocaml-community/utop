@@ -1,0 +1,14 @@
+! -*- conf-xdefaults -*-
+
+! Copy this file to ~/.utoprc
+
+identifier.foreground:    none
+comment.foreground:       x-chocolate1
+doc.foreground:           x-light-salmon
+constant.foreground:      x-aquamarine
+keyword.foreground:       x-cyan1
+symbol.foreground:        x-cyan1
+string.foreground:        x-light-salmon
+char.foreground:          x-light-salmon
+quotation.foreground:     x-purple
+error.foreground:         x-red

@@ -13,21 +13,59 @@ open Lwt
 open Lwt_react
 open LTerm_text
 open LTerm_geom
+open UTop_token
+
+module String_set = Set.Make(String)
 
 (* +-----------------------------------------------------------------+
-   | The read-line class                                             |
+   | Resources                                                       |
    +-----------------------------------------------------------------+ *)
 
-class read_line ~term ~history ~prompt = object(self)
-  inherit LTerm_read_line.read_line ~history ()
-  inherit [Zed_utf8.t] LTerm_read_line.term term
+type styles = {
+  mutable style_keyword : LTerm_style.t;
+  mutable style_symbol : LTerm_style.t;
+  mutable style_ident : LTerm_style.t;
+  mutable style_constant : LTerm_style.t;
+  mutable style_char : LTerm_style.t;
+  mutable style_string : LTerm_style.t;
+  mutable style_quotation : LTerm_style.t;
+  mutable style_comment : LTerm_style.t;
+  mutable style_doc : LTerm_style.t;
+  mutable style_blanks : LTerm_style.t;
+  mutable style_error : LTerm_style.t;
+}
 
-  initializer
-    (* Set the source signal for the size of the terminal. *)
-    UTop_private.set_size self#size;
-    (* Set the prompt. *)
-    self#set_prompt prompt
-end
+let styles = {
+  style_keyword = LTerm_style.none;
+  style_symbol = LTerm_style.none;
+  style_ident = LTerm_style.none;
+  style_constant = LTerm_style.none;
+  style_char = LTerm_style.none;
+  style_string = LTerm_style.none;
+  style_quotation = LTerm_style.none;
+  style_comment = LTerm_style.none;
+  style_doc = LTerm_style.none;
+  style_blanks = LTerm_style.none;
+  style_error = LTerm_style.none;
+}
+
+let init_resources () =
+  try_lwt
+    lwt res = LTerm_resources.load (Filename.concat (try Sys.getenv "HOME" with Not_found -> "") ".utoprc") in
+    styles.style_keyword <- LTerm_resources.get_style "keyword" res;
+    styles.style_symbol <- LTerm_resources.get_style "symbol" res;
+    styles.style_ident <- LTerm_resources.get_style "identifier" res;
+    styles.style_constant <- LTerm_resources.get_style "constant" res;
+    styles.style_char <- LTerm_resources.get_style "char" res;
+    styles.style_string <- LTerm_resources.get_style "string" res;
+    styles.style_quotation <- LTerm_resources.get_style "quotation" res;
+    styles.style_comment <- LTerm_resources.get_style "comment" res;
+    styles.style_doc <- LTerm_resources.get_style "doc" res;
+    styles.style_blanks <- LTerm_resources.get_style "blanks" res;
+    styles.style_error <- LTerm_resources.get_style "error" res;
+    return ()
+  with Unix.Unix_error(Unix.ENOENT, _, _) ->
+    return ()
 
 (* +-----------------------------------------------------------------+
    | History                                                         |
@@ -35,12 +73,79 @@ end
 
 let history = ref []
 
-let () =
+let init_history () =
   let hist_name = Filename.concat (try Sys.getenv "HOME" with Not_found -> "") ".utop-history" in
   (* Save history on exit. *)
   Lwt_main.at_exit (fun () -> LTerm_read_line.save_history hist_name !history);
   (* Load history. *)
-  history := Lwt_main.run (LTerm_read_line.load_history hist_name)
+  lwt h = LTerm_read_line.load_history hist_name in
+  history := h;
+  return ()
+
+(* +-----------------------------------------------------------------+
+   | The read-line class                                             |
+   +-----------------------------------------------------------------+ *)
+
+(* The pending line to add to the history. *)
+let pending = ref ""
+
+class read_line ~term ~prompt = object(self)
+  inherit LTerm_read_line.read_line ~history:!history () as super
+  inherit [Zed_utf8.t] LTerm_read_line.term term
+
+  method stylise =
+    let styled, position = super#stylise in
+    let tokens = UTop_lexer.lex_string (!pending ^ LTerm_text.to_string styled) in
+    let rec loop ofs_a tokens =
+      match tokens with
+        | [] ->
+            ()
+        | (token, src) :: rest ->
+            let token_style =
+              match token with
+                | Symbol -> styles.style_symbol
+                | Lident -> if String_set.mem src !UTop.keywords then styles.style_keyword else styles.style_ident
+                | Uident -> styles.style_ident
+                | Constant -> styles.style_constant
+                | Char -> styles.style_char
+                | String -> styles.style_string
+                | Quotation -> styles.style_quotation
+                | Comment -> styles.style_comment
+                | Doc -> styles.style_doc
+                | Blanks -> styles.style_blanks
+                | Error -> styles.style_error
+            in
+            let ofs_b = ofs_a + Zed_utf8.length src in
+            for i = ofs_a to ofs_b - 1 do
+              let ch, style = styled.(i) in
+              styled.(i) <- (ch, LTerm_style.merge token_style style)
+            done;
+            loop ofs_b rest
+    in
+    let pending_length = Zed_utf8.length !pending in
+    let rec skip idx tokens =
+        match tokens with
+          | [] ->
+              assert false
+          | (token, src) :: rest ->
+              let len = Zed_utf8.length src in
+              let idx' = idx + len in
+              if idx' = pending_length then
+                loop 0 rest
+              else if idx' > pending_length then
+                loop 0 ((token, Zed_utf8.sub src (pending_length - idx) (len - (pending_length - idx))) :: rest)
+              else
+                skip idx' rest
+    in
+    if pending_length = 0 then loop 0 tokens else skip 0 tokens;
+    (styled, position)
+
+  initializer
+    (* Set the source signal for the size of the terminal. *)
+    UTop_private.set_size self#size;
+    (* Set the prompt. *)
+    self#set_prompt prompt
+end
 
 (* +-----------------------------------------------------------------+
    | Toplevel integration                                            |
@@ -52,9 +157,6 @@ let input = ref ""
 (* The position of the text already sent to ocaml in {!input}. *)
 let pos = ref 0
 
-(* The pending line to add to the history. *)
-let pending = ref ""
-
 (* The read function given to ocaml. *)
 let rec read_input term prompt buffer len =
   try
@@ -62,24 +164,30 @@ let rec read_input term prompt buffer len =
       (* We need to get more input from the user. *)
 
       let prompt_to_display =
-        if prompt = "# " then begin
-          (* This is a new command. *)
+        match prompt with
+          | "# " ->
+              (* increment the command counter. *)
+              UTop_private.set_count (S.value UTop_private.count + 1);
 
-          (* increment the command counter. *)
-          UTop_private.set_count (S.value UTop_private.count + 1);
+              (* Add the previous line to the history. *)
+              history := LTerm_read_line.add_entry !pending !history;
+              pending := "";
 
-          (* Add the previous line to the history. *)
-          history := LTerm_read_line.add_entry !pending !history;
-          pending := "";
+              !UTop.prompt
 
-          !UTop.prompt
-        end else
-          !UTop.prompt_continue
+          | "* " ->
+              !UTop.prompt_comment
+
+          | "  " ->
+              !UTop.prompt_continue
+
+          | _ ->
+              Printf.ksprintf failwith "unknown prompt %S" prompt
       in
 
       (* Read interactively user input. *)
       let txt = Lwt_main.run (
-        lwt txt = (new read_line ~term ~history:!history ~prompt:prompt_to_display)#run in
+        lwt txt = (new read_line ~term ~prompt:prompt_to_display)#run in
         lwt () = LTerm.flush term in
         return txt
       ) in
@@ -104,10 +212,6 @@ let rec read_input term prompt buffer len =
   with LTerm_read_line.Interrupt ->
     (0, true)
 
-(* +-----------------------------------------------------------------+
-   | Integration for when the input is not a terminal                |
-   +-----------------------------------------------------------------+ *)
-
 let read_input_non_interactive prompt buffer len =
   let rec loop i =
     if i = len then
@@ -125,7 +229,7 @@ let read_input_non_interactive prompt buffer len =
   in
   Lwt_main.run (Lwt_io.write Lwt_io.stdout prompt >> loop 0)
 
-lwt () =
+let init_read_interactive_input () =
   (* If standard channels are connected to a tty, use interactive
      read-line and display a welcome message: *)
   if Unix.isatty Unix.stdin && Unix.isatty Unix.stdout then begin
@@ -164,3 +268,13 @@ lwt () =
     Toploop.read_interactive_input := read_input_non_interactive;
     return ()
   end
+
+(* +-----------------------------------------------------------------+
+   | Initialization                                                  |
+   +-----------------------------------------------------------------+ *)
+
+lwt () = join [
+  init_history ();
+  init_resources ();
+  init_read_interactive_input ();
+]

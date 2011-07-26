@@ -1,0 +1,14 @@
+! -*- conf-xdefaults -*-
+
+! Copy this file to ~/.utoprc
+
+identifier.foreground:    none
+comment.foreground:       x-firebrick
+doc.foreground:           x-rosybrown
+constant.foreground:      x-cadetblue
+keyword.foreground:       x-purple
+symbol.foreground:        x-purple
+string.foreground:        x-rosybrown
+char.foreground:          x-rosybrown
+quotation.foreground:     x-purple
+error.foreground:         x-red
