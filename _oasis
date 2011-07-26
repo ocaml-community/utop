@@ -18,12 +18,18 @@ Description: Universal toplevel for OCaml
 # | The toplevel                                                      |
 # +-------------------------------------------------------------------+
 
+Library utop
+  Path: src
+  Modules: UTop
+  InternalModules: UTop_private
+  XMETADescription: utop configuration
+
 Executable utop
   Install: true
   Path: src
   CompiledObject: byte
   MainIs: uTop_console_top.ml
-  BuildDepends: findlib, lambda-term, lwt.syntax
+  BuildDepends: utop, findlib, lambda-term, lwt.syntax
 
 # +-------------------------------------------------------------------+
 # | Misc                                                              |

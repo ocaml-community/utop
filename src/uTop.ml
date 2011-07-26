@@ -42,4 +42,4 @@ let prompt_continue = ref (S.const [|(UChar.of_char '>', { none with foreground 
 
 let () =
   (* Do not load packages linked with the toplevel. *)
-  Topfind.don't_load_deeply ["findlib"; "lambda-term"]
+  Topfind.don't_load_deeply ["utop"; "findlib"; "lambda-term"]
