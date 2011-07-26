@@ -86,7 +86,7 @@ rule token = parse
   | float_literal
       { Constant }
   | '"'
-      { string lexbuf; String }
+      { string lexbuf }
   | "'" [^'\'' '\\'] "'"
       { Char }
   | "'\\" ['\\' '"' 'n' 't' 'b' 'r' ' ' '\'' 'x' '0'-'9'] eof
@@ -130,13 +130,13 @@ and comment depth = parse
 
 and string = parse
   | '"'
-      { () }
+      { String true }
   | "\\\""
       { string lexbuf }
   | uchar
       { string lexbuf }
   | eof
-      { () }
+      { String false }
 
 and quotation = parse
   | ">>"
@@ -149,13 +149,15 @@ and quotation = parse
 {
   let lex_string str =
     let lexbuf = Lexing.from_string str in
-    let rec loop ofs_a =
+    let rec loop idx ofs_a =
       match try Some (token lexbuf) with End_of_file -> None with
         | Some token ->
             let ofs_b = Lexing.lexeme_end lexbuf in
-            (token, String.sub str ofs_a (ofs_b - ofs_a)) :: loop ofs_b
+            let src = String.sub str ofs_a (ofs_b - ofs_a) in
+            let idx' = idx + Zed_utf8.length src in
+            (token, idx, idx', src) :: loop idx' ofs_b
         | None ->
             []
     in
-    loop 0
+    loop 0 0
 }

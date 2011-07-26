@@ -13,7 +13,7 @@ type t =
   | Uident
   | Constant
   | Char
-  | String
+  | String of bool
   | Quotation
   | Comment
   | Doc

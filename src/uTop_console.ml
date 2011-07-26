@@ -96,11 +96,12 @@ class read_line ~term ~prompt = object(self)
   method stylise =
     let styled, position = super#stylise in
     let tokens = UTop_lexer.lex_string (!pending ^ LTerm_text.to_string styled) in
-    let rec loop ofs_a tokens =
+    let pending_length = Zed_utf8.length !pending in
+    let rec loop tokens =
       match tokens with
         | [] ->
             ()
-        | (token, src) :: rest ->
+        | (token, start, stop, src) :: rest ->
             let token_style =
               match token with
                 | Symbol -> styles.style_symbol
@@ -108,37 +109,38 @@ class read_line ~term ~prompt = object(self)
                 | Uident -> styles.style_ident
                 | Constant -> styles.style_constant
                 | Char -> styles.style_char
-                | String -> styles.style_string
+                | String _ -> styles.style_string
                 | Quotation -> styles.style_quotation
                 | Comment -> styles.style_comment
                 | Doc -> styles.style_doc
                 | Blanks -> styles.style_blanks
                 | Error -> styles.style_error
             in
-            let ofs_b = ofs_a + Zed_utf8.length src in
-            for i = ofs_a to ofs_b - 1 do
+            for i = start - pending_length to stop - pending_length - 1 do
               let ch, style = styled.(i) in
               styled.(i) <- (ch, LTerm_style.merge token_style style)
             done;
-            loop ofs_b rest
+            loop rest
     in
-    let pending_length = Zed_utf8.length !pending in
-    let rec skip idx tokens =
+    let rec skip tokens =
         match tokens with
           | [] ->
-              assert false
-          | (token, src) :: rest ->
-              let len = Zed_utf8.length src in
-              let idx' = idx + len in
-              if idx' = pending_length then
-                loop 0 rest
-              else if idx' > pending_length then
-                loop 0 ((token, Zed_utf8.sub src (pending_length - idx) (len - (pending_length - idx))) :: rest)
+              ()
+          | (token, start, stop, src) :: rest ->
+              if stop = pending_length then
+                loop rest
+              else if stop > pending_length then
+                loop ((token, pending_length, stop, Zed_utf8.sub src (pending_length - start) (stop - pending_length)) :: rest)
               else
-                skip idx' rest
+                skip rest
     in
-    if pending_length = 0 then loop 0 tokens else skip 0 tokens;
+    if pending_length = 0 then loop tokens else skip tokens;
     (styled, position)
+
+  method completion =
+    let pos, words = UTop_complete.complete (!pending ^ Zed_rope.to_string self#input_prev) in
+    let pending_length = Zed_utf8.length !pending in
+    if pos < pending_length then self#set_completion 0 [] else self#set_completion (pos - pending_length) words
 
   initializer
     (* Set the source signal for the size of the terminal. *)
