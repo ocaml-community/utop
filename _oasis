@@ -22,7 +22,7 @@ Executable utop
   Install: true
   Path: src
   CompiledObject: byte
-  MainIs: utop.ml
+  MainIs: uTop_console_top.ml
   BuildDepends: findlib, lambda-term, lwt.syntax
 
 # +-------------------------------------------------------------------+

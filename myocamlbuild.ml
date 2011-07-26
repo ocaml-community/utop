@@ -50,16 +50,16 @@ let () =
 
              (* Expunge compiler modules *)
              rule "toplevel expunge"
-               ~dep:"src/utop_top.top"
-               ~prod:"src/utop.byte"
-               (fun _ _ ->
+               ~dep:"%.top"
+               ~prod:"%.byte"
+               (fun env _ ->
                   (* Build the list of dependencies. *)
                   let deps = Findlib.topological_closure [Findlib.query "lambda-term";
                                                           Findlib.query "findlib"] in
                   (* Build the set of locations of dependencies. *)
                   let locs = List.fold_left (fun set pkg -> StringSet.add pkg.Findlib.location set) StringSet.empty deps in
                   (* Directories to search for .cmi: *)
-                  let directories = StringSet.add stdlib_path (StringSet.add "src" locs) in
+                  let directories = StringSet.add stdlib_path locs in
                   (* Construct the set of modules to keep by listing
                      .cmi files: *)
                   let modules =
@@ -76,11 +76,10 @@ let () =
                       directories StringSet.empty
                   in
                   Cmd(S[A(stdlib_path / "expunge");
-                        A"src/utop_top.top";
-                        A"src/utop.byte";
-                        A"Outcometree"; A"Topdirs"; A"Toploop";
+                        A(env "%.top");
+                        A(env "%.byte");
+                        A"UTop"; A"Outcometree"; A"Topdirs"; A"Toploop";
                         S(List.map (fun x -> A x) (StringSet.elements modules))]))
-
          | _ ->
              ())
 
