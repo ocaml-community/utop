@@ -33,7 +33,7 @@ let make_prompt count size =
     if Array.length txt > size.cols then
       Array.sub txt 0 size.cols
     else
-      Array.append txt (Array.make (size.cols - Array.length txt) (UChar.of_int 0x2500, { none with foreground = Some lcyan }))
+      Array.append txt (Array.make (size.cols - Array.length txt) (UChar.of_int 0x2500, { none with foreground = Some lcyan; bold = Some true }))
   ) [|(UChar.of_char '#', { none with foreground = Some lgreen }); (UChar.of_char ' ', none)|]
 
 let prompt = ref (S.l2 make_prompt count size)
