@@ -33,6 +33,14 @@ Executable utop
   MainIs: uTop_console_top.ml
   BuildDepends: utop, findlib, lambda-term, lwt.syntax
 
+Executable "utop-emacs"
+  Install: true
+  Path: src
+  CompiledObject: byte
+  MainIs: uTop_emacs_top.ml
+  BuildDepends: utop, findlib, lambda-term, lwt.syntax, threads
+  DataFiles: utop.el ($datadir/emacs/site-lisp)
+
 # +-------------------------------------------------------------------+
 # | Misc                                                              |
 # +-------------------------------------------------------------------+
