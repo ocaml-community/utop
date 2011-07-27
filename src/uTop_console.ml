@@ -87,16 +87,22 @@ let init_history () =
    +-----------------------------------------------------------------+ *)
 
 (* The pending line to add to the history. *)
-let pending = ref ""
+let pending = ref None
 
-class read_line ~term ~prompt = object(self)
+class read_line ~term ~prompt =
+  let pending =
+    match !pending with
+      | None -> ""
+      | Some line -> line ^ "\n"
+  in
+  let pending_length = Zed_utf8.length pending in
+object(self)
   inherit LTerm_read_line.read_line ~history:!history () as super
   inherit [Zed_utf8.t] LTerm_read_line.term term
 
   method stylise =
     let styled, position = super#stylise in
-    let tokens = UTop_lexer.lex_string (!pending ^ LTerm_text.to_string styled) in
-    let pending_length = Zed_utf8.length !pending in
+    let tokens = UTop_lexer.lex_string (pending ^ LTerm_text.to_string styled) in
     let rec loop tokens =
       match tokens with
         | [] ->
@@ -110,9 +116,9 @@ class read_line ~term ~prompt = object(self)
                 | Constant -> styles.style_constant
                 | Char -> styles.style_char
                 | String _ -> styles.style_string
-                | Quotation -> styles.style_quotation
-                | Comment -> styles.style_comment
-                | Doc -> styles.style_doc
+                | Quotation _ -> styles.style_quotation
+                | Comment _ -> styles.style_comment
+                | Doc _ -> styles.style_doc
                 | Blanks -> styles.style_blanks
                 | Error -> styles.style_error
             in
@@ -138,8 +144,7 @@ class read_line ~term ~prompt = object(self)
     (styled, position)
 
   method completion =
-    let pos, words = UTop_complete.complete (!pending ^ Zed_rope.to_string self#input_prev) in
-    let pending_length = Zed_utf8.length !pending in
+    let pos, words = UTop_complete.complete (pending ^ Zed_rope.to_string self#input_prev) in
     if pos < pending_length then self#set_completion 0 [] else self#set_completion (pos - pending_length) words
 
   initializer
@@ -168,12 +173,19 @@ let rec read_input term prompt buffer len =
       let prompt_to_display =
         match prompt with
           | "# " ->
+              (* Reset completion. *)
+              UTop_complete.reset ();
+
               (* increment the command counter. *)
               UTop_private.set_count (S.value UTop_private.count + 1);
 
               (* Add the previous line to the history. *)
-              history := LTerm_read_line.add_entry !pending !history;
-              pending := "";
+              (match !pending with
+                 | None ->
+                     ()
+                 | Some line ->
+                     history := LTerm_read_line.add_entry line !history;
+                     pending := None);
 
               !UTop.prompt
 
@@ -194,7 +206,9 @@ let rec read_input term prompt buffer len =
         return txt
       ) in
 
-      pending := !pending ^ txt;
+      pending := Some (match !pending with
+                         | None -> txt
+                         | Some line -> line ^ "\n" ^ txt);
 
       (* Add a newline character at the end. *)
       input := txt ^ "\n";

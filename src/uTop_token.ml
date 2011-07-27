@@ -7,6 +7,8 @@
  * This file is a part of utop.
  *)
 
+(** Type of tokens. Tokens with a boolean parameter takes as argument
+    wheter the token is terminated or not. *)
 type t =
   | Symbol
   | Lident
@@ -14,8 +16,8 @@ type t =
   | Constant
   | Char
   | String of bool
-  | Quotation
-  | Comment
-  | Doc
+  | Quotation of bool
+  | Comment of bool
+  | Doc of bool
   | Blanks
   | Error

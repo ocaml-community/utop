@@ -22,7 +22,9 @@ Library utop
   Path: src
   Modules: UTop
   InternalModules: UTop_private
+  BuildDepends: findlib, lambda-term, lwt.syntax
   XMETADescription: utop configuration
+  XMETARequires: findlib, lambda-term
 
 Executable utop
   Install: true

@@ -86,7 +86,7 @@ rule token = parse
   | float_literal
       { Constant }
   | '"'
-      { string lexbuf }
+      { String (string lexbuf) }
   | "'" [^'\'' '\\'] "'"
       { Char }
   | "'\\" ['\\' '"' 'n' 't' 'b' 'r' ' ' '\'' 'x' '0'-'9'] eof
@@ -102,11 +102,11 @@ rule token = parse
   | "'\\" uchar
       { Error }
   | "(**"
-      { comment 0 lexbuf; Doc }
+      { Doc (comment 0 lexbuf) }
   | "(*"
-      { comment 0 lexbuf; Comment }
+      { Comment (comment 0 lexbuf) }
   | '<' (':' ident)? ('@' locname)? '<'
-      { quotation lexbuf; Quotation }
+      { Quotation (quotation lexbuf) }
   | ( "#"  | "`"  | "'"  | ","  | "."  | ".." | ":"  | "::"
     | ":=" | ":>" | ";"  | ";;" | "_"
     | left_delimitor | right_delimitor )
@@ -122,29 +122,29 @@ and comment depth = parse
   | "(*"
       { comment (depth + 1) lexbuf }
   | "*)"
-      { if depth > 0 then comment (depth - 1) lexbuf }
+      { if depth > 0 then comment (depth - 1) lexbuf else true }
   | uchar
       { comment depth lexbuf }
   | eof
-      { () }
+      { false }
 
 and string = parse
   | '"'
-      { String true }
+      { true }
   | "\\\""
       { string lexbuf }
   | uchar
       { string lexbuf }
   | eof
-      { String false }
+      { false }
 
 and quotation = parse
   | ">>"
-      { () }
+      { true }
   | uchar
       { quotation lexbuf }
   | eof
-      { () }
+      { false }
 
 {
   let lex_string str =
