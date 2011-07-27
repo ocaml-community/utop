@@ -131,33 +131,43 @@ let add_names_of_type decl acc =
     | Type_abstract ->
         acc
 
+let rec get_names_of_module_type = function
+  | Tmty_signature decls ->
+      List.fold_left
+        (fun acc decl -> match decl with
+           | Tsig_value(id, _)
+           | Tsig_exception(id, _)
+           | Tsig_module(id, _, _)
+           | Tsig_modtype(id, _)
+           | Tsig_class(id, _, _)
+           | Tsig_cltype(id, _, _) ->
+               add (Ident.name id) acc
+           | Tsig_type(id, decl, _) ->
+               add_names_of_type decl (add (Ident.name id) acc))
+        String_set.empty decls
+  | Tmty_ident path -> begin
+      match try Some (Env.find_modtype path !Toploop.toplevel_env) with Not_found -> None with
+        | Some Tmodtype_abstract -> String_set.empty
+        | Some Tmodtype_manifest module_type -> get_names_of_module_type module_type
+        | None -> String_set.empty
+    end
+  | _ ->
+      String_set.empty
+
 (* List all names of the module with path [path] *)
 let get_names_of_module path =
-  try
-    match
+  match
+    try
       match path with
         | Path path ->
-            Env.find_module path !Toploop.toplevel_env
+            Some (Env.find_module path !Toploop.toplevel_env)
         | Longident ident ->
-            snd (Env.lookup_module ident !Toploop.toplevel_env)
-    with
-      | Tmty_signature decls ->
-          List.fold_left
-            (fun acc decl -> match decl with
-               | Tsig_value(id, _)
-               | Tsig_exception(id, _)
-               | Tsig_module(id, _, _)
-               | Tsig_modtype(id, _)
-               | Tsig_class(id, _, _)
-               | Tsig_cltype(id, _, _) ->
-                   add (Ident.name id) acc
-               | Tsig_type(id, decl, _) ->
-                   add_names_of_type decl (add (Ident.name id) acc))
-            String_set.empty decls
-      | _ ->
-          String_set.empty
-  with Not_found ->
-    String_set.empty
+            Some (snd (Env.lookup_module ident !Toploop.toplevel_env))
+    with Not_found ->
+      None
+  with
+    | Some module_type -> get_names_of_module_type module_type
+    | None -> String_set.empty
 
 let names_of_module path =
   try
