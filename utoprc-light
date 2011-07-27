@@ -12,3 +12,4 @@ string.foreground:        x-rosybrown
 char.foreground:          x-rosybrown
 quotation.foreground:     x-purple
 error.foreground:         x-red
+parenthesis.background:   blue

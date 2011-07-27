@@ -9,6 +9,7 @@
 
 (* Main for console mode. *)
 
+open CamomileLibraryDyn.Camomile
 open Lwt
 open Lwt_react
 open LTerm_text
@@ -33,6 +34,7 @@ type styles = {
   mutable style_doc : LTerm_style.t;
   mutable style_blanks : LTerm_style.t;
   mutable style_error : LTerm_style.t;
+  mutable style_paren : LTerm_style.t;
 }
 
 let styles = {
@@ -47,6 +49,7 @@ let styles = {
   style_doc = LTerm_style.none;
   style_blanks = LTerm_style.none;
   style_error = LTerm_style.none;
+  style_paren = LTerm_style.none;
 }
 
 let init_resources () =
@@ -63,6 +66,7 @@ let init_resources () =
     styles.style_doc <- LTerm_resources.get_style "doc" res;
     styles.style_blanks <- LTerm_resources.get_style "blanks" res;
     styles.style_error <- LTerm_resources.get_style "error" res;
+    styles.style_paren <- LTerm_resources.get_style "parenthesis" res;
     return ()
   with Unix.Unix_error(Unix.ENOENT, _, _) ->
     return ()
@@ -89,6 +93,13 @@ let init_history () =
 (* The pending line to add to the history. *)
 let pending = ref None
 
+let lparen = UChar.of_char '('
+let rparen = UChar.of_char ')'
+let lbrace = UChar.of_char '{'
+let rbrace = UChar.of_char '}'
+let lbracket = UChar.of_char '['
+let rbracket = UChar.of_char ']'
+
 class read_line ~term ~prompt =
   let pending =
     match !pending with
@@ -100,8 +111,11 @@ object(self)
   inherit LTerm_read_line.read_line ~history:!history () as super
   inherit [Zed_utf8.t] LTerm_read_line.term term
 
-  method stylise =
-    let styled, position = super#stylise in
+  method stylise last =
+    let styled, position = super#stylise last in
+
+    (* Syntax highlighting *)
+
     let tokens = UTop_lexer.lex_string (pending ^ LTerm_text.to_string styled) in
     let rec loop tokens =
       match tokens with
@@ -129,18 +143,112 @@ object(self)
             loop rest
     in
     let rec skip tokens =
-        match tokens with
-          | [] ->
-              ()
-          | (token, start, stop, src) :: rest ->
-              if stop = pending_length then
-                loop rest
-              else if stop > pending_length then
-                loop ((token, pending_length, stop, Zed_utf8.sub src (pending_length - start) (stop - pending_length)) :: rest)
-              else
-                skip rest
+      match tokens with
+        | [] ->
+            ()
+        | (token, start, stop, src) :: rest ->
+            if stop = pending_length then
+              loop rest
+            else if stop > pending_length then
+              loop ((token, pending_length, stop, Zed_utf8.sub src (pending_length - start) (stop - pending_length)) :: rest)
+            else
+              skip rest
     in
     if pending_length = 0 then loop tokens else skip tokens;
+
+    (* Parenthesis matching. *)
+
+    if not last && Array.length styled > 0 then begin
+      let rec rsearch idx top stack =
+        if idx >= Array.length styled then
+          None
+        else
+          let ch, _ = styled.(idx) in
+          if ch = top then
+            match stack with
+              | top :: stack -> rsearch (idx + 1) top stack
+              | [] -> Some idx
+          else if ch = lparen then
+            rsearch (idx + 1) rparen (top :: stack)
+          else if ch = lbrace then
+            rsearch (idx + 1) rbrace (top :: stack)
+          else if ch = lbracket then
+            rsearch (idx + 1) rbracket (top :: stack)
+          else
+            rsearch (idx + 1) top stack
+      in
+      let rec lsearch idx top stack =
+        if idx < 0 then
+          None
+        else
+          let ch, _ = styled.(idx) in
+          if ch = top then
+            match stack with
+              | top :: stack -> lsearch (idx - 1) top stack
+              | [] -> Some idx
+          else if ch = rparen then
+            lsearch (idx - 1) lparen (top :: stack)
+          else if ch = rbrace then
+            lsearch (idx - 1) lbrace (top :: stack)
+          else if ch = rbracket then
+            lsearch (idx - 1) lbracket (top :: stack)
+          else
+            lsearch (idx - 1) top stack
+      in
+      let matched =
+        if position = Array.length styled then
+          false
+        else
+          let ch, _ = styled.(position) in
+          match
+            if ch = lparen then
+              rsearch (position + 1) rparen []
+            else if ch = lbrace then
+              rsearch (position + 1) rbrace []
+            else if ch = lbracket then
+              rsearch (position + 1) rbracket []
+            else if ch = rparen then
+              lsearch (position - 1) lparen []
+            else if ch = rbrace then
+              lsearch (position - 1) lbrace []
+            else if ch = rbracket then
+              lsearch (position - 1) lbracket []
+            else
+              None
+          with
+            | Some idx ->
+                let ch, style = styled.(idx) in
+                styled.(idx) <- (ch, LTerm_style.merge styles.style_paren style);
+                true
+            | None ->
+                false
+      in
+      if not matched && position > 0 then
+        let ch, style = styled.(position - 1) in
+        match
+          if ch = lparen then
+            rsearch (position + 1) rparen []
+          else if ch = lbrace then
+            rsearch (position + 1) rbrace []
+          else if ch = lbracket then
+            rsearch (position + 1) rbracket []
+          else if ch = rparen then
+            lsearch (position - 2) lparen []
+          else if ch = rbrace then
+            lsearch (position - 2) lbrace []
+          else if ch = rbracket then
+            lsearch (position - 2) lbracket []
+          else
+            None
+        with
+          | Some idx ->
+              styled.(position - 1) <- (ch, LTerm_style.merge styles.style_paren style);
+              let ch, style = styled.(idx) in
+              styled.(idx) <- (ch, LTerm_style.merge styles.style_paren style)
+          | None ->
+              ()
+    end;
+
     (styled, position)
 
   method completion =
