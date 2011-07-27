@@ -47,31 +47,30 @@ let basename name =
   else
     name'
 
-let list_files filter dir =
-  String_map.bindings
-    (Array.fold_left
-       (fun map name ->
-          let absolute_name = Filename.concat dir name in
-          if try Sys.is_directory absolute_name with _ -> false then
-            String_map.add (Filename.concat name "") Directory map
-          else if filter name then
-            String_map.add name File map
-          else
-            map)
-       String_map.empty
-       (Sys.readdir (if dir = "" then Filename.current_dir_name else dir)))
+let add_files filter acc dir =
+  Array.fold_left
+    (fun map name ->
+       let absolute_name = Filename.concat dir name in
+       if try Sys.is_directory absolute_name with Sys_error _ -> false then
+         String_map.add (Filename.concat name "") Directory map
+       else if filter name then
+         String_map.add name File map
+       else
+         map)
+    acc
+    (try Sys.readdir dir with Sys_error _ -> [||])
 
 let list_directories dir =
   String_set.elements
     (Array.fold_left
        (fun set name ->
           let absolute_name = Filename.concat dir name in
-          if try Sys.is_directory absolute_name with _ -> false then
+          if try Sys.is_directory absolute_name with Sys_error _ -> false then
             String_set.add name set
           else
             set)
        String_set.empty
-       (Sys.readdir (if dir = "" then Filename.current_dir_name else dir)))
+       (try Sys.readdir (if dir = "" then Filename.current_dir_name else dir) with Sys_error _ -> [||]))
 
 (* +-----------------------------------------------------------------+
    | Identifiers                                                     |
@@ -255,7 +254,18 @@ let complete str =
     (* Completion on #load. *)
     | [(Symbol, _, _, "#"); (Lident, _, _, "load"); (String false, start, stop, str)] ->
         let file = String.sub str 1 (String.length str - 1) in
-        let list = list_files (fun name -> Filename.check_suffix name ".cma" || Filename.check_suffix name ".cmo") (Filename.dirname file) in
+        let filter name = Filename.check_suffix name ".cma" || Filename.check_suffix name ".cmo" in
+        let map =
+          if Filename.is_relative file then
+            let dir = Filename.dirname file in
+            List.fold_left
+              (fun acc d -> add_files filter acc (Filename.concat d dir))
+              String_map.empty
+              (Filename.current_dir_name :: !Config.load_path)
+          else
+            add_files filter String_map.empty (Filename.dirname file)
+        in
+        let list = String_map.bindings map in
         let name = basename file in
         let result = lookup_assoc name list in
         (stop - Zed_utf8.length name,
@@ -264,7 +274,25 @@ let complete str =
     (* Completion on #use. *)
     | [(Symbol, _, _, "#"); (Lident, _, _, "use"); (String false, start, stop, str)] ->
         let file = String.sub str 1 (String.length str - 1) in
-        let list = list_files (fun name -> true) (Filename.dirname file) in
+        let filter name =
+          match try Some (String.rindex name '.') with Not_found -> None with
+            | None ->
+                true
+            | Some idx ->
+                let ext = String.sub name (idx + 1) (String.length name - (idx + 1)) in
+                ext = "ml"
+        in
+        let map =
+          if Filename.is_relative file then
+            let dir = Filename.dirname file in
+            List.fold_left
+              (fun acc d -> add_files filter acc (Filename.concat d dir))
+              String_map.empty
+              (Filename.current_dir_name :: !Config.load_path)
+          else
+            add_files filter String_map.empty (Filename.dirname file)
+        in
+        let list = String_map.bindings map in
         let name = basename file in
         let result = lookup_assoc name list in
         (stop - Zed_utf8.length name,
