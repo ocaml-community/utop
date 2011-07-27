@@ -277,23 +277,40 @@ sub-process."
 ;; | Tuareg integration                                              |
 ;; +-----------------------------------------------------------------+
 
+(defun utop-start ()
+  "Start utop if not already started."
+  ;; Create the utop buffer if it does not exists, otherwise just
+  ;; retreive it
+  (let ((buf (get-buffer-create utop-buffer-name)))
+    ;; Make it appear
+    (display-buffer buf)
+    ;; Set the utop mode in that buffer if not already done
+    (with-current-buffer buf (unless (eq major-mode 'utop-mode) (utop-mode)))))
+
 (defun utop-eval-region (start end)
   "Eval the current region in utop."
   (interactive "r")
-  (save-excursion (utop))
+  ;; Start utop if needed
+  (save-excursion (utop-start))
+  ;; From tuareg
   (setq tuareg-interactive-last-phrase-pos-in-source start)
-  (save-excursion
-    (goto-char start)
-    (tuareg-skip-blank-and-comments)
-    (setq start (point))
-    (goto-char end)
-    (tuareg-skip-to-end-of-phrase)
-    (setq end (point))
-    (let ((text (buffer-substring-no-properties start end)))
-      (with-current-buffer utop-buffer-name
-        (goto-char (point-max))
-        (insert text ";;")
-        (utop-send-input)))))
+  ;; Select the text of the region
+  (let ((text
+         (save-excursion
+           ;; Search the start and end of the current paragraph
+           (goto-char start)
+           (tuareg-skip-blank-and-comments)
+           (setq start (point))
+           (goto-char end)
+           (tuareg-skip-to-end-of-phrase)
+           (setq end (point))
+           (buffer-substring-no-properties start end))))
+    (with-current-buffer utop-buffer-name
+      ;; Insert it at the end of the utop buffer
+      (goto-char (point-max))
+      (insert text ";;")
+      ;; Send input to utop now
+      (utop-send-input))))
 
 (defun utop-eval-phrase ()
   "Eval the surrounding Caml phrase (or block) in utop."
