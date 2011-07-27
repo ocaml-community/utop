@@ -120,6 +120,17 @@ let valid id =
        | 'A' .. 'Z' | 'a' .. 'z' |  '_' -> true
        | _ -> false)
 
+let add id set = if valid id then String_set.add id set else set
+
+let add_names_of_type decl acc =
+  match decl.type_kind with
+    | Type_variant constructors ->
+        List.fold_left (fun acc (name, _) -> add name acc) acc constructors
+    | Type_record(fields, _) ->
+        List.fold_left (fun acc (name, _, _) -> add name acc) acc fields
+    | Type_abstract ->
+        acc
+
 (* List all names of the module with path [path] *)
 let get_names_of_module path =
   try
@@ -134,17 +145,14 @@ let get_names_of_module path =
           List.fold_left
             (fun acc decl -> match decl with
                | Tsig_value(id, _)
-               | Tsig_type(id, _, _)
                | Tsig_exception(id, _)
                | Tsig_module(id, _, _)
                | Tsig_modtype(id, _)
                | Tsig_class(id, _, _)
                | Tsig_cltype(id, _, _) ->
-                   let id = Ident.name id in
-                   if valid id then
-                     String_set.add id acc
-                   else
-                     acc)
+                   add (Ident.name id) acc
+               | Tsig_type(id, decl, _) ->
+                   add_names_of_type decl (add (Ident.name id) acc))
             String_set.empty decls
       | _ ->
           String_set.empty
@@ -163,13 +171,13 @@ let names_of_module path =
 let env_names () =
   let rec loop acc = function
     | Env.Env_empty -> acc
-    | Env.Env_value(summary, id, _) -> let id = Ident.name id in loop (if valid id then String_set.add id acc else acc) summary
-    | Env.Env_type(summary, id, _) -> loop (String_set.add (Ident.name id) acc) summary
-    | Env.Env_exception(summary, id, _) -> loop (String_set.add (Ident.name id) acc) summary
-    | Env.Env_module(summary, id, _) -> loop (String_set.add (Ident.name id) acc) summary
-    | Env.Env_modtype(summary, id, _) -> loop (String_set.add (Ident.name id) acc) summary
-    | Env.Env_class(summary, id, _) -> loop (String_set.add (Ident.name id) acc) summary
-    | Env.Env_cltype(summary, id, _) -> loop (String_set.add (Ident.name id) acc) summary
+    | Env.Env_value(summary, id, _) -> loop (add (Ident.name id) acc) summary
+    | Env.Env_type(summary, id, decl) -> loop (add_names_of_type decl (add (Ident.name id) acc)) summary
+    | Env.Env_exception(summary, id, _) -> loop (add (Ident.name id) acc) summary
+    | Env.Env_module(summary, id, _) -> loop (add (Ident.name id) acc) summary
+    | Env.Env_modtype(summary, id, _) -> loop (add (Ident.name id) acc) summary
+    | Env.Env_class(summary, id, _) -> loop (add (Ident.name id) acc) summary
+    | Env.Env_cltype(summary, id, _) -> loop (add (Ident.name id) acc) summary
     | Env.Env_open(summary, path) -> loop (String_set.union acc (names_of_module (Path path))) summary
   in
   (* Add names of the environment: *)
