@@ -98,7 +98,10 @@ This hook is only run if exiting actually kills the buffer."
   "The history after the cursor.")
 
 (defvar utop-pending nil
-  "The text not yet added to the history")
+  "The text not yet added to the history.")
+
+(defvar utop-completion nil
+  "Current completion.")
 
 ;; +-----------------------------------------------------------------+
 ;; | Utils                                                           |
@@ -197,7 +200,7 @@ non-sticky mode."
 (defun utop-process-line (line)
   "Process one line from the utop sub-process."
   ;; Extract the command and its argument
-  (string-match "\\`\\([a-z]*\\):\\(.*\\)\\'" line)
+  (string-match "\\`\\([a-z-]*\\):\\(.*\\)\\'" line)
   (let ((command (match-string 1 line)) (argument (match-string 2 line)))
     (cond
      ;; Output on stdout
@@ -232,7 +235,18 @@ non-sticky mode."
       (setq utop-history-prev utop-history)
       (setq utop-history-next nil)
       ;; Insert the last prompt
-      (utop-insert-prompt utop-last-prompt)))))
+      (utop-insert-prompt utop-last-prompt))
+     ;; Start of completion
+     ((string= command "completion-start")
+      (setq utop-completion nil))
+     ;; A new possible completion
+     ((string= command "completion")
+      (setq utop-completion (cons argument utop-completion)))
+     ;; End of completion
+     ((string= command "completion-stop")
+      (with-output-to-temp-buffer "*Completions*"
+        (display-completion-list (nreverse utop-completion)))
+      (setq utop-completion nil)))))
 
 (defun utop-process-output (process output)
   "Process the output of utop"
@@ -283,18 +297,35 @@ sub-process."
         (setq utop-prompt-max stop)
         ;; Send all lines to utop
         (let ((lines (split-string input "\n")))
-          ;; Send the number of lines
-          (process-send-string utop-process (concat "input:" (int-to-string (length lines)) "\n"))
+          (process-send-string utop-process "input:\n")
           (while (consp lines)
             ;; Send the line
             (process-send-string utop-process (concat "data:" (car lines) "\n"))
             ;; Remove it and continue
-            (setq lines (cdr lines))))))))
+            (setq lines (cdr lines)))
+          (process-send-string utop-process "end:\n"))))))
 
 ;; +-----------------------------------------------------------------+
 ;; | Completion                                                      |
 ;; +-----------------------------------------------------------------+
 
+(defun utop-complete ()
+  "Complete current input."
+  (interactive)
+  ;; Complete only if the cursor is after the prompt
+  (if (>= (point) utop-prompt-max)
+      ;; Extract the input before the cursor
+      (let ((input (buffer-substring-no-properties utop-prompt-max (point))))
+        ;; Split it
+        (let ((lines (split-string input "\n")))
+          ;; Send all lines to utop
+          (process-send-string utop-process "complete:\n")
+          (while (consp lines)
+            ;; Send the line
+            (process-send-string utop-process (concat "data:" (car lines) "\n"))
+            ;; Remove it and continue
+            (setq lines (cdr lines)))
+          (process-send-string utop-process "end:\n")))))
 
 ;; +-----------------------------------------------------------------+
 ;; | Tuareg integration                                              |
@@ -407,6 +438,7 @@ sub-process."
   (define-key utop-mode-map [(control ?a)] 'utop-bol)
   (define-key utop-mode-map [(meta ?p)] 'utop-history-goto-prev)
   (define-key utop-mode-map [(meta ?n)] 'utop-history-goto-next)
+  (define-key utop-mode-map [tab] 'utop-complete)
 
   ;; Register the exit hook
   (add-hook 'kill-buffer-hook (lambda () (run-hooks 'utop-exit-hook)) t t)

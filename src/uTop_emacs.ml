@@ -76,11 +76,38 @@ let read_command () =
           | Some idx ->
               Some (String.sub line 0 idx, String.sub line (idx + 1) (String.length line - (idx + 1)))
 
+let read_data ?(final_newline = true) () =
+  let buf = Buffer.create 1024 in
+  let rec loop first =
+    match read_command () with
+      | None ->
+          send "stderr" "'end' command missing!";
+          exit 1
+      | Some ("data", data) ->
+          if not first then Buffer.add_char buf '\n';
+          Buffer.add_string buf data;
+          loop false
+      | Some ("end", _) ->
+          if final_newline then Buffer.add_char buf '\n';
+          Buffer.contents buf
+      | Some (command, argument) ->
+          Printf.ksprintf (send "stderr") "'data' or 'end' command expected, got %S!" command;
+          exit 1
+  in
+  loop true
+
 let rec read_input prompt buffer length =
   if !pos = String.length !input then begin
     (match prompt with
        | "# " ->
            (* New phrase. *)
+
+           (* Reset completion. *)
+           UTop_complete.reset ();
+
+           (* Increment the command counter. *)
+           UTop_private.set_count (React.S.value UTop_private.count + 1);
+
            send "prompt" ""
        | "* " | "  " ->
            (* Continuation of the current phrase. *)
@@ -88,11 +115,7 @@ let rec read_input prompt buffer length =
        | _ ->
            Printf.ksprintf (send "stderr") "unrecognized prompt %S!" prompt;
            exit 1);
-    match read_command () with
-      | None ->
-          (0, true)
-      | Some (command, argument) ->
-          process prompt buffer length command argument
+    loop prompt buffer length
   end else begin
     (* There is still some pending input. *)
     let i = ref 0 in
@@ -107,30 +130,26 @@ let rec read_input prompt buffer length =
 and process prompt buffer length command argument =
   match command with
     | "input" ->
-        let count =
-          try
-            int_of_string argument
-          with _ ->
-            send "stderr" "invalid number of line to read!";
-            exit 1
-        in
-        input := "";
+        input := read_data ();
         pos := 0;
-        for i = 1 to count do
-          match read_command () with
-            | None ->
-                send "stderr" "wrong number of lines!";
-                exit 1
-            | Some ("data", data) ->
-                input := !input ^ data ^ "\n"
-            | Some (command, argument) ->
-                Printf.ksprintf (send "stderr") "'data' command expected, got %S!" command;
-                exit 1
-        done;
         read_input prompt buffer length
+    | "complete" ->
+        let input = read_data ~final_newline:false () in
+        let start, words = UTop_complete.complete input in
+        send "completion-start" "";
+        List.iter (fun (word, suffix) -> send "completion" word) words;
+        send "completion-stop" "";
+        loop prompt buffer length
     | command ->
         Printf.ksprintf (send "stderr") "unrecognized command %S!" command;
         exit 1
+
+and loop prompt buffer length =
+  match read_command () with
+    | None ->
+        (0, true)
+    | Some (command, argument) ->
+        process prompt buffer length command argument
 
 let () =
   Toploop.read_interactive_input := read_input
