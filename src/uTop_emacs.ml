@@ -58,32 +58,78 @@ let _ = redirect "stderr" Unix.stderr
    | Input                                                           |
    +-----------------------------------------------------------------+ *)
 
-let rec copy_input buffer offset length =
-  if offset = length then
-    return (offset, false)
-  else
-    Lwt_io.read_char_opt Lwt_io.stdin >>= function
-      | Some '\n' ->
-          buffer.[offset] <- '\n';
-          return (offset + 1, false)
-      | Some ch ->
-          buffer.[offset] <- ch;
-          copy_input buffer (offset + 1) length
-      | None ->
-          return (offset, true)
+(* The text typed by the user. *)
+let input = ref ""
 
-let read_input prompt buffer length =
-  match prompt with
-    | "# " ->
-        (* New phrase. *)
-        send "prompt" "";
-        Lwt_main.run (copy_input buffer 0 length)
-    | "* " | "  " ->
-        (* Continuation of the current phrase. *)
-        send "continue" "";
-        Lwt_main.run (copy_input buffer 0 length)
-    | _ ->
-        send "stderr" "unrecognized prompt";
+(* The position of the text already sent to ocaml in {!input}. *)
+let pos = ref 0
+
+let read_command () =
+  match Lwt_main.run (Lwt_io.read_line_opt Lwt_io.stdin) with
+    | None ->
+        None
+    | Some line ->
+        match try Some (String.index line ':') with Not_found -> None with
+          | None ->
+              send "stderr" "':' missing!";
+              exit 1
+          | Some idx ->
+              Some (String.sub line 0 idx, String.sub line (idx + 1) (String.length line - (idx + 1)))
+
+let rec read_input prompt buffer length =
+  if !pos = String.length !input then begin
+    (match prompt with
+       | "# " ->
+           (* New phrase. *)
+           send "prompt" ""
+       | "* " | "  " ->
+           (* Continuation of the current phrase. *)
+           send "continue" ""
+       | _ ->
+           Printf.ksprintf (send "stderr") "unrecognized prompt %S!" prompt;
+           exit 1);
+    match read_command () with
+      | None ->
+          (0, true)
+      | Some (command, argument) ->
+          process prompt buffer length command argument
+  end else begin
+    (* There is still some pending input. *)
+    let i = ref 0 in
+    while !i < length && !pos < String.length !input do
+      buffer.[!i] <- (!input).[!pos];
+      incr i;
+      incr pos
+    done;
+    (!i, false)
+  end
+
+and process prompt buffer length command argument =
+  match command with
+    | "input" ->
+        let count =
+          try
+            int_of_string argument
+          with _ ->
+            send "stderr" "invalid number of line to read!";
+            exit 1
+        in
+        input := "";
+        pos := 0;
+        for i = 1 to count do
+          match read_command () with
+            | None ->
+                send "stderr" "wrong number of lines!";
+                exit 1
+            | Some ("data", data) ->
+                input := !input ^ data ^ "\n"
+            | Some (command, argument) ->
+                Printf.ksprintf (send "stderr") "'data' command expected, got %S!" command;
+                exit 1
+        done;
+        read_input prompt buffer length
+    | command ->
+        Printf.ksprintf (send "stderr") "unrecognized command %S!" command;
         exit 1
 
 let () =
