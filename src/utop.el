@@ -277,9 +277,7 @@ sub-process."
           (remove-text-properties utop-prompt-min utop-prompt-max '(rear-nonsticky nil)))
         ;; Makes the text sent read only and add it the frozen face.
         (let ((inhibit-read-only t))
-          (utop-add-text-properties-rear-nonsticky start stop
-                                                   '(read-only t face utop-frozen)
-                                                   '(face read-only)))
+          (add-text-properties start stop '(read-only t face utop-frozen)))
         ;; Move the prompt to the end of the buffer
         (setq utop-prompt-min stop)
         (setq utop-prompt-max stop)
