@@ -159,41 +159,35 @@ object(self)
     (* Parenthesis matching. *)
 
     if not last && Array.length styled > 0 then begin
-      let rec rsearch idx top stack =
+      let rec rsearch idx left right depth =
         if idx >= Array.length styled then
           None
         else
           let ch, _ = styled.(idx) in
-          if ch = top then
-            match stack with
-              | top :: stack -> rsearch (idx + 1) top stack
-              | [] -> Some idx
-          else if ch = lparen then
-            rsearch (idx + 1) rparen (top :: stack)
-          else if ch = lbrace then
-            rsearch (idx + 1) rbrace (top :: stack)
-          else if ch = lbracket then
-            rsearch (idx + 1) rbracket (top :: stack)
+          if ch = right then
+            if depth = 0 then
+              Some idx
+            else
+              rsearch (idx + 1) left right (depth - 1)
+          else if ch = left then
+            rsearch (idx + 1) left right (depth + 1)
           else
-            rsearch (idx + 1) top stack
+            rsearch (idx + 1) left right depth
       in
-      let rec lsearch idx top stack =
+      let rec lsearch idx left right depth =
         if idx < 0 then
           None
         else
           let ch, _ = styled.(idx) in
-          if ch = top then
-            match stack with
-              | top :: stack -> lsearch (idx - 1) top stack
-              | [] -> Some idx
-          else if ch = rparen then
-            lsearch (idx - 1) lparen (top :: stack)
-          else if ch = rbrace then
-            lsearch (idx - 1) lbrace (top :: stack)
-          else if ch = rbracket then
-            lsearch (idx - 1) lbracket (top :: stack)
+          if ch = left then
+            if depth = 0 then
+              Some idx
+            else
+              lsearch (idx - 1) left right (depth - 1)
+          else if ch = right then
+            lsearch (idx - 1) left right (depth + 1)
           else
-            lsearch (idx - 1) top stack
+            lsearch (idx - 1) left right depth
       in
       let matched =
         if position = Array.length styled then
@@ -202,17 +196,17 @@ object(self)
           let ch, _ = styled.(position) in
           match
             if ch = lparen then
-              rsearch (position + 1) rparen []
+              rsearch (position + 1) lparen rparen 0
             else if ch = lbrace then
-              rsearch (position + 1) rbrace []
+              rsearch (position + 1) lbrace rbrace 0
             else if ch = lbracket then
-              rsearch (position + 1) rbracket []
+              rsearch (position + 1) lbracket rbracket 0
             else if ch = rparen then
-              lsearch (position - 1) lparen []
+              lsearch (position - 1) lparen rparen 0
             else if ch = rbrace then
-              lsearch (position - 1) lbrace []
+              lsearch (position - 1) lbrace rbrace 0
             else if ch = rbracket then
-              lsearch (position - 1) lbracket []
+              lsearch (position - 1) lbracket rbracket 0
             else
               None
           with
@@ -227,17 +221,17 @@ object(self)
         let ch, style = styled.(position - 1) in
         match
           if ch = lparen then
-            rsearch (position + 1) rparen []
+            rsearch (position + 1) lparen rparen 0
           else if ch = lbrace then
-            rsearch (position + 1) rbrace []
+            rsearch (position + 1) lbrace rbrace 0
           else if ch = lbracket then
-            rsearch (position + 1) rbracket []
+            rsearch (position + 1) lbracket rbracket 0
           else if ch = rparen then
-            lsearch (position - 2) lparen []
+            lsearch (position - 2) lparen rparen 0
           else if ch = rbrace then
-            lsearch (position - 2) lbrace []
+            lsearch (position - 2) lbrace rbrace 0
           else if ch = rbracket then
-            lsearch (position - 2) lbracket []
+            lsearch (position - 2) lbracket rbracket 0
           else
             None
         with
