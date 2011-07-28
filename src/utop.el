@@ -236,19 +236,20 @@ non-sticky mode."
 
 (defun utop-process-output (process output)
   "Process the output of utop"
-  ;; Concatenate the output with the output not yet processed
-  (setq utop-output (concat utop-output output))
-  ;; Split lines. Each line contains exactly one command
-  (let ((lines (split-string utop-output "\n")))
-    (while (>= (length lines) 2)
-      ;; Process the first line
-      (utop-process-line (car lines))
-      ;; Remove it and continue
-      (setq lines (cdr lines)))
-    ;; When the list contains only one element, then this is either
-    ;; the end of commands, either an unterminated one, so we save
-    ;; it for later
-    (setq utop-output (car lines))))
+  (with-current-buffer utop-buffer-name
+    ;; Concatenate the output with the output not yet processed
+    (setq utop-output (concat utop-output output))
+    ;; Split lines. Each line contains exactly one command
+    (let ((lines (split-string utop-output "\n")))
+      (while (>= (length lines) 2)
+        ;; Process the first line
+        (utop-process-line (car lines))
+        ;; Remove it and continue
+        (setq lines (cdr lines)))
+      ;; When the list contains only one element, then this is either
+      ;; the end of commands, either an unterminated one, so we save
+      ;; it for later
+      (setq utop-output (car lines)))))
 
 ;; +-----------------------------------------------------------------+
 ;; | Sending data to the utop sub-process                            |
