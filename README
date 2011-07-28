@@ -1,0 +1,73 @@
+A universal toplevel for OCaml.
+
+url: https://forge.ocamlcore.org/projects/utop/
+
+* Requirements:
+
+  utop depends on the lambda-term package, which is available at:
+
+    https://forge.ocamlcore.org/projects/lambda-term/
+
+* Installation:
+
+  To compile and install lambda-term just type:
+
+    $ ocaml setup.ml -configure
+    $ ocaml setup.ml -build
+    $ ocaml setup.ml -install
+
+  If you get the development version of utop you must obtain oasis
+  (http://oasis.forge.ocamlcore.org/).
+
+* Usage:
+
+  To use utop, simply run:
+
+    $ utop
+
+  utop display a bar after the prompt which is used to show possible
+  completions in real-time. You can navigate in it using Alt+Left and
+  Alt+Right, and select one completion using Alt+Tab.
+
+* Customization:
+
+  To add colors to utop, copy one of the files utoprc-dark or
+  utoprc-light to ~/.utoprc. utoprc-dark is for terminals with dark
+  colors (such as white on black) and utoprc-light is for terminals
+  with light colors (such as black on white).
+
+  You can also customize the prompt of utop by setting the reference
+  UTop.prompt.
+
+* Integration with emacs:
+
+  To use utop in emacs, add the following line to your ~/.emacs file:
+
+    (autoload 'utop "utop" "Toplevel for OCaml" t)
+
+  Then you can run utop by executing the command "utop" in emacs.
+
+* Integration with the tuareg mode:
+
+  You can replace the default toplevel used by the tuareg mode by
+  utop, for that add the following lines to your ~/.emacs file:
+
+    (autoload 'utop-eval-region "utop" "Toplevel for OCaml" t)
+    (autoload 'utop-eval-phrase "utop" "Toplevel for OCaml" t)
+    (autoload 'utop-eval-buffer "utop" "Toplevel for OCaml" t)
+
+    (defun tuareg-utop-hook ()
+      (local-set-key "\M-\C-x" 'utop-eval-phrase)
+      (local-set-key "\C-x\C-e" 'utop-eval-phrase)
+      (local-set-key "\C-c\C-e" 'utop-eval-phrase)
+      (local-set-key "\C-c\C-r" 'utop-eval-region)
+      (local-set-key "\C-c\C-b" 'utop-eval-buffer))
+
+    (add-hook 'tuareg-mode-hook 'tuareg-utop-hook)
+
+* Development:
+
+  The last development version of utop can always be found in the
+  darcs repository hosted at darcs.ocamlcore.org:
+
+  $ darcs get http://darcs.ocamlcore.org/repos/utop
