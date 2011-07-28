@@ -268,20 +268,22 @@ sub-process."
     (goto-char (point-max))
     ;; Terminate input by a newline
     (insert "\n")
-    ;; Make the text read-only
-    (add-text-properties utop-prompt-max (point-max) '(read-only t))
-    ;; Make the old prompt sticky so we cannot edit after it
-    (let ((inhibit-read-only t))
-      (remove-text-properties utop-prompt-min utop-prompt-max '(rear-nonsticky nil)))
-    ;; Send everything after the prompt to utop
-    (process-send-region utop-process utop-prompt-max (point-max))
-    ;; Makes the text sent part of the prompt so it won't be sent
-    ;; again. Also add it the frozen face.
-    (let ((inhibit-read-only t))
-      (utop-add-text-properties-rear-nonsticky utop-prompt-max (point-max)
+    (let ((start utop-prompt-max) (stop (point-max)))
+      ;; Make the text read-only
+      (add-text-properties start stop '(read-only t))
+      ;; Make the old prompt sticky so we cannot edit after it
+      (let ((inhibit-read-only t))
+        (remove-text-properties utop-prompt-min utop-prompt-max '(rear-nonsticky nil)))
+      ;; Makes the text sent read only and add it the frozen face.
+      (let ((inhibit-read-only t))
+        (utop-add-text-properties-rear-nonsticky start stop
                                                  '(read-only t face utop-frozen)
                                                  '(face read-only)))
-    (setq utop-prompt-max (point-max))))
+      ;; Move the prompt to the end of the buffer
+      (setq utop-prompt-min stop)
+      (setq utop-prompt-max stop)
+      ;; Send everything after the prompt to utop
+      (process-send-region utop-process start stop))))
 
 ;; +-----------------------------------------------------------------+
 ;; | Completion                                                      |
