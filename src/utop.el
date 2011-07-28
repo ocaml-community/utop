@@ -97,6 +97,9 @@ This hook is only run if exiting actually kills the buffer."
 (defvar utop-history-next nil
   "The history after the cursor.")
 
+(defvar utop-pending nil
+  "The text not yet added to the history")
+
 ;; +-----------------------------------------------------------------+
 ;; | Utils                                                           |
 ;; +-----------------------------------------------------------------+
@@ -206,6 +209,17 @@ non-sticky mode."
      ;; A new prompt
      ((string= command "prompt")
       (let ((prompt (apply utop-prompt ())))
+        ;; Check whether there is something to push to the history
+        (if (stringp utop-pending)
+            ;; Push pending input to the history if it is different
+            ;; from the top of the history
+            (unless (and (consp utop-history) (string= utop-pending (car utop-history)))
+              (push utop-pending utop-history)))
+        ;; Clear pending input
+        (setq utop-pending nil)
+        ;; Reset history
+        (setq utop-history-prev utop-history)
+        (setq utop-history-next nil)
         ;; Save current prompt
         (setq utop-last-prompt prompt)
         ;; Insert the new prompt
@@ -214,6 +228,10 @@ non-sticky mode."
         (setq utop-command-number (+ utop-command-number 1))))
      ;; Continuation of previous input
      ((string= command "continue")
+      ;; Reset history
+      (setq utop-history-prev utop-history)
+      (setq utop-history-next nil)
+      ;; Insert the last prompt
       (utop-insert-prompt utop-last-prompt)))))
 
 (defun utop-process-output (process output)
@@ -233,7 +251,7 @@ non-sticky mode."
     (setq utop-output (car lines))))
 
 ;; +-----------------------------------------------------------------+
-;; | Sending data to the utop sub-process                          |
+;; | Sending data to the utop sub-process                            |
 ;; +-----------------------------------------------------------------+
 
 (defun utop-send-input ()
@@ -241,14 +259,11 @@ non-sticky mode."
 sub-process."
   (interactive)
   (with-current-buffer utop-buffer-name
-    ;; Add current input to the history if it is different from the
-    ;; top of the history
+    ;; Push input to pending input
     (let ((input (buffer-substring-no-properties utop-prompt-max (point-max))))
-      (unless (and (consp utop-history) (string= input (car utop-history)))
-        (push input utop-history)))
-    ;; Reset history
-    (setq utop-history-prev utop-history)
-    (setq utop-history-next nil)
+      (if (stringp utop-pending)
+          (setq utop-pending (concat utop-pending "\n" input))
+        (setq utop-pending input)))
     ;; Goto the end of the buffer
     (goto-char (point-max))
     ;; Terminate input by a newline
@@ -360,6 +375,7 @@ sub-process."
   (make-local-variable 'utop-history)
   (make-local-variable 'utop-history-prev)
   (make-local-variable 'utop-history-next)
+  (make-local-variable 'utop-pending)
 
   ;; Set the major mode
   (setq major-mode 'utop-mode)
