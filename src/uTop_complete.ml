@@ -76,26 +76,30 @@ let list_directories dir =
    | Identifiers                                                     |
    +-----------------------------------------------------------------+ *)
 
+type path_kind = Value | Record
+
 let rec get_path acc tokens =
   match tokens with
     | (Symbol, _, _, ".") :: (Uident, _, _, id) :: tokens ->
         get_path (id :: acc) tokens
+    | (Symbol, _, _, ".") :: (Lident, _, _, id) :: tokens ->
+        (Record, acc)
     | _ ->
-        acc
+        (Value, acc)
 
 let rec get_ident tokens =
   match tokens with
     | ((Comment false | Doc false | String false | Quotation false), _, _, _) :: _ ->
         None
     | ((Uident | Lident), start, _, id) :: tokens ->
-        let path = get_path [] tokens in
-        Some (path, id, start)
+        let kind, path = get_path [] tokens in
+        Some (kind, path, id, start)
     | (Blanks, _, stop, _) :: tokens ->
-        let path = get_path [] tokens in
-        Some (path, "", stop)
+        let kind, path = get_path [] tokens in
+        Some (kind, path, "", stop)
     | (_, _, stop, _) :: _ ->
-        let path = get_path [] tokens in
-        Some (path, "", stop)
+        let kind, path = get_path [] tokens in
+        Some (kind, path, "", stop)
     | [] ->
         None
 
@@ -107,6 +111,8 @@ module Path_map = Map.Make(struct type t = path let compare = compare end)
 
 let global_env = ref (lazy (raise Exit))
 let local_envs = ref Path_map.empty
+let global_fields = ref (lazy (raise Exit))
+let local_fields = ref Path_map.empty
 
 (* Returns [acc] plus all modules of [dir] *)
 let add_modules_from_directory acc dir =
@@ -125,6 +131,15 @@ let valid id =
        | _ -> false)
 
 let add id set = if valid id then String_set.add id set else set
+
+let add_fields_of_type decl acc =
+  match decl.type_kind with
+    | Type_variant constructors ->
+        acc
+    | Type_record(fields, _) ->
+        List.fold_left (fun acc (name, _, _) -> add name acc) acc fields
+    | Type_abstract ->
+        acc
 
 let add_names_of_type decl acc =
   match decl.type_kind with
@@ -158,6 +173,29 @@ let rec get_names_of_module_type = function
   | _ ->
       String_set.empty
 
+let rec get_fields_of_module_type = function
+  | Tmty_signature decls ->
+      List.fold_left
+        (fun acc decl -> match decl with
+           | Tsig_value(id, _)
+           | Tsig_exception(id, _)
+           | Tsig_module(id, _, _)
+           | Tsig_modtype(id, _)
+           | Tsig_class(id, _, _)
+           | Tsig_cltype(id, _, _) ->
+               acc
+           | Tsig_type(id, decl, _) ->
+               add_fields_of_type decl acc)
+        String_set.empty decls
+  | Tmty_ident path -> begin
+      match try Some (Env.find_modtype path !Toploop.toplevel_env) with Not_found -> None with
+        | Some Tmodtype_abstract -> String_set.empty
+        | Some Tmodtype_manifest module_type -> get_fields_of_module_type module_type
+        | None -> String_set.empty
+    end
+  | _ ->
+      String_set.empty
+
 (* List all names of the module with path [path] *)
 let get_names_of_module path =
   match
@@ -173,6 +211,20 @@ let get_names_of_module path =
     | Some module_type -> get_names_of_module_type module_type
     | None -> String_set.empty
 
+let get_fields_of_module path =
+  match
+    try
+      match path with
+        | Path path ->
+            Some (Env.find_module path !Toploop.toplevel_env)
+        | Longident ident ->
+            Some (snd (Env.lookup_module ident !Toploop.toplevel_env))
+    with Not_found ->
+      None
+  with
+    | Some module_type -> get_fields_of_module_type module_type
+    | None -> String_set.empty
+
 let names_of_module path =
   try
     Path_map.find path !local_envs
@@ -180,6 +232,14 @@ let names_of_module path =
     let names = get_names_of_module path in
     local_envs := Path_map.add path names !local_envs;
     names
+
+let fields_of_module path =
+  try
+    Path_map.find path !local_fields
+  with Not_found ->
+    let fields = get_fields_of_module path in
+    local_fields := Path_map.add path fields !local_fields;
+    fields
 
 (* List all names accessible without a path *)
 let env_names () =
@@ -199,6 +259,23 @@ let env_names () =
   (* Add accessible modules: *)
   List.fold_left add_modules_from_directory acc !Config.load_path
 
+let env_fields () =
+  let rec loop acc = function
+    | Env.Env_empty -> acc
+    | Env.Env_value(summary, id, _) -> loop acc summary
+    | Env.Env_type(summary, id, decl) -> loop (add_fields_of_type decl acc) summary
+    | Env.Env_exception(summary, id, _) -> loop acc summary
+    | Env.Env_module(summary, id, _) -> loop acc summary
+    | Env.Env_modtype(summary, id, _) -> loop acc summary
+    | Env.Env_class(summary, id, _) -> loop acc summary
+    | Env.Env_cltype(summary, id, _) -> loop acc summary
+    | Env.Env_open(summary, path) -> loop (String_set.union acc (fields_of_module (Path path))) summary
+  in
+  (* Add fields of the environment: *)
+  let acc = loop String_set.empty (Env.summary !Toploop.toplevel_env) in
+  (* Add accessible modules: *)
+  List.fold_left add_modules_from_directory acc !Config.load_path
+
 let make_path l =
   match l with
     | [] ->
@@ -212,7 +289,9 @@ let make_path l =
 
 let reset () =
   global_env := lazy(env_names ());
-  local_envs := Path_map.empty
+  local_envs := Path_map.empty;
+  global_fields := lazy (env_fields ());
+  local_fields := Path_map.empty
 
 (* +-----------------------------------------------------------------+
    | Labels                                                          |
@@ -447,7 +526,11 @@ let complete str =
               match get_ident tokens with
                 | None ->
                     (0, [])
-                | Some ([], id, start) ->
+                | Some (Value, [], id, start) ->
                     (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (String_set.union !UTop.keywords (Lazy.force !global_env)))))
-                | Some (path, id, start) ->
+                | Some (Value, path, id, start) ->
                     (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (names_of_module (make_path path)))))
+                | Some (Record, [], id, start) ->
+                    (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (Lazy.force !global_fields))))
+                | Some (Record, path, id, start) ->
+                    (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (fields_of_module (make_path path)))))
