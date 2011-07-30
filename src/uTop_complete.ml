@@ -20,22 +20,231 @@ let set_of_list = List.fold_left (fun set x -> String_set.add x set) String_set.
    | Utils                                                           |
    +-----------------------------------------------------------------+ *)
 
-let longident_of_list l =
-  match l with
-    | [] ->
-        invalid_arg "UTop_complete.longident_of_list"
-    | component :: rest ->
-        let rec loop acc = function
-          | [] -> acc
-          | component :: rest -> loop (Longident.Ldot(acc, component)) rest
-        in
-        loop (Longident.Lident component) rest
+(* Transform a non-empty list of strings into a long-identifier. *)
+let longident_of_list = function
+  | [] ->
+      invalid_arg "UTop_complete.longident_of_list"
+  | component :: rest ->
+      let rec loop acc = function
+        | [] -> acc
+        | component :: rest -> loop (Longident.Ldot(acc, component)) rest
+      in
+      loop (Longident.Lident component) rest
+
+(* Check whether an identifier is a valid one. *)
+let is_valid_identifier id =
+  id <> "" &&
+    (match id.[0] with
+       | 'A' .. 'Z' | 'a' .. 'z' |  '_' -> true
+       | _ -> false)
+
+let add id set = if is_valid_identifier id then String_set.add id set else set
 
 (* +-----------------------------------------------------------------+
-   | Directives                                                      |
+   | Parsing                                                         |
    +-----------------------------------------------------------------+ *)
 
-let get_directives () =
+(* The following functions takes a list of tokens in reverse order. *)
+
+type value_or_field = Value | Field
+    (* Either a value, or a record field. *)
+
+(* Parse something of the form [M1.M2. ... .Mn.id] or
+   [field.M1.M2. ... .Mn.id] *)
+let parse_longident tokens =
+  let rec loop acc tokens =
+    match tokens with
+      | (Symbol, _, _, ".") :: (Uident, _, _, id) :: tokens ->
+          loop (id :: acc) tokens
+      | (Symbol, _, _, ".") :: (Lident, _, _, id) :: tokens ->
+          (Field,
+           match acc with
+             | [] -> None
+             | l -> Some (longident_of_list l))
+      | _ ->
+          (Value,
+           match acc with
+             | [] -> None
+             | l -> Some (longident_of_list l))
+  in
+  match tokens with
+    | ((Comment false | Doc false | String false | Quotation false), _, _, _) :: _ ->
+        (* An unterminated command, string, or quotation. *)
+        None
+    | ((Uident | Lident), start, _, id) :: tokens ->
+        (* An identifier. *)
+        let kind, path = loop [] tokens in
+        Some (kind, path, start, id)
+    | (Blanks, _, stop, _) :: tokens ->
+        (* Some blanks at the end. *)
+        let kind, path = loop [] tokens in
+        Some (kind, path, stop, "")
+    | (_, _, stop, _) :: _ ->
+        (* Otherwise complete after the last token. *)
+        let kind, path = loop [] tokens in
+        Some (kind, path, stop, "")
+    | [] ->
+        None
+
+(* Parse something of the form [M1.M2. ... .Mn.id#m1#m2# ... #mp#m] *)
+let parse_method tokens =
+  (* Collect [M1.M2. ... .Mn.id] and returns the corresponding
+     longidentifier. *)
+  let rec loop_uidents acc tokens =
+    match tokens with
+      | (Symbol, _, _, ".") :: (Uident, _, _, id) :: tokens ->
+          loop_uidents (id :: acc) tokens
+      | _ ->
+          longident_of_list acc
+  in
+  (* Collect [m1#m2# ... #mp] *)
+  let rec loop_methods acc tokens =
+    match tokens with
+      | (Lident, _, _, meth) :: (Symbol, _, _, "#") :: tokens ->
+          loop_methods (meth :: acc) tokens
+      | (Lident, _, _, id) :: tokens ->
+          Some (loop_uidents [id] tokens, acc)
+      | _ ->
+          None
+  in
+  match tokens with
+    | (Lident, start, _, meth) :: (Symbol, _, _, "#") :: tokens -> begin
+        match loop_methods [] tokens with
+          | None -> None
+          | Some (path, meths) -> Some (path, meths, start, meth)
+      end
+    | (Symbol, _, stop, "#") :: tokens
+    | (Blanks, _, stop, _) :: (Symbol, _, _, "#") :: tokens -> begin
+        match loop_methods [] tokens with
+          | None -> None
+          | Some (path, meths) -> Some (path, meths, stop, "")
+      end
+    | _ ->
+        None
+
+type label_kind = Required | Optional
+    (* Kind of labels: required or optional. *)
+
+type fun_or_new = Fun | New
+    (* Either a function application, either an object creation. *)
+
+(* Parse something of the form [M1.M2. ... .Mn.id#m1#m2# ... #mp expr1 ... exprq ~label]
+   or [new M1.M2. ... .Mn.id expr1 ... exprq ~label] *)
+let parse_label tokens =
+  (* Collect [M1.M2. ... .Mn] *)
+  let rec loop_uidents acc_uidents acc_methods tokens =
+    match tokens with
+      | (Lident, _, _, "new") :: _ ->
+          Some (New, longident_of_list acc_uidents, acc_methods)
+      | ((Lident | Uident), _, _, id) :: _ when String_set.mem id !UTop.keywords ->
+          Some (Fun, longident_of_list acc_uidents, acc_methods)
+      | (Symbol, _, _, ".") :: (Uident, _, _, id) :: tokens ->
+          loop_uidents (id :: acc_uidents) acc_methods tokens
+      | (Symbol, _, _, ("~" | "?" | ":" | "." | "#")) :: tokens ->
+          search tokens
+      | (Symbol, _, _, ")") :: tokens ->
+          skip tokens "(" []
+      | (Symbol, _, _, "}") :: tokens ->
+          skip tokens "{" []
+      | (Symbol, _, _, "]") :: tokens ->
+          skip tokens "[" []
+      | (Symbol, _, _, _) :: _ ->
+          Some (Fun, longident_of_list acc_uidents, acc_methods)
+      | _ :: tokens ->
+          search tokens
+      | [] ->
+          Some (Fun, longident_of_list acc_uidents, acc_methods)
+  and loop_methods acc tokens =
+    match tokens with
+      | ((Lident | Uident), _, _, id) :: _ when String_set.mem id !UTop.keywords ->
+          None
+      | (Symbol, _, _, ("~" | "?" | ":" | "." | "#")) :: tokens ->
+          search tokens
+      | (Symbol, _, _, ")") :: tokens ->
+          skip tokens "(" []
+      | (Symbol, _, _, "}") :: tokens ->
+          skip tokens "{" []
+      | (Symbol, _, _, "]") :: tokens ->
+          skip tokens "[" []
+      | (Symbol, _, _, _) :: _ ->
+          None
+      | (Lident, _, _, id) :: (Symbol, _, _, "#") :: tokens ->
+          loop_methods (id :: acc) tokens
+      | (Lident, _, _, id) :: tokens ->
+          loop_uidents [id] acc tokens
+      | _ :: tokens ->
+          search tokens
+      | [] ->
+          None
+  and search tokens =
+    match tokens with
+      | ((Lident | Uident), _, _, id) :: _ when String_set.mem id !UTop.keywords ->
+          None
+      | (Symbol, _, _, ("~" | "?" | ":" | "." | "#")) :: tokens ->
+          search tokens
+      | (Symbol, _, _, ")") :: tokens ->
+          skip tokens "(" []
+      | (Symbol, _, _, "}") :: tokens ->
+          skip tokens "{" []
+      | (Symbol, _, _, "]") :: tokens ->
+          skip tokens "[" []
+      | (Symbol, _, _, _) :: _ ->
+          None
+      | (Lident, _, _, id) :: (Symbol, _, _, "#") :: tokens ->
+          loop_methods [id] tokens
+      | (Lident, _, _, id) :: tokens ->
+          loop_uidents [id] [] tokens
+      | _ :: tokens ->
+          search tokens
+      | [] ->
+          None
+  and skip tokens top stack =
+    match tokens with
+      | (Symbol, _, _, symbol) :: tokens when symbol = top -> begin
+          match stack with
+            | [] -> search tokens
+            | top :: stack -> skip tokens top stack
+        end
+      | (Symbol, _, _, ")") :: tokens ->
+          skip tokens "(" (top :: stack)
+      | (Symbol, _, _, "}") :: tokens ->
+          skip tokens "{" (top :: stack)
+      | (Symbol, _, _, "]") :: tokens ->
+          skip tokens "[" (top :: stack)
+      | _ :: tokens ->
+          skip tokens top stack
+      | [] ->
+          None
+  in
+  match tokens with
+    | (Lident, start, _, label) :: (Symbol, _, _, "~") :: tokens -> begin
+        match search tokens with
+          | None -> None
+          | Some (kind, id, meths) -> Some (kind, id, meths, Required, start, label)
+      end
+    | (Symbol, _, stop, "~") :: tokens -> begin
+        match search tokens with
+          | None -> None
+          | Some (kind, id, meths) -> Some (kind, id, meths, Required, stop, "")
+      end
+    | (Lident, start, _, label) :: (Symbol, _, _, "?") :: tokens -> begin
+        match search tokens with
+          | None -> None
+          | Some (kind, id, meths) -> Some (kind, id, meths, Optional, start, label)
+      end
+    | (Symbol, _, stop, "?") :: tokens -> begin
+        match search tokens with
+          | None -> None
+          | Some (kind, id, meths) -> Some (kind, id, meths, Optional, stop, "")
+      end
+    | _ ->
+        None
+
+(* +-----------------------------------------------------------------+
+   | Directive listing                                               |
+   +-----------------------------------------------------------------+ *)
+
+let list_directives () =
   String_map.bindings
     (Hashtbl.fold
        (fun dir kind map ->
@@ -50,7 +259,7 @@ let get_directives () =
        String_map.empty)
 
 (* +-----------------------------------------------------------------+
-   | Files                                                           |
+   | File listing                                                    |
    +-----------------------------------------------------------------+ *)
 
 type file_kind = Directory | File
@@ -88,64 +297,40 @@ let list_directories dir =
        (try Sys.readdir (if dir = "" then Filename.current_dir_name else dir) with Sys_error _ -> [||]))
 
 (* +-----------------------------------------------------------------+
-   | Identifiers                                                     |
+   | Names listing                                                   |
    +-----------------------------------------------------------------+ *)
 
-type path_kind = Value | Record
+module Path_map = Map.Make(struct type t = Path.t let compare = compare end)
+module Longident_map = Map.Make(struct type t = Longident.t let compare = compare end)
 
-let rec get_path acc tokens =
-  match tokens with
-    | (Symbol, _, _, ".") :: (Uident, _, _, id) :: tokens ->
-        get_path (id :: acc) tokens
-    | (Symbol, _, _, ".") :: (Lident, _, _, id) :: tokens ->
-        (Record, acc)
-    | _ ->
-        (Value, acc)
+(* All names accessible without a path. *)
+let global_names = ref (lazy String_set.empty)
 
-let rec get_ident tokens =
-  match tokens with
-    | ((Comment false | Doc false | String false | Quotation false), _, _, _) :: _ ->
-        None
-    | ((Uident | Lident), start, _, id) :: tokens ->
-        let kind, path = get_path [] tokens in
-        Some (kind, path, id, start)
-    | (Blanks, _, stop, _) :: tokens ->
-        let kind, path = get_path [] tokens in
-        Some (kind, path, "", stop)
-    | (_, _, stop, _) :: _ ->
-        let kind, path = get_path [] tokens in
-        Some (kind, path, "", stop)
-    | [] ->
-        None
+(* All names accessible with a path, by path. *)
+let local_names_by_path = ref Path_map.empty
 
-type path =
-  | Path of Path.t
-  | Longident of Longident.t
+(* All names accessible with a path, by long identifier. *)
+let local_names_by_longident = ref Longident_map.empty
 
-module Path_map = Map.Make(struct type t = path let compare = compare end)
+(* All record fields accessible without a path. *)
+let global_fields = ref (lazy String_set.empty)
 
-let global_env = ref (lazy (raise Exit))
-let local_envs = ref Path_map.empty
-let global_fields = ref (lazy (raise Exit))
-let local_fields = ref Path_map.empty
+(* All record fields accessible with a path, by path. *)
+let local_fields_by_path = ref Path_map.empty
 
-(* Returns [acc] plus all modules of [dir] *)
+(* All record fields accessible with a path, by long identifier. *)
+let local_fields_by_longident = ref Longident_map.empty
+
+(* Returns [acc] plus all modules from [dir]. *)
 let add_modules_from_directory acc dir =
-  let acc = ref acc in
-  Array.iter
-    (fun fname ->
+  Array.fold_left
+    (fun acc fname ->
        if Filename.check_suffix fname ".cmi" then
-         acc := String_set.add (String.capitalize (Filename.chop_suffix fname ".cmi")) !acc)
-    (Sys.readdir (if dir = "" then Filename.current_dir_name else dir));
-  !acc
-
-let valid id =
-  id <> "" &&
-    (match id.[0] with
-       | 'A' .. 'Z' | 'a' .. 'z' |  '_' -> true
-       | _ -> false)
-
-let add id set = if valid id then String_set.add id set else set
+         String_set.add (String.capitalize (Filename.chop_suffix fname ".cmi")) acc
+       else
+         acc)
+    acc
+    (Sys.readdir (if dir = "" then Filename.current_dir_name else dir))
 
 let add_fields_of_type decl acc =
   match decl.type_kind with
@@ -165,7 +350,7 @@ let add_names_of_type decl acc =
     | Type_abstract ->
         acc
 
-let rec get_names_of_module_type = function
+let rec names_of_module_type = function
   | Tmty_signature decls ->
       List.fold_left
         (fun acc decl -> match decl with
@@ -182,13 +367,13 @@ let rec get_names_of_module_type = function
   | Tmty_ident path -> begin
       match try Some (Env.find_modtype path !Toploop.toplevel_env) with Not_found -> None with
         | Some Tmodtype_abstract -> String_set.empty
-        | Some Tmodtype_manifest module_type -> get_names_of_module_type module_type
+        | Some Tmodtype_manifest module_type -> names_of_module_type module_type
         | None -> String_set.empty
     end
   | _ ->
       String_set.empty
 
-let rec get_fields_of_module_type = function
+let rec fields_of_module_type = function
   | Tmty_signature decls ->
       List.fold_left
         (fun acc decl -> match decl with
@@ -205,86 +390,106 @@ let rec get_fields_of_module_type = function
   | Tmty_ident path -> begin
       match try Some (Env.find_modtype path !Toploop.toplevel_env) with Not_found -> None with
         | Some Tmodtype_abstract -> String_set.empty
-        | Some Tmodtype_manifest module_type -> get_fields_of_module_type module_type
+        | Some Tmodtype_manifest module_type -> fields_of_module_type module_type
         | None -> String_set.empty
     end
   | _ ->
       String_set.empty
 
-(* List all names of the module with path [path] *)
-let get_names_of_module path =
-  match
-    try
-      match path with
-        | Path path ->
-            Some (Env.find_module path !Toploop.toplevel_env)
-        | Longident ident ->
-            Some (snd (Env.lookup_module ident !Toploop.toplevel_env))
-    with Not_found ->
-      None
-  with
-    | Some module_type -> get_names_of_module_type module_type
-    | None -> String_set.empty
-
-let get_fields_of_module path =
-  match
-    try
-      match path with
-        | Path path ->
-            Some (Env.find_module path !Toploop.toplevel_env)
-        | Longident ident ->
-            Some (snd (Env.lookup_module ident !Toploop.toplevel_env))
-    with Not_found ->
-      None
-  with
-    | Some module_type -> get_fields_of_module_type module_type
-    | None -> String_set.empty
-
-let names_of_module path =
+let names_of_module longident =
   try
-    Path_map.find path !local_envs
+    Longident_map.find longident !local_names_by_longident
   with Not_found ->
-    let names = get_names_of_module path in
-    local_envs := Path_map.add path names !local_envs;
-    names
+    match try Some (Env.lookup_module longident !Toploop.toplevel_env) with Not_found -> None with
+      | Some(path, module_type) ->
+          let names = names_of_module_type module_type in
+          local_names_by_path := Path_map.add path names !local_names_by_path;
+          local_names_by_longident := Longident_map.add longident names !local_names_by_longident;
+          names
+      | None ->
+          local_names_by_longident := Longident_map.add longident String_set.empty !local_names_by_longident;
+          String_set.empty
 
-let fields_of_module path =
+let fields_of_module longident =
   try
-    Path_map.find path !local_fields
+    Longident_map.find longident !local_fields_by_longident
   with Not_found ->
-    let fields = get_fields_of_module path in
-    local_fields := Path_map.add path fields !local_fields;
-    fields
+    match try Some (Env.lookup_module longident !Toploop.toplevel_env) with Not_found -> None with
+      | Some(path, module_type) ->
+          let fields = fields_of_module_type module_type in
+          local_fields_by_path := Path_map.add path fields !local_fields_by_path;
+          local_fields_by_longident := Longident_map.add longident fields !local_fields_by_longident;
+          fields
+      | None ->
+          local_fields_by_longident := Longident_map.add longident String_set.empty !local_fields_by_longident;
+          String_set.empty
 
-(* List all names accessible without a path *)
-let env_names () =
+let list_global_names () =
   let rec loop acc = function
     | Env.Env_empty -> acc
-    | Env.Env_value(summary, id, _) -> loop (add (Ident.name id) acc) summary
-    | Env.Env_type(summary, id, decl) -> loop (add_names_of_type decl (add (Ident.name id) acc)) summary
-    | Env.Env_exception(summary, id, _) -> loop (add (Ident.name id) acc) summary
-    | Env.Env_module(summary, id, _) -> loop (add (Ident.name id) acc) summary
-    | Env.Env_modtype(summary, id, _) -> loop (add (Ident.name id) acc) summary
-    | Env.Env_class(summary, id, _) -> loop (add (Ident.name id) acc) summary
-    | Env.Env_cltype(summary, id, _) -> loop (add (Ident.name id) acc) summary
-    | Env.Env_open(summary, path) -> loop (String_set.union acc (names_of_module (Path path))) summary
+    | Env.Env_value(summary, id, _) ->
+        loop (add (Ident.name id) acc) summary
+    | Env.Env_type(summary, id, decl) ->
+        loop (add_names_of_type decl (add (Ident.name id) acc)) summary
+    | Env.Env_exception(summary, id, _) ->
+        loop (add (Ident.name id) acc) summary
+    | Env.Env_module(summary, id, _) ->
+        loop (add (Ident.name id) acc) summary
+    | Env.Env_modtype(summary, id, _) ->
+        loop (add (Ident.name id) acc) summary
+    | Env.Env_class(summary, id, _) ->
+        loop (add (Ident.name id) acc) summary
+    | Env.Env_cltype(summary, id, _) ->
+        loop (add (Ident.name id) acc) summary
+    | Env.Env_open(summary, path) ->
+        match try Some (Path_map.find path !local_names_by_path) with Not_found -> None with
+          | Some names ->
+              loop (String_set.union acc names) summary
+          | None ->
+              match try Some (Env.find_module path !Toploop.toplevel_env) with Not_found -> None with
+                | Some module_type ->
+                    let names = names_of_module_type module_type in
+                    local_names_by_path := Path_map.add path names !local_names_by_path;
+                    loop (String_set.union acc names) summary
+                | None ->
+                    local_names_by_path := Path_map.add path String_set.empty !local_names_by_path;
+                    loop acc summary
   in
   (* Add names of the environment: *)
   let acc = loop String_set.empty (Env.summary !Toploop.toplevel_env) in
   (* Add accessible modules: *)
   List.fold_left add_modules_from_directory acc !Config.load_path
 
-let env_fields () =
+let list_global_fields () =
   let rec loop acc = function
     | Env.Env_empty -> acc
-    | Env.Env_value(summary, id, _) -> loop acc summary
-    | Env.Env_type(summary, id, decl) -> loop (add_fields_of_type decl acc) summary
-    | Env.Env_exception(summary, id, _) -> loop acc summary
-    | Env.Env_module(summary, id, _) -> loop acc summary
-    | Env.Env_modtype(summary, id, _) -> loop acc summary
-    | Env.Env_class(summary, id, _) -> loop acc summary
-    | Env.Env_cltype(summary, id, _) -> loop acc summary
-    | Env.Env_open(summary, path) -> loop (String_set.union acc (fields_of_module (Path path))) summary
+    | Env.Env_value(summary, id, _) ->
+        loop (add (Ident.name id) acc) summary
+    | Env.Env_type(summary, id, decl) ->
+        loop (add_fields_of_type decl (add (Ident.name id) acc)) summary
+    | Env.Env_exception(summary, id, _) ->
+        loop (add (Ident.name id) acc) summary
+    | Env.Env_module(summary, id, _) ->
+        loop (add (Ident.name id) acc) summary
+    | Env.Env_modtype(summary, id, _) ->
+        loop (add (Ident.name id) acc) summary
+    | Env.Env_class(summary, id, _) ->
+        loop (add (Ident.name id) acc) summary
+    | Env.Env_cltype(summary, id, _) ->
+        loop (add (Ident.name id) acc) summary
+    | Env.Env_open(summary, path) ->
+        match try Some (Path_map.find path !local_fields_by_path) with Not_found -> None with
+          | Some fields ->
+              loop (String_set.union acc fields) summary
+          | None ->
+              match try Some (Env.find_module path !Toploop.toplevel_env) with Not_found -> None with
+                | Some module_type ->
+                    let fields = fields_of_module_type module_type in
+                    local_fields_by_path := Path_map.add path fields !local_fields_by_path;
+                    loop (String_set.union acc fields) summary
+                | None ->
+                    local_fields_by_path := Path_map.add path String_set.empty !local_fields_by_path;
+                    loop acc summary
   in
   (* Add fields of the environment: *)
   let acc = loop String_set.empty (Env.summary !Toploop.toplevel_env) in
@@ -292,152 +497,16 @@ let env_fields () =
   List.fold_left add_modules_from_directory acc !Config.load_path
 
 let reset () =
-  global_env := lazy(env_names ());
-  local_envs := Path_map.empty;
-  global_fields := lazy (env_fields ());
-  local_fields := Path_map.empty
+  global_names := Lazy.lazy_from_fun list_global_names;
+  local_names_by_path := Path_map.empty;
+  local_names_by_longident := Longident_map.empty;
+  global_fields := Lazy.lazy_from_fun list_global_fields;
+  local_fields_by_path := Path_map.empty;
+  local_fields_by_longident := Longident_map.empty
 
 (* +-----------------------------------------------------------------+
-   | Labels                                                          |
+   | Listing methods                                                 |
    +-----------------------------------------------------------------+ *)
-
-type label_kind = Req | Opt
-
-let rec get_label_func acc tokens =
-  match tokens with
-    | (Symbol, _, _, ".") :: (Uident, _, _, id) :: tokens when acc <> [] ->
-        get_label_func (id :: acc) tokens
-    | (Symbol, _, _, ("~" | "?" | ":" | "." | "#")) :: tokens ->
-        get_label_func [] tokens
-    | (Symbol, _, _, ")") :: tokens ->
-        get_label_skip tokens "(" []
-    | (Symbol, _, _, "}") :: tokens ->
-        get_label_skip tokens "{" []
-    | (Symbol, _, _, "]") :: tokens ->
-        get_label_skip tokens "[" []
-    | (Symbol, _, _, _) :: _ ->
-        acc
-    | ((Lident | Uident), _, _, id) :: _ when String_set.mem id !UTop.keywords ->
-        acc
-    | (Lident, _, _, id) :: tokens ->
-        get_label_func [id] tokens
-    | _ :: tokens ->
-        get_label_func [] tokens
-    | [] ->
-        acc
-
-and get_label_skip tokens top stack =
-  match tokens with
-    | (Symbol, _, _, symbol) :: tokens when symbol = top -> begin
-        match stack with
-          | [] -> get_label_func [] tokens
-          | top :: stack -> get_label_skip tokens top stack
-      end
-    | (Symbol, _, _, ")") :: tokens ->
-        get_label_skip tokens "(" (top :: stack)
-    | (Symbol, _, _, "}") :: tokens ->
-        get_label_skip tokens "{" (top :: stack)
-    | (Symbol, _, _, "]") :: tokens ->
-        get_label_skip tokens "[" (top :: stack)
-    | _ :: tokens ->
-        get_label_skip tokens top stack
-    | [] ->
-        []
-
-let get_label tokens =
-  match tokens with
-    | (Lident, start, _, id) :: (Symbol, _, _, "~") :: tokens -> begin
-        match get_label_func [] tokens with
-          | [] -> None
-          | path -> Some (path, Req, start, id)
-      end
-    | (Symbol, _, stop, "~") :: tokens -> begin
-        match get_label_func [] tokens with
-          | [] -> None
-          | path -> Some (path, Req, stop, "")
-      end
-    | (Lident, start, _, id) :: (Symbol, _, _, "?") :: tokens -> begin
-        match get_label_func [] tokens with
-          | [] -> None
-          | path -> Some (path, Opt, start, id)
-      end
-    | (Symbol, _, stop, "?") :: tokens -> begin
-        match get_label_func [] tokens with
-          | [] -> None
-          | path -> Some (path, Opt, stop, "")
-      end
-    | _ ->
-        None
-
-let rec labels_of_type acc type_expr =
-  match type_expr.desc with
-    | Tlink te ->
-        labels_of_type acc te
-    | Tarrow(label, _, te, _) ->
-        if label = "" then
-          labels_of_type acc te
-        else if label.[0] = '?' then
-          labels_of_type (String_map.add (String.sub label 1 (String.length label - 1)) Opt acc) te
-        else
-          labels_of_type (String_map.add label Req acc) te
-    | Tconstr(path, _, _) -> begin
-        match try Some (Env.find_type path !Toploop.toplevel_env) with Not_found -> None with
-          | None
-          | Some { type_manifest = None } ->
-              String_map.bindings acc
-          | Some { type_manifest = Some type_expr } ->
-              labels_of_type acc type_expr
-      end
-    | _ ->
-        String_map.bindings acc
-
-let labels_of_function path =
-  let longident = longident_of_list path in
-  match try Some (Env.lookup_value longident !Toploop.toplevel_env) with Not_found -> None with
-    | None ->
-        []
-    | Some (path, { val_type = type_expr }) ->
-        labels_of_type String_map.empty type_expr
-
-(* +-----------------------------------------------------------------+
-   | Methods                                                         |
-   +-----------------------------------------------------------------+ *)
-
-let rec get_path acc tokens =
-  match tokens with
-    | (Symbol, _, _, ".") :: (Uident, _, _, id) :: tokens ->
-        get_path (id :: acc) tokens
-    | _ ->
-        acc
-
-let rec get_methods acc tokens =
-  match tokens with
-    | (Lident, _, _, meth) :: (Symbol, _, _, "#") :: tokens ->
-        get_methods (meth :: acc) tokens
-    | (Lident, _, _, id) :: tokens ->
-        Some (get_path [id] tokens, acc)
-    | _ ->
-        None
-
-let get_method tokens =
-  match tokens with
-    | (Lident, start, _, meth) :: (Symbol, _, _, "#") :: tokens -> begin
-        match get_methods [] tokens with
-          | Some (path, meths) ->
-              Some (path, meths, start, meth)
-          | None ->
-              None
-      end
-    | (Symbol, _, stop, "#") :: tokens
-    | (Blanks, _, stop, _) :: (Symbol, _, _, "#") :: tokens -> begin
-        match get_methods [] tokens with
-          | Some (path, meths) ->
-              Some (path, meths, stop, "")
-          | None ->
-              None
-      end
-    | _ ->
-        None
 
 let rec find_method meth type_expr =
   match type_expr.desc with
@@ -484,28 +553,75 @@ let rec methods_of_type acc type_expr =
     | _ ->
         acc
 
-let rec get_object meths type_expr =
+let rec find_object meths type_expr =
   match meths with
     | [] ->
         Some type_expr
     | meth :: meths ->
         match find_method meth type_expr with
           | Some type_expr ->
-              get_object meths type_expr
+              find_object meths type_expr
           | None ->
               None
 
-let methods_of_object path meths =
-  let longident = longident_of_list path in
+let methods_of_object longident meths =
   match try Some (Env.lookup_value longident !Toploop.toplevel_env) with Not_found -> None with
     | None ->
         []
     | Some (path, { val_type = type_expr }) ->
-        match get_object meths type_expr with
+        match find_object meths type_expr with
           | None ->
               []
           | Some type_expr ->
               String_set.elements (methods_of_type String_set.empty type_expr)
+
+(* +-----------------------------------------------------------------+
+   | Listing labels                                                  |
+   +-----------------------------------------------------------------+ *)
+
+let rec labels_of_type acc type_expr =
+  match type_expr.desc with
+    | Tlink te ->
+        labels_of_type acc te
+    | Tpoly (te, _) ->
+        labels_of_type acc te
+    | Tarrow(label, _, te, _) ->
+        if label = "" then
+          labels_of_type acc te
+        else if label.[0] = '?' then
+          labels_of_type (String_map.add (String.sub label 1 (String.length label - 1)) Optional acc) te
+        else
+          labels_of_type (String_map.add label Required acc) te
+    | Tconstr(path, _, _) -> begin
+        match try Some (Env.find_type path !Toploop.toplevel_env) with Not_found -> None with
+          | None
+          | Some { type_manifest = None } ->
+              String_map.bindings acc
+          | Some { type_manifest = Some type_expr } ->
+              labels_of_type acc type_expr
+      end
+    | _ ->
+        String_map.bindings acc
+
+let labels_of_function longident meths =
+  match try Some (Env.lookup_value longident !Toploop.toplevel_env) with Not_found -> None with
+    | None ->
+        []
+    | Some (path, { val_type = type_expr }) ->
+        match find_object meths type_expr with
+          | None ->
+              []
+          | Some type_expr ->
+              labels_of_type String_map.empty type_expr
+
+let labels_of_newclass longident =
+  match try Some (Env.lookup_class longident !Toploop.toplevel_env) with Not_found -> None with
+    | None ->
+        []
+    | Some (path, { cty_new = None }) ->
+        []
+    | Some (path, { cty_new = Some type_expr }) ->
+        labels_of_type String_map.empty type_expr
 
 (* +-----------------------------------------------------------------+
    | Filtering                                                       |
@@ -532,9 +648,9 @@ let complete str =
     (* Completion on directive names. *)
     | [(Symbol, _, stop, "#")]
     | [(Symbol, _, _, "#"); (Blanks, _, stop, _)] ->
-        (stop, get_directives ())
+        (stop, list_directives ())
     | [(Symbol, _, _, "#"); ((Lident | Uident), start, _, src)] ->
-        (start, lookup_assoc src (get_directives ()))
+        (start, lookup_assoc src (list_directives ()))
 
     (* Complete with ";;" when possible. *)
     | [(Symbol, _, _, "#"); ((Lident | Uident), _, _, _); (String true, _, stop, _)]
@@ -626,27 +742,31 @@ let complete str =
 
     (* Completion on identifiers. *)
     | [] ->
-        (0, List.map (fun w -> (w, "")) (String_set.elements (String_set.union !UTop.keywords (Lazy.force !global_env))))
+        (0, List.map (fun w -> (w, "")) (String_set.elements (String_set.union !UTop.keywords (Lazy.force !global_names))))
     | _ ->
         let tokens = List.rev tokens in
-        match get_method tokens with
-          | Some (path, meths, start, meth) ->
-              (start, List.map (fun w -> (w, "")) (lookup meth (methods_of_object path meths)))
+        match parse_method tokens with
+          | Some (longident, meths, start, meth) ->
+              (start, List.map (fun w -> (w, "")) (lookup meth (methods_of_object longident meths)))
           | None ->
-              match get_label tokens with
-                | Some (path, Opt, start, label) ->
-                    (start, List.map (fun (w, kind) -> (w, ":")) (lookup_assoc label (List.filter (function (w, Opt) -> true | (w, Req) -> false) (labels_of_function path))))
-                | Some (path, Req, start, label) ->
-                    (start, List.map (fun (w, kind) -> (w, ":")) (lookup_assoc label (labels_of_function path)))
+              match parse_label tokens with
+                | Some (Fun, longident, meths, Optional, start, label) ->
+                    (start, List.map (fun (w, kind) -> (w, ":")) (lookup_assoc label (List.filter (function (w, Optional) -> true | (w, Required) -> false) (labels_of_function longident meths))))
+                | Some (Fun, longident, meths, Required, start, label) ->
+                    (start, List.map (fun (w, kind) -> (w, ":")) (lookup_assoc label (labels_of_function longident meths)))
+                | Some (New, longident, meths, Optional, start, label) ->
+                    (start, List.map (fun (w, kind) -> (w, ":")) (lookup_assoc label (List.filter (function (w, Optional) -> true | (w, Required) -> false) (labels_of_newclass longident))))
+                | Some (New, longident, meths, Required, start, label) ->
+                    (start, List.map (fun (w, kind) -> (w, ":")) (lookup_assoc label (labels_of_newclass longident)))
                 | None ->
-                    match get_ident tokens with
+                    match parse_longident tokens with
                       | None ->
                           (0, [])
-                      | Some (Value, [], id, start) ->
-                          (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (String_set.union !UTop.keywords (Lazy.force !global_env)))))
-                      | Some (Value, path, id, start) ->
-                          (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (names_of_module (Longident (longident_of_list path))))))
-                      | Some (Record, [], id, start) ->
+                      | Some (Value, None, start, id) ->
+                          (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (String_set.union !UTop.keywords (Lazy.force !global_names)))))
+                      | Some (Value, Some longident, start, id) ->
+                          (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (names_of_module longident))))
+                      | Some (Field, None, start, id) ->
                           (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (Lazy.force !global_fields))))
-                      | Some (Record, path, id, start) ->
-                          (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (fields_of_module (Longident (longident_of_list path))))))
+                      | Some (Field, Some longident, start, id) ->
+                          (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (fields_of_module longident))))
