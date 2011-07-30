@@ -76,23 +76,28 @@ let list_directories dir =
    | Identifiers                                                     |
    +-----------------------------------------------------------------+ *)
 
-let rec get_ident acc tokens =
+let rec get_path acc tokens =
   match tokens with
-    | [(Uident, _, _, id); (Symbol, _, stop, ".")]
-    | [(Uident, _, _, id); (Symbol, _, _, "."); (Blanks, _, stop, _)] ->
-        Some (List.rev (id :: acc) , "", stop)
-    | (Uident, _, _, id) :: (Symbol, _, _, ".") :: rest ->
-        get_ident (id :: acc) rest
-    | [((Uident | Lident), start, _, id)] ->
-        Some (List.rev acc, id, start)
-    | [((Comment false | Doc false | String false | Quotation false), _, _, _)] ->
+    | (Symbol, _, _, ".") :: (Uident, _, _, id) :: tokens ->
+        get_path (id :: acc) tokens
+    | _ ->
+        acc
+
+let rec get_ident tokens =
+  match tokens with
+    | ((Comment false | Doc false | String false | Quotation false), _, _, _) :: _ ->
         None
-    | [(_, _, stop, _)] ->
-        Some ([], "", stop)
+    | ((Uident | Lident), start, _, id) :: tokens ->
+        let path = get_path [] tokens in
+        Some (path, id, start)
+    | (Blanks, _, stop, _) :: tokens ->
+        let path = get_path [] tokens in
+        Some (path, "", stop)
+    | (_, _, stop, _) :: _ ->
+        let path = get_path [] tokens in
+        Some (path, "", stop)
     | [] ->
         None
-    | _  :: rest ->
-        get_ident [] rest
 
 type path =
   | Path of Path.t
@@ -208,6 +213,108 @@ let make_path l =
 let reset () =
   global_env := lazy(env_names ());
   local_envs := Path_map.empty
+
+(* +-----------------------------------------------------------------+
+   | Labels                                                          |
+   +-----------------------------------------------------------------+ *)
+
+type label_kind = Req | Opt
+
+let rec get_label_func acc tokens =
+  match tokens with
+    | (Symbol, _, _, ".") :: (Uident, _, _, id) :: tokens when acc <> [] ->
+        get_label_func (id :: acc) tokens
+    | (Symbol, _, _, ("~" | "?" | ":" | ".")) :: tokens ->
+        get_label_func [] tokens
+    | (Symbol, _, _, ")") :: tokens ->
+        get_label_skip tokens "(" []
+    | (Symbol, _, _, "}") :: tokens ->
+        get_label_skip tokens "{" []
+    | (Symbol, _, _, "]") :: tokens ->
+        get_label_skip tokens "[" []
+    | (Symbol, _, _, _) :: _ ->
+        acc
+    | ((Lident | Uident), _, _, id) :: _ when String_set.mem id !UTop.keywords ->
+        acc
+    | (Lident, _, _, id) :: tokens ->
+        get_label_func [id] tokens
+    | _ :: tokens ->
+        get_label_func [] tokens
+    | [] ->
+        acc
+
+and get_label_skip tokens top stack =
+  match tokens with
+    | (Symbol, _, _, symbol) :: tokens when symbol = top -> begin
+        match stack with
+          | [] -> get_label_func [] tokens
+          | top :: stack -> get_label_skip tokens top stack
+      end
+    | (Symbol, _, _, ")") :: tokens ->
+        get_label_skip tokens "(" (top :: stack)
+    | (Symbol, _, _, "}") :: tokens ->
+        get_label_skip tokens "{" (top :: stack)
+    | (Symbol, _, _, "]") :: tokens ->
+        get_label_skip tokens "[" (top :: stack)
+    | _ :: tokens ->
+        get_label_skip tokens top stack
+    | [] ->
+        []
+
+let get_label tokens =
+  match tokens with
+    | (Lident, start, _, id) :: (Symbol, _, _, "~") :: tokens -> begin
+        match get_label_func [] tokens with
+          | [] -> None
+          | path -> Some (path, Req, start, id)
+      end
+    | (Symbol, _, stop, "~") :: tokens -> begin
+        match get_label_func [] tokens with
+          | [] -> None
+          | path -> Some (path, Req, stop, "")
+      end
+    | (Lident, start, _, id) :: (Symbol, _, _, "?") :: tokens -> begin
+        match get_label_func [] tokens with
+          | [] -> None
+          | path -> Some (path, Opt, start, id)
+      end
+    | (Symbol, _, stop, "?") :: tokens -> begin
+        match get_label_func [] tokens with
+          | [] -> None
+          | path -> Some (path, Opt, stop, "")
+      end
+    | _ ->
+        None
+
+let rec labels_of_type acc type_expr =
+  match type_expr.desc with
+    | Tlink te ->
+        labels_of_type acc te
+    | Tarrow(label, _, te, _) ->
+        if label = "" then
+          labels_of_type acc te
+        else if label.[0] = '?' then
+          labels_of_type (String_map.add (String.sub label 1 (String.length label - 1)) Opt acc) te
+        else
+          labels_of_type (String_map.add label Req acc) te
+    | _ ->
+        String_map.bindings acc
+
+let labels_of_function path =
+  match path with
+    | [] ->
+        invalid_arg "UTop_complete.labels_of_function"
+    | component :: path ->
+        let rec loop acc = function
+          | [] -> acc
+          | component :: rest -> loop (Longident.Ldot(acc, component)) rest
+        in
+        let longident = loop (Longident.Lident component) path in
+        match try Some (Env.lookup_value longident !Toploop.toplevel_env) with Not_found -> None with
+          | None ->
+              []
+          | Some (path, { val_type = type_expr }) ->
+              labels_of_type String_map.empty type_expr
 
 (* +-----------------------------------------------------------------+
    | Filtering                                                       |
@@ -330,10 +437,17 @@ let complete str =
     | [] ->
         (0, List.map (fun w -> (w, "")) (String_set.elements (String_set.union !UTop.keywords (Lazy.force !global_env))))
     | _ ->
-        match get_ident [] tokens with
+        let tokens = List.rev tokens in
+        match get_label tokens with
+          | Some (path, Opt, start, label) ->
+              (start, List.map (fun (w, kind) -> (w, ":")) (lookup_assoc label (List.filter (function (w, Opt) -> true | (w, Req) -> false) (labels_of_function path))))
+          | Some (path, Req, start, label) ->
+              (start, List.map (fun (w, kind) -> (w, ":")) (lookup_assoc label (labels_of_function path)))
           | None ->
-              (0, [])
-          | Some ([], id, start) ->
-              (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (String_set.union !UTop.keywords (Lazy.force !global_env)))))
-          | Some (path, id, start) ->
-              (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (names_of_module (make_path path)))))
+              match get_ident tokens with
+                | None ->
+                    (0, [])
+                | Some ([], id, start) ->
+                    (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (String_set.union !UTop.keywords (Lazy.force !global_env)))))
+                | Some (path, id, start) ->
+                    (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (names_of_module (make_path path)))))
