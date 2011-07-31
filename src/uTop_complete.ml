@@ -150,10 +150,10 @@ let parse_label tokens =
           skip tokens "[" []
       | (Symbol, _, _, _) :: _ ->
           Some (Fun, longident_of_list acc_uidents, acc_methods)
-      | _ :: tokens ->
-          search tokens
       | [] ->
           Some (Fun, longident_of_list acc_uidents, acc_methods)
+      | _ ->
+          search tokens
   and loop_methods acc tokens =
     match tokens with
       | ((Lident | Uident), _, _, id) :: _ when String_set.mem id !UTop.keywords ->
@@ -172,10 +172,10 @@ let parse_label tokens =
           loop_methods (id :: acc) tokens
       | (Lident, _, _, id) :: tokens ->
           loop_uidents [id] acc tokens
-      | _ :: tokens ->
-          search tokens
       | [] ->
           None
+      | _ ->
+          search tokens
   and search tokens =
     match tokens with
       | ((Lident | Uident), _, _, id) :: _ when String_set.mem id !UTop.keywords ->
