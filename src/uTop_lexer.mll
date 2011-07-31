@@ -16,10 +16,9 @@
 let uchar = ['\x00' - '\x7f'] | _ [ '\x80' - '\xbf' ]*
 
 let blank = [' ' '\009' '\012']
-let lowercase = ['a'-'z' '\223'-'\246' '\248'-'\255' '_']
-let uppercase = ['A'-'Z' '\192'-'\214' '\216'-'\222']
-let identchar =
-  ['A'-'Z' 'a'-'z' '_' '\192'-'\214' '\216'-'\246' '\248'-'\255' '\'' '0'-'9']
+let lowercase = ['a'-'z' '_']
+let uppercase = ['A'-'Z']
+let identchar = ['A'-'Z' 'a'-'z' '_' '\'' '0'-'9']
 let ident = (lowercase|uppercase) identchar*
 let locname = ident
 let not_star_symbolchar =
