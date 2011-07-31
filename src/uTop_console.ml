@@ -303,9 +303,10 @@ let rec read_input term prompt buffer len =
 
       (* Read interactively user input. *)
       let txt = Lwt_main.run (
-        lwt txt = (new read_line ~term ~prompt:prompt_to_display)#run in
-        lwt () = LTerm.flush term in
-        return txt
+        try_lwt
+          (new read_line ~term ~prompt:prompt_to_display)#run
+        finally
+          LTerm.flush term
       ) in
 
       pending := Some (match !pending with
