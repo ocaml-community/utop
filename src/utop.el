@@ -236,6 +236,9 @@ non-sticky mode."
       (setq utop-history-next nil)
       ;; Insert the last prompt
       (utop-insert-prompt utop-last-prompt))
+     ;; Complete with a word
+     ((string= command "completion-word")
+      (insert argument))
      ;; Start of completion
      ((string= command "completion-start")
       (setq utop-completion nil))

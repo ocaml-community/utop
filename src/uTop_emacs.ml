@@ -136,9 +136,16 @@ and process prompt buffer length command argument =
     | "complete" ->
         let input = read_data ~final_newline:false () in
         let start, words = UTop_complete.complete input in
-        send "completion-start" "";
-        List.iter (fun (word, suffix) -> send "completion" word) words;
-        send "completion-stop" "";
+        let words = List.map fst words in
+        let prefix = LTerm_read_line.common_prefix words in
+        let index = String.length input - start in
+        let suffix = String.sub prefix index (String.length prefix - index) in
+        if suffix = "" then begin
+          send "completion-start" "";
+          List.iter (fun word -> send "completion" word) words;
+          send "completion-stop" "";
+        end else
+          send "completion-word" suffix;
         loop prompt buffer length
     | command ->
         Printf.ksprintf (send "stderr") "unrecognized command %S!" command;
