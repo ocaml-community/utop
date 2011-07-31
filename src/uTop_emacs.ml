@@ -139,7 +139,12 @@ and process prompt buffer length command argument =
         let words = List.map fst words in
         let prefix = LTerm_read_line.common_prefix words in
         let index = String.length input - start in
-        let suffix = String.sub prefix index (String.length prefix - index) in
+        let suffix =
+          if index > 0 && index <= String.length prefix then
+            String.sub prefix index (String.length prefix - index)
+          else
+            ""
+        in
         if suffix = "" then begin
           send "completion-start" "";
           List.iter (fun word -> send "completion" word) words;
