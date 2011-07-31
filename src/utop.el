@@ -103,6 +103,10 @@ This hook is only run if exiting actually kills the buffer."
 (defvar utop-completion nil
   "Current completion.")
 
+(defvar utop-move-to-end-of-buffer nil
+  "Whether to move the point to the end of prompt after
+displaying the prompt")
+
 ;; +-----------------------------------------------------------------+
 ;; | Utils                                                           |
 ;; +-----------------------------------------------------------------+
@@ -228,7 +232,17 @@ non-sticky mode."
         ;; Insert the new prompt
         (utop-insert-prompt prompt)
         ;; Increment the command number
-        (setq utop-command-number (+ utop-command-number 1))))
+        (setq utop-command-number (+ utop-command-number 1))
+        ;; Move the point to the end of buffer in all utop windows if
+        ;; needed
+        (when utop-move-to-end-of-buffer
+          (setq utop-move-to-end-of-buffer nil)
+          (let ((buffer (current-buffer)))
+            (walk-windows
+             (lambda (window)
+               (when (eq (window-buffer window) buffer)
+                 (select-window window)
+                 (goto-char (point-max)))))))))
      ;; Continuation of previous input
      ((string= command "continue")
       ;; Reset history
@@ -366,6 +380,16 @@ sub-process."
       ;; Insert it at the end of the utop buffer
       (goto-char (point-max))
       (insert text ";;")
+      ;; Move the point to the end of buffer in all utop windows
+      (let ((buffer (current-buffer)))
+        (walk-windows
+         (lambda (window)
+           (when (eq (window-buffer window) buffer)
+             (select-window window)
+             (goto-char (point-max))))))
+      ;; Make sure the cursor is after the prompt when the prompt
+      ;; reappear
+      (setq utop-move-to-end-of-buffer t)
       ;; Send input to utop now
       (utop-send-input))))
 
