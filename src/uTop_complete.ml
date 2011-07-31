@@ -140,7 +140,7 @@ let parse_label tokens =
           Some (Fun, longident_of_list acc_uidents, acc_methods)
       | (Symbol, _, _, ".") :: (Uident, _, _, id) :: tokens ->
           loop_uidents (id :: acc_uidents) acc_methods tokens
-      | (Symbol, _, _, ("~" | "?" | ":" | "." | "#")) :: tokens ->
+      | (Symbol, _, _, ("~" | "?" | ":" | "." | "#" | "!")) :: tokens ->
           search tokens
       | (Symbol, _, _, ")") :: tokens ->
           skip tokens "(" []
@@ -158,7 +158,7 @@ let parse_label tokens =
     match tokens with
       | ((Lident | Uident), _, _, id) :: _ when String_set.mem id !UTop.keywords ->
           None
-      | (Symbol, _, _, ("~" | "?" | ":" | "." | "#")) :: tokens ->
+      | (Symbol, _, _, ("~" | "?" | ":" | "." | "#" | "!")) :: tokens ->
           search tokens
       | (Symbol, _, _, ")") :: tokens ->
           skip tokens "(" []
@@ -180,7 +180,7 @@ let parse_label tokens =
     match tokens with
       | ((Lident | Uident), _, _, id) :: _ when String_set.mem id !UTop.keywords ->
           None
-      | (Symbol, _, _, ("~" | "?" | ":" | "." | "#")) :: tokens ->
+      | (Symbol, _, _, ("~" | "?" | ":" | "." | "#" | "!")) :: tokens ->
           search tokens
       | (Symbol, _, _, ")") :: tokens ->
           skip tokens "(" []
