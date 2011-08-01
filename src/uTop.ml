@@ -68,7 +68,8 @@ let prompt_comment = ref (S.const [|(UChar.of_char '*', { none with foreground =
    | Help                                                            |
    +-----------------------------------------------------------------+ *)
 
-module Key_map = Map.Make(struct type t = LTerm_key.t let compare = compare end)
+module Bindings = Zed_input.Make (LTerm_key)
+module Keys_map = Map.Make (struct type t = LTerm_key.t list let compare = compare end)
 
 let () =
   Hashtbl.add Toploop.directive_table "utop_help"
@@ -82,14 +83,36 @@ let () =
   Hashtbl.add Toploop.directive_table "utop_bindings"
     (Toploop.Directive_none
        (fun () ->
-          let make_line key action =
-            (LTerm_key.to_string_compact key,
-             LTerm_read_line.name_of_action action,
-             LTerm_read_line.doc_of_action action)
+          let make_lines keys actions acc =
+            match actions with
+              | [] ->
+                  (String.concat " " (List.map LTerm_key.to_string_compact keys),
+                   "",
+                   "does nothing")
+                  :: acc
+              | action :: actions ->
+                  let rec loop actions acc =
+                    match actions with
+                      | [] ->
+                          acc
+                      | action :: actions ->
+                          loop
+                            actions
+                            (("",
+                              LTerm_read_line.name_of_action action,
+                              LTerm_read_line.doc_of_action action)
+                             :: acc)
+                  in
+                  loop
+                    actions
+                    ((String.concat " " (List.map LTerm_key.to_string_compact keys),
+                      LTerm_read_line.name_of_action action,
+                      LTerm_read_line.doc_of_action action)
+                     :: acc)
           in
-          let bindings = Hashtbl.fold (fun key action map -> Key_map.add key (LTerm_read_line.Edit action) map) LTerm_edit.bindings Key_map.empty in
-          let bindings = Hashtbl.fold Key_map.add LTerm_read_line.bindings bindings in
-          let table = Key_map.fold (fun key action acc -> make_line key action :: acc) bindings [] in
+          let bindings = Bindings.fold (fun key actions map -> Keys_map.add key (List.map (fun action -> (LTerm_read_line.Edit action)) actions) map) !LTerm_edit.bindings Keys_map.empty in
+          let bindings = Bindings.fold Keys_map.add !LTerm_read_line.bindings bindings in
+          let table = List.rev (Keys_map.fold (fun keys action acc -> make_lines keys action acc) bindings []) in
           let size_key, size_name, size_doc =
             List.fold_left
               (fun (size_key, size_name, size_doc) (key, name, doc) ->
