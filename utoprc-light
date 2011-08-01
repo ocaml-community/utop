@@ -2,6 +2,7 @@
 
 ! Copy this file to ~/.utoprc
 
+profile:                  light
 identifier.foreground:    none
 comment.foreground:       x-firebrick
 doc.foreground:           x-rosybrown
@@ -12,4 +13,4 @@ string.foreground:        x-rosybrown
 char.foreground:          x-rosybrown
 quotation.foreground:     x-purple
 error.foreground:         x-red
-parenthesis.background:   blue
+parenthesis.background:   lblue

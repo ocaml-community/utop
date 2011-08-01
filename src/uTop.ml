@@ -36,30 +36,40 @@ let add_keyword kwd = keywords := String_set.add kwd !keywords
    | Prompts                                                         |
    +-----------------------------------------------------------------+ *)
 
+type profile = Dark | Light
+
+let profile, set_profile = S.create Dark
+
 let size = UTop_private.size
 
 let count = UTop_private.count
 
-let make_prompt count size recording macro_count =
+let make_prompt profile count size recording macro_count =
   let tm = Unix.localtime (Unix.time ()) in
+  let color dark light =
+    match profile with
+      | Dark -> dark
+      | Light -> light
+  in
+  let bold = profile = Dark in
   let txta =
     eval [
-      B_bold true;
-      B_fg lcyan;
+      B_bold bold;
+      B_fg (color lcyan blue);
       S "─( ";
-      B_fg lmagenta; S (Printf.sprintf "%02d:%02d:%02d" tm.Unix.tm_hour tm.Unix.tm_min tm.Unix.tm_sec); E_fg;
+      B_fg (color lmagenta magenta); S (Printf.sprintf "%02d:%02d:%02d" tm.Unix.tm_hour tm.Unix.tm_min tm.Unix.tm_sec); E_fg;
       S " )─< ";
-      B_fg lyellow; S (Printf.sprintf "command %d" count); E_fg;
+      B_fg (color lyellow yellow); S (Printf.sprintf "command %d" count); E_fg;
       S " >─";
     ]
   in
   let txtb =
     if recording then
       eval [
-        B_bold true;
-        B_fg lcyan;
+        B_bold bold;
+        B_fg (color lcyan blue);
         S "[ ";
-        B_fg lwhite; S (Printf.sprintf "macro: %d" macro_count); E_fg;
+        B_fg (color lwhite black); S (Printf.sprintf "macro: %d" macro_count); E_fg;
         S " ]─";
       ]
     else
@@ -73,15 +83,15 @@ let make_prompt count size recording macro_count =
         txta;
         Array.make
           (size.cols - Array.length txta - Array.length txtb)
-          (UChar.of_int 0x2500, { none with foreground = Some lcyan; bold = Some true });
+          (UChar.of_int 0x2500, { none with foreground = Some (color lcyan blue); bold = Some bold });
         txtb;
       ]
-  ) [|(UChar.of_char '#', { none with foreground = Some lgreen }); (UChar.of_char ' ', none)|]
+  ) [|(UChar.of_char '#', { none with foreground = Some (color lgreen green) }); (UChar.of_char ' ', none)|]
 
-let prompt = ref (S.l4 make_prompt count size (Zed_macro.recording LTerm_read_line.macro_recorder) (Zed_macro.count LTerm_read_line.macro_recorder))
+let prompt = ref (S.l5 make_prompt profile count size (Zed_macro.recording LTerm_read_line.macro_recorder) (Zed_macro.count LTerm_read_line.macro_recorder))
 
-let prompt_continue = ref (S.const [|(UChar.of_char '>', { none with foreground = Some lgreen }); (UChar.of_char ' ', LTerm_style.none)|])
-let prompt_comment = ref (S.const [|(UChar.of_char '*', { none with foreground = Some lgreen }); (UChar.of_char ' ', LTerm_style.none)|])
+let prompt_continue = ref (S.map (fun profile -> [|(UChar.of_char '>', { none with foreground = Some (if profile = Dark then lgreen else green) }); (UChar.of_char ' ', LTerm_style.none)|]) profile)
+let prompt_comment = ref (S.map (fun profile -> [|(UChar.of_char '*', { none with foreground = Some (if profile = Dark then lgreen else green) }); (UChar.of_char ' ', LTerm_style.none)|]) profile)
 
 (* +-----------------------------------------------------------------+
    | Help                                                            |
@@ -94,7 +104,9 @@ let () =
   Hashtbl.add Toploop.directive_table "utop_help"
     (Toploop.Directive_none
        (fun () ->
-          print_endline "You can use the following commands to get more help:
+          print_endline "If colors look too bright, try: UTop.set_profile UTop.Light
+
+You can use the following commands to get more help:
 
 #utop_bindings : list all the current key bindings
 #utop_macro : display the currently recorded macro

@@ -67,6 +67,11 @@ let init_resources () =
     styles.style_blanks <- LTerm_resources.get_style "blanks" res;
     styles.style_error <- LTerm_resources.get_style "error" res;
     styles.style_paren <- LTerm_resources.get_style "parenthesis" res;
+    (match String.lowercase (LTerm_resources.get "profile" res) with
+       | "light" -> UTop.set_profile UTop.Light
+       | "dark" -> UTop.set_profile UTop.Dark
+       | "" -> ()
+       | str -> raise (LTerm_resources.Error (Printf.sprintf "invalid profile %S" str)));
     return ()
   with Unix.Unix_error(Unix.ENOENT, _, _) ->
     return ()

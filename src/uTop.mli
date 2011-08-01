@@ -20,6 +20,16 @@ val add_keyword : string -> unit
 
 (** {6 Console specific configuration} *)
 
+type profile = Dark | Light
+    (** Profile for terminal colors. *)
+
+val profile : profile React.signal
+  (** The profile of the terminal. It defaults to {!Dark}. This is
+      used by the default prompt to choose colors. *)
+
+val set_profile : profile -> unit
+  (** Sets the profile of the terminal. *)
+
 val size : LTerm_geom.size React.signal
   (** The current size of the terminal.  *)
 

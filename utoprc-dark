@@ -2,6 +2,7 @@
 
 ! Copy this file to ~/.utoprc
 
+profile:                  dark
 identifier.foreground:    none
 comment.foreground:       x-chocolate1
 doc.foreground:           x-light-salmon
