@@ -15,6 +15,10 @@ open LTerm_style
 
 module String_set = Set.Make(String)
 
+(* +-----------------------------------------------------------------+
+   | Keywords                                                        |
+   +-----------------------------------------------------------------+ *)
+
 let default_keywords = [
   "and"; "as"; "assert"; "begin"; "class"; "constraint"; "do";
   "done"; "downto"; "else"; "end"; "exception"; "external";
@@ -27,6 +31,10 @@ let default_keywords = [
 
 let keywords = ref (List.fold_left (fun set kwd -> String_set.add kwd set) String_set.empty default_keywords)
 let add_keyword kwd = keywords := String_set.add kwd !keywords
+
+(* +-----------------------------------------------------------------+
+   | Prompts                                                         |
+   +-----------------------------------------------------------------+ *)
 
 let size = UTop_private.size
 
@@ -56,6 +64,66 @@ let prompt = ref (S.l2 make_prompt count size)
 let prompt_continue = ref (S.const [|(UChar.of_char '>', { none with foreground = Some lgreen }); (UChar.of_char ' ', LTerm_style.none)|])
 let prompt_comment = ref (S.const [|(UChar.of_char '*', { none with foreground = Some lgreen }); (UChar.of_char ' ', LTerm_style.none)|])
 
+(* +-----------------------------------------------------------------+
+   | Help                                                            |
+   +-----------------------------------------------------------------+ *)
+
+module Key_map = Map.Make(struct type t = LTerm_key.t let compare = compare end)
+
+let () =
+  Hashtbl.add Toploop.directive_table "utop_help"
+    (Toploop.Directive_none
+       (fun () ->
+          print_endline "You can use the following commands to get more help:
+
+#utop_bindings : list all the current key bindings
+"));
+
+  Hashtbl.add Toploop.directive_table "utop_bindings"
+    (Toploop.Directive_none
+       (fun () ->
+          let make_line key action =
+            (LTerm_key.to_string_compact key,
+             LTerm_read_line.name_of_action action,
+             LTerm_read_line.doc_of_action action)
+          in
+          let bindings = Hashtbl.fold (fun key action map -> Key_map.add key (LTerm_read_line.Edit action) map) LTerm_edit.bindings Key_map.empty in
+          let bindings = Hashtbl.fold Key_map.add LTerm_read_line.bindings bindings in
+          let table = Key_map.fold (fun key action acc -> make_line key action :: acc) bindings [] in
+          let size_key, size_name, size_doc =
+            List.fold_left
+              (fun (size_key, size_name, size_doc) (key, name, doc) ->
+                 (max (String.length key) size_key,
+                  max (String.length name) size_name,
+                  max (String.length doc) size_doc))
+              (0, 0, 0)
+              table
+          in
+          let buf = Buffer.create 128 in
+          let format_line (key, name, doc) =
+            Buffer.clear buf;
+            Buffer.add_string buf key;
+            while Buffer.length buf < size_key do
+              Buffer.add_char buf ' '
+            done;
+            Buffer.add_string buf " : ";
+            Buffer.add_string buf name;
+            while Buffer.length buf < size_key + size_name + 3 do
+              Buffer.add_char buf ' '
+            done;
+            Buffer.add_string buf " -> ";
+            Buffer.add_string buf doc;
+            Buffer.add_char buf '\n';
+            output_string stdout (Buffer.contents buf)
+          in
+          List.iter format_line table;
+          flush stdout))
+
+(* +-----------------------------------------------------------------+
+   | Initialization                                                  |
+   +-----------------------------------------------------------------+ *)
+
 let () =
   (* Do not load packages linked with the toplevel. *)
   Topfind.don't_load_deeply ["utop"; "findlib"; "lambda-term"]
+

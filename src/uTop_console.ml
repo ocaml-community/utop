@@ -266,6 +266,9 @@ let input = ref ""
 (* The position of the text already sent to ocaml in {!input}. *)
 let pos = ref 0
 
+(* Is it the first time [read_input] is called ? *)
+let first_run = ref true
+
 (* The read function given to ocaml. *)
 let rec read_input term prompt buffer len =
   try
@@ -304,6 +307,13 @@ let rec read_input term prompt buffer len =
       (* Read interactively user input. *)
       let txt = Lwt_main.run (
         try_lwt
+          lwt () =
+            if !first_run then begin
+              first_run := false;
+              LTerm.fprint term "Type #utop_help for help about using utop.\n\n"
+            end else
+              return ()
+          in
           (new read_line ~term ~prompt:prompt_to_display)#run
         finally
           LTerm.flush term
