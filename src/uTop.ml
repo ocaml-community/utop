@@ -40,26 +40,45 @@ let size = UTop_private.size
 
 let count = UTop_private.count
 
-let make_prompt count size =
+let make_prompt count size recording macro_count =
   let tm = Unix.localtime (Unix.time ()) in
-  let txt =
+  let txta =
     eval [
       B_bold true;
       B_fg lcyan;
       S "─( ";
-      B_fg lmagenta; S(Printf.sprintf "%02d:%02d:%02d" tm.Unix.tm_hour tm.Unix.tm_min tm.Unix.tm_sec); E_fg;
+      B_fg lmagenta; S (Printf.sprintf "%02d:%02d:%02d" tm.Unix.tm_hour tm.Unix.tm_min tm.Unix.tm_sec); E_fg;
       S " )─< ";
-      B_fg lyellow; S(Printf.sprintf "command %d" count); E_fg;
+      B_fg lyellow; S (Printf.sprintf "command %d" count); E_fg;
       S " >─";
-    ] in
-  Array.append (
-    if Array.length txt > size.cols then
-      Array.sub txt 0 size.cols
+    ]
+  in
+  let txtb =
+    if recording then
+      eval [
+        B_bold true;
+        B_fg lcyan;
+        S "[ ";
+        B_fg lwhite; S (Printf.sprintf "macro: %d" macro_count); E_fg;
+        S " ]─";
+      ]
     else
-      Array.append txt (Array.make (size.cols - Array.length txt) (UChar.of_int 0x2500, { none with foreground = Some lcyan; bold = Some true }))
+      [||]
+  in
+  Array.append (
+    if Array.length txta + Array.length txtb > size.cols then
+      Array.sub (Array.append txta txtb) 0 size.cols
+    else
+      Array.concat [
+        txta;
+        Array.make
+          (size.cols - Array.length txta - Array.length txtb)
+          (UChar.of_int 0x2500, { none with foreground = Some lcyan; bold = Some true });
+        txtb;
+      ]
   ) [|(UChar.of_char '#', { none with foreground = Some lgreen }); (UChar.of_char ' ', none)|]
 
-let prompt = ref (S.l2 make_prompt count size)
+let prompt = ref (S.l4 make_prompt count size (Zed_macro.recording LTerm_read_line.macro_recorder) (Zed_macro.count LTerm_read_line.macro_recorder))
 
 let prompt_continue = ref (S.const [|(UChar.of_char '>', { none with foreground = Some lgreen }); (UChar.of_char ' ', LTerm_style.none)|])
 let prompt_comment = ref (S.const [|(UChar.of_char '*', { none with foreground = Some lgreen }); (UChar.of_char ' ', LTerm_style.none)|])
@@ -78,6 +97,7 @@ let () =
           print_endline "You can use the following commands to get more help:
 
 #utop_bindings : list all the current key bindings
+#utop_macro : display the currently recorded macro
 "));
 
   Hashtbl.add Toploop.directive_table "utop_bindings"
@@ -140,6 +160,17 @@ let () =
             output_string stdout (Buffer.contents buf)
           in
           List.iter format_line table;
+          flush stdout));
+
+  Hashtbl.add Toploop.directive_table "utop_macro"
+    (Toploop.Directive_none
+       (fun () ->
+          let macro = Zed_macro.contents LTerm_read_line.macro_recorder in
+          List.iter
+            (fun action ->
+               output_string stdout (LTerm_read_line.name_of_action action);
+               output_char stdout '\n')
+            macro;
           flush stdout))
 
 (* +-----------------------------------------------------------------+
