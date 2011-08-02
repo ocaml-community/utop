@@ -728,17 +728,35 @@ let complete str =
            | Some (Toploop.Directive_string _) -> [(" \"", "")]
            | Some (Toploop.Directive_bool _) -> [("true", ";;"); ("false", ";;")]
            | Some (Toploop.Directive_int _) -> []
-           | Some (Toploop.Directive_ident _) -> []
+           | Some (Toploop.Directive_ident _) -> List.map (fun w -> (w, "")) (String_set.elements (Lazy.force !global_names))
            | None -> [])
-    | [(Symbol, _, _, "#"); ((Lident | Uident), _, _, dir); ((Lident | Uident), start, _, id)] ->
-        (start,
-         match try Some (Hashtbl.find Toploop.directive_table dir) with Not_found -> None with
-           | Some (Toploop.Directive_none _) -> []
-           | Some (Toploop.Directive_string _) -> []
-           | Some (Toploop.Directive_bool _) -> lookup_assoc id [("true", ";;"); ("false", ";;")]
-           | Some (Toploop.Directive_int _) -> []
-           | Some (Toploop.Directive_ident _) -> []
-           | None -> [])
+    | (Symbol, _, _, "#") :: ((Lident | Uident), _, _, dir) :: tokens -> begin
+        match try Some (Hashtbl.find Toploop.directive_table dir) with Not_found -> None with
+          | Some (Toploop.Directive_none _) ->
+              (0, [])
+          | Some (Toploop.Directive_string _) ->
+              (0, [])
+          | Some (Toploop.Directive_bool _) -> begin
+              match tokens with
+                | [(Lident, start, _, id)] ->
+                     (start, lookup_assoc id [("true", ";;"); ("false", ";;")])
+                | _ ->
+                    (0, [])
+            end
+          | Some (Toploop.Directive_int _) ->
+              (0, [])
+          | Some (Toploop.Directive_ident _) -> begin
+              match parse_longident (List.rev tokens) with
+                | Some (Value, None, start, id) ->
+                    (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (Lazy.force !global_names))))
+                | Some (Value, Some longident, start, id) ->
+                    (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (names_of_module longident))))
+                | _ ->
+                    (0, [])
+            end
+          | None ->
+              (0, [])
+      end
 
     (* Completion on identifiers. *)
     | [] ->
