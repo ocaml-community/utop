@@ -88,7 +88,7 @@ let make_prompt profile count size recording macro_count =
       ]
   ) [|(UChar.of_char '#', { none with foreground = Some (color lgreen green) }); (UChar.of_char ' ', none)|]
 
-let prompt = ref (S.l5 make_prompt profile count size (Zed_macro.recording LTerm_read_line.macro_recorder) (Zed_macro.count LTerm_read_line.macro_recorder))
+let prompt = ref (S.l5 make_prompt profile count size (Zed_macro.recording LTerm_read_line.macro) (Zed_macro.count LTerm_read_line.macro))
 
 let prompt_continue = ref (S.map (fun profile -> [|(UChar.of_char '>', { none with foreground = Some (if profile = Dark then lgreen else green) }); (UChar.of_char ' ', LTerm_style.none)|]) profile)
 let prompt_comment = ref (S.map (fun profile -> [|(UChar.of_char '*', { none with foreground = Some (if profile = Dark then lgreen else green) }); (UChar.of_char ' ', LTerm_style.none)|]) profile)
@@ -177,7 +177,7 @@ You can use the following commands to get more help:
   Hashtbl.add Toploop.directive_table "utop_macro"
     (Toploop.Directive_none
        (fun () ->
-          let macro = Zed_macro.contents LTerm_read_line.macro_recorder in
+          let macro = Zed_macro.contents LTerm_read_line.macro in
           List.iter
             (fun action ->
                output_string stdout (LTerm_read_line.name_of_action action);
