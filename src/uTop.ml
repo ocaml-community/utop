@@ -44,7 +44,7 @@ let size = UTop_private.size
 
 let count = UTop_private.count
 
-let make_prompt profile count size recording macro_count =
+let make_prompt profile count size recording macro_count macro_counter =
   let tm = Unix.localtime (Unix.time ()) in
   let color dark light =
     match profile with
@@ -68,12 +68,20 @@ let make_prompt profile count size recording macro_count =
       eval [
         B_bold bold;
         B_fg (color lcyan blue);
-        S "[ ";
+        S "{ ";
+        B_fg (color lwhite black); S (Printf.sprintf "counter: %d" macro_counter); E_fg;
+        S " }─[ ";
         B_fg (color lwhite black); S (Printf.sprintf "macro: %d" macro_count); E_fg;
         S " ]─";
       ]
     else
-      [||]
+      eval [
+        B_bold bold;
+        B_fg (color lcyan blue);
+        S "{ ";
+        B_fg (color lwhite black); S (Printf.sprintf "counter: %d" macro_counter); E_fg;
+        S " }─";
+      ]
   in
   Array.append (
     if Array.length txta + Array.length txtb > size.cols then
@@ -88,7 +96,15 @@ let make_prompt profile count size recording macro_count =
       ]
   ) [|(UChar.of_char '#', { none with foreground = Some (color lgreen green) }); (UChar.of_char ' ', none)|]
 
-let prompt = ref (S.l5 make_prompt profile count size (Zed_macro.recording LTerm_read_line.macro) (Zed_macro.count LTerm_read_line.macro))
+let prompt = ref (
+  S.l6 make_prompt
+    profile
+    count
+    size
+    (Zed_macro.recording LTerm_read_line.macro)
+    (Zed_macro.count LTerm_read_line.macro)
+    (Zed_macro.counter LTerm_read_line.macro)
+)
 
 let prompt_continue = ref (S.map (fun profile -> [|(UChar.of_char '>', { none with foreground = Some (if profile = Dark then lgreen else green) }); (UChar.of_char ' ', LTerm_style.none)|]) profile)
 let prompt_comment = ref (S.map (fun profile -> [|(UChar.of_char '*', { none with foreground = Some (if profile = Dark then lgreen else green) }); (UChar.of_char ' ', LTerm_style.none)|]) profile)
