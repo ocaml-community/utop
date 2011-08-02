@@ -411,4 +411,5 @@ lwt () = join [
   init_history ();
   init_resources ();
   init_read_interactive_input ();
+  LTerm_inputrc.load ();
 ]
