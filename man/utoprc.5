@@ -1,0 +1,144 @@
+\" utoprc.5
+\" --------
+\" Copyright : (c) 2011, Jeremie Dimino <jeremie@dimino.org>
+\" Licence   : BSD3
+\"
+\" This file is a part of utop.
+
+.TH UTOPRC 5 "August 2011"
+
+.SH NAME
+utoprc \- Configuration file of utop
+
+.SH SYNOPSIS
+.B ~/.utoprc
+
+.SH DESCRIPTION
+
+This manual page describes the format of the
+.I ~/.utoprc
+file. This is a text file which contains the configuration of
+utop. Comments start with a '!' and empty lines are
+ignored. Configuration lines are of the form:
+
+        <wildcard>: <value>
+
+.I <wildcard>
+may contains the '*' star character. In that case any key which match
+the pattern is given the value after the colon.
+
+The key
+.I profile
+may have the value
+.I dark
+or
+.I light.
+This is the same as calling
+.I UTop.set_profile
+in
+.I ~/.ocamlinit.
+
+The following style keys are used by utop:
+
+        * identifier
+        * comment
+        * doc
+        * constant
+        * keyword
+        * symbol
+        * string
+        * char
+        * quotation
+        * error
+        * parenthesis
+
+For each of these keys, the following sub-keys are used:
+
+        * key.foreground
+        * key.background
+        * key.bold
+        * key.underline
+        * key.reverse
+        * key.blink
+
+.I key.foreground
+and
+.I key.background
+are colors, and the others are booleans. Colors may be one of the
+standard terminal colors:
+
+        * black
+        * red
+        * green
+        * yellow
+        * blue
+        * magenta
+        * cyan
+        * white
+        * light-black
+        * light-red
+        * light-green
+        * light-yellow
+        * light-blue
+        * light-magenta
+        * light-cyan
+        * light-white
+
+or X11 colors, prefixed with "x-". For example:
+
+        identifier.foreground:  x-goldenrod
+
+Colors can also be given by their RGB components, written #RRGGBB. For
+example:
+
+        identifier.foreground:  #5fbf7f
+
+utop will choose the nearest color of the terminal when specifying a
+X11 color or a color given by its RGB components. If you are using
+gnome-terminal, you can enable 256 colors by setting the environment
+variable TERM to "xterm-256color".
+
+.SH FILES
+.I ~/.utoprc
+
+.SH EXAMPLE
+profile:                  dark
+.RS
+.RE
+identifier.foreground:    none
+.RS
+.RE
+comment.foreground:       x-chocolate1
+.RS
+.RE
+doc.foreground:           x-light-salmon
+.RS
+.RE
+constant.foreground:      x-aquamarine
+.RS
+.RE
+keyword.foreground:       x-cyan1
+.RS
+.RE
+symbol.foreground:        x-cyan1
+.RS
+.RE
+string.foreground:        x-light-salmon
+.RS
+.RE
+char.foreground:          x-light-salmon
+.RS
+.RE
+quotation.foreground:     x-purple
+.RS
+.RE
+error.foreground:         x-red
+.RS
+.RE
+parenthesis.background:   blue
+
+.SH AUTHOR
+Jérémie Dimino <jeremie@dimino.org>
+
+.SH "SEE ALSO"
+.BR utop (1).

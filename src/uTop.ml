@@ -126,7 +126,8 @@ You can use the following commands to get more help:
 
 #utop_bindings : list all the current key bindings
 #utop_macro : display the currently recorded macro
-"));
+
+For a complete description of utop, look at the utop(1) manual page."));
 
   Hashtbl.add Toploop.directive_table "utop_bindings"
     (Toploop.Directive_none

@@ -42,6 +42,30 @@ Executable "utop-emacs"
   DataFiles: utop.el ($datadir/emacs/site-lisp)
 
 # +-------------------------------------------------------------------+
+# | Manual pages                                                      |
+# +-------------------------------------------------------------------+
+
+Document "utop-man"
+  Type: custom (0.2)
+  Title: Man page for utop
+  Install: true
+  BuildTools: gzip
+  XCustom: $gzip -c man/utop.1 > man/utop.1.gz
+  XCustomClean: $rm man/utop.1.gz
+  DataFiles: man/utop.1.gz
+  InstallDir: $mandir/man1
+
+Document "utoprc-man"
+  Type: custom (0.2)
+  Title: Man page for utoprc
+  Install: true
+  BuildTools: gzip
+  XCustom: $gzip -c man/utoprc.5 > man/utoprc.5.gz
+  XCustomClean: $rm man/utoprc.5.gz
+  DataFiles: man/utoprc.5.gz
+  InstallDir: $mandir/man5
+
+# +-------------------------------------------------------------------+
 # | Misc                                                              |
 # +-------------------------------------------------------------------+
 
