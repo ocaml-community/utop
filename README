@@ -4,9 +4,23 @@ url: https://forge.ocamlcore.org/projects/utop/
 
 * Requirements:
 
-  utop depends on the lambda-term package, which is available at:
+  utop depends on the following packages:
 
-    https://forge.ocamlcore.org/projects/lambda-term/
+  * findlib      (http://projects.camlcity.org/projects/findlib.html)
+  * react        (http://erratique.ch/software/react)
+  * lwt          (http://ocsigen.org/lwt/)
+  * camomile     (http://camomile.sourceforge.net/)
+  * zed          (http://forge.ocamlcore.org/projects/zed/)
+  * lambda-term  (http://forge.ocamlcore.org/projects/lambda-term/)
+
+  Lwt must be compiled with react support, configure it with:
+
+    $ ./configure --enable-react
+
+  utop also requires OCaml compiler libraries. If you are using
+  debian, they are available as the package ocaml-compiler-libs, if
+  you are using godi, they are installed by default. If you installed
+  ocaml by hand, you can run the script utils/install-compiler-libs.sh.
 
 * Installation:
 

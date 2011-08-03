@@ -6,5 +6,7 @@
 # Add oasis stuff
 oasis setup
 
+chmod +x utils/install-compiler-libs.sh
+
 # Cleanup
 rm -f predist.sh boring dist.sh
