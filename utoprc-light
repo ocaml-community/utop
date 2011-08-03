@@ -5,12 +5,12 @@
 profile:                  light
 identifier.foreground:    none
 comment.foreground:       x-firebrick
-doc.foreground:           x-rosybrown
-constant.foreground:      x-cadetblue
+doc.foreground:           x-violetred4
+constant.foreground:      x-darkcyan
 keyword.foreground:       x-purple
 symbol.foreground:        x-purple
-string.foreground:        x-rosybrown
-char.foreground:          x-rosybrown
+string.foreground:        x-violetred4
+char.foreground:          x-violetred4
 quotation.foreground:     x-purple
 error.foreground:         x-red
-parenthesis.background:   lblue
+parenthesis.background:   light-blue
