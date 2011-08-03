@@ -66,6 +66,17 @@ Document "utoprc-man"
   InstallDir: $mandir/man5
 
 # +-------------------------------------------------------------------+
+# | Configuration examples                                            |
+# +-------------------------------------------------------------------+
+
+Document "utoprcs"
+  Type: custom (0.2)
+  Title: utoprc examples
+  XCustom: true
+  Install: true
+  DataFiles: utoprc-dark, utoprc-light
+
+# +-------------------------------------------------------------------+
 # | Misc                                                              |
 # +-------------------------------------------------------------------+
 
