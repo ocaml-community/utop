@@ -27,10 +27,8 @@ let () =
              let stdlib = BaseEnvLight.var_get "standard_library" env in
 
              (* Add directories for compiler-libraries: *)
-             let paths = [A "-I"; A path;
-                          A "-I"; A (path / "typing");
-                          A "-I"; A (path / "parsing");
-                          A "-I"; A (path / "utils")] in
+             let paths = List.filter Sys.file_exists [path; path / "typing"; path / "parsing"; path / "utils"] in
+             let paths = List.map (fun path -> S[A "-I"; A path]) paths in
              List.iter
                (fun stage -> flag ["ocaml"; stage; "use_compiler_libs"] & S paths)
                ["compile"; "ocamldep"; "doc"; "link"];
