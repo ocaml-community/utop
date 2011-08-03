@@ -4,6 +4,7 @@
 
 profile:                  dark
 identifier.foreground:    none
+module.foreground:        x-palegreen
 comment.foreground:       x-chocolate1
 doc.foreground:           x-light-salmon
 constant.foreground:      x-aquamarine
@@ -13,4 +14,5 @@ string.foreground:        x-light-salmon
 char.foreground:          x-light-salmon
 quotation.foreground:     x-purple
 error.foreground:         x-red
+directive.foreground:     x-lightsteelblue
 parenthesis.background:   blue
