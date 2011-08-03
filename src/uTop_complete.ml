@@ -344,7 +344,11 @@ let add_fields_of_type decl acc =
 let add_names_of_type decl acc =
   match decl.type_kind with
     | Type_variant constructors ->
+#if ocaml_version >= (3, 13)
+        List.fold_left (fun acc (name, _, _) -> add name acc) acc constructors
+#else
         List.fold_left (fun acc (name, _) -> add name acc) acc constructors
+#endif
     | Type_record(fields, _) ->
         List.fold_left (fun acc (name, _, _) -> add name acc) acc fields
     | Type_abstract ->

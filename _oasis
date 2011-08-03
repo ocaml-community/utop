@@ -18,6 +18,12 @@ Description: Universal toplevel for OCaml
 # | The toplevel                                                      |
 # +-------------------------------------------------------------------+
 
+Library "optcomp"
+  Install: false
+  Path: syntax
+  Modules: Pa_optcomp
+  BuildDepends: camlp4.lib, camlp4.quotations.o
+
 Library utop
   Path: src
   Modules: UTop

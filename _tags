@@ -1,6 +1,7 @@
 # -*- conf -*-
 
-<**/*.ml>: syntax_camlp4o, pkg_lwt.syntax
+<**/*.ml>: syntax_camlp4o, pkg_lwt.syntax, pa_optcomp
+<syntax/*.ml>: -pa_optcomp
 <src/*>: use_compiler_libs, pkg_lambda-term, pkg_findlib
 <**/*.top>: use_utop
 <**/uTop_emacs_top.top>: pkg_threads

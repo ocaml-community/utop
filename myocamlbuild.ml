@@ -22,6 +22,12 @@ let () =
              (* Use -linkpkg for creating toplevels *)
              flag ["ocaml"; "link"; "toplevel"] & A"-linkpkg";
 
+             (* Optcomp *)
+             flag ["ocaml"; "compile"; "pa_optcomp"] & S[A"-ppopt"; A "syntax/pa_optcomp.cmo"];
+             flag ["ocaml"; "ocamldep"; "pa_optcomp"] & S[A"-ppopt"; A "syntax/pa_optcomp.cmo"];
+             flag ["ocaml"; "doc"; "pa_optcomp"] & S[A"-ppopt"; A "syntax/pa_optcomp.cmo"];
+             dep ["ocaml"; "ocamldep"; "pa_optcomp"] ["syntax/pa_optcomp.cmo"];
+
              let env = BaseEnvLight.load () in
              let path = BaseEnvLight.var_get "compiler_libs" env in
              let stdlib = BaseEnvLight.var_get "standard_library" env in
