@@ -23,27 +23,14 @@ let () =
              flag ["ocaml"; "link"; "toplevel"] & A"-linkpkg";
 
              let env = BaseEnvLight.load () in
-             let stdlib_path = BaseEnvLight.var_get "standard_library" env in
-
-             (* Try to find the path where compiler libraries are: *)
-             let compiler_libs =
-               let stdlib = String.chomp stdlib_path in
-               try
-                 let path =
-                   List.find Pathname.exists [
-                     stdlib / "compiler-libs";
-                     stdlib / "compiler-lib";
-                     stdlib / ".." / "compiler-libs";
-                     stdlib / ".." / "compiler-lib";
-                   ]
-                 in
-                 path :: List.filter Pathname.exists [ path / "typing"; path / "utils"; path / "parsing" ]
-               with Not_found ->
-                 []
-             in
+             let path = BaseEnvLight.var_get "compiler_libs" env in
+             let stdlib = BaseEnvLight.var_get "standard_library" env in
 
              (* Add directories for compiler-libraries: *)
-             let paths = List.map (fun path -> S[A"-I"; A path]) compiler_libs in
+             let paths = [A "-I"; A path;
+                          A "-I"; A (path / "typing");
+                          A "-I"; A (path / "parsing");
+                          A "-I"; A (path / "utils")] in
              List.iter
                (fun stage -> flag ["ocaml"; stage; "use_compiler_libs"] & S paths)
                ["compile"; "ocamldep"; "doc"; "link"];
@@ -60,7 +47,7 @@ let () =
                   (* Build the set of locations of dependencies. *)
                   let locs = List.fold_left (fun set pkg -> StringSet.add pkg.Findlib.location set) StringSet.empty deps in
                   (* Directories to search for .cmi: *)
-                  let directories = StringSet.add stdlib_path (StringSet.add (stdlib_path / "threads") locs) in
+                  let directories = StringSet.add stdlib (StringSet.add (stdlib / "threads") locs) in
                   (* Construct the set of modules to keep by listing
                      .cmi files: *)
                   let modules =
@@ -76,7 +63,7 @@ let () =
                            (Array.to_list (Pathname.readdir directory)))
                       directories StringSet.empty
                   in
-                  Cmd(S[A(stdlib_path / "expunge");
+                  Cmd(S[A(stdlib / "expunge");
                         A(env "%.top");
                         A(env "%.byte");
                         A"UTop"; A"Outcometree"; A"Topdirs"; A"Toploop";
