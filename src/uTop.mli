@@ -53,3 +53,20 @@ val prompt_comment : LTerm_text.t React.signal ref
 
       For compatibility with ocaml error printing, it must ends with a
       line of length 2. *)
+
+(** {6 Hooks} *)
+
+val new_command_hooks : (unit -> unit) Lwt_sequence.t
+  (** Functions called before each new command. *)
+
+val at_new_command : (unit -> unit) -> unit
+  (** [at_new_command f] adds [f] to the hooks executed before each
+      new commands. *)
+
+val new_prompt_hooks : (unit -> unit) Lwt_sequence.t
+  (** Functions executed before each new prompt, including
+      continuation prompts. *)
+
+val at_new_prompt : (unit -> unit) -> unit
+  (** [at_new_prompt f] adds [f] to the hooks executed before each new
+      prompt. *)

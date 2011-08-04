@@ -438,7 +438,9 @@ object(self)
     (* Set the source signal for the key sequence. *)
     UTop_private.set_key_sequence self#key_sequence;
     (* Set the prompt. *)
-    self#set_prompt prompt
+    self#set_prompt prompt;
+    (* Call hooks. *)
+    Lwt_sequence.iter_l (fun f -> f ()) UTop.new_prompt_hooks
 end
 
 (* +-----------------------------------------------------------------+
@@ -476,6 +478,9 @@ let rec read_input term prompt buffer len =
                  | Some line ->
                      history := LTerm_read_line.add_entry line !history;
                      pending := None);
+
+              (* Call hooks. *)
+              Lwt_sequence.iter_l (fun f -> f ()) UTop.new_command_hooks;
 
               !UTop.prompt
 

@@ -108,9 +108,18 @@ let rec read_input prompt buffer length =
            (* Increment the command counter. *)
            UTop_private.set_count (React.S.value UTop_private.count + 1);
 
-           send "prompt" ""
+           (* Call hooks. *)
+           Lwt_sequence.iter_l (fun f -> f ()) UTop.new_command_hooks;
+           Lwt_sequence.iter_l (fun f -> f ()) UTop.new_prompt_hooks;
+
+           send "prompt" "";
+
        | "* " | "  " ->
            (* Continuation of the current phrase. *)
+
+           (* Call hooks. *)
+           Lwt_sequence.iter_l (fun f -> f ()) UTop.new_prompt_hooks;
+
            send "continue" ""
        | _ ->
            Printf.ksprintf (send "stderr") "unrecognized prompt %S!" prompt;

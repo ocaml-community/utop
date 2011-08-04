@@ -33,6 +33,15 @@ let keywords = ref (List.fold_left (fun set kwd -> String_set.add kwd set) Strin
 let add_keyword kwd = keywords := String_set.add kwd !keywords
 
 (* +-----------------------------------------------------------------+
+   | Hooks                                                           |
+   +-----------------------------------------------------------------+ *)
+
+let new_command_hooks = Lwt_sequence.create ()
+let at_new_command f = ignore (Lwt_sequence.add_l f new_command_hooks)
+let new_prompt_hooks = Lwt_sequence.create ()
+let at_new_prompt f = ignore (Lwt_sequence.add_l f new_prompt_hooks)
+
+(* +-----------------------------------------------------------------+
    | Prompts                                                         |
    +-----------------------------------------------------------------+ *)
 
@@ -46,8 +55,12 @@ let key_sequence = UTop_private.key_sequence
 
 let count = UTop_private.count
 
+let time = ref 0.
+
+let () = at_new_prompt (fun () -> time := Unix.time ())
+
 let make_prompt profile count size key_sequence (recording, macro_count, macro_counter) =
-  let tm = Unix.localtime (Unix.time ()) in
+  let tm = Unix.localtime !time in
   let color dark light =
     match profile with
       | Dark -> dark
