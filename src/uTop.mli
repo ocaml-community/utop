@@ -33,6 +33,9 @@ val set_profile : profile -> unit
 val size : LTerm_geom.size React.signal
   (** The current size of the terminal.  *)
 
+val key_sequence : LTerm_key.t list React.signal
+  (** The current key sequence entered by the user. *)
+
 val prompt : LTerm_text.t React.signal ref
   (** The current prompt.
 

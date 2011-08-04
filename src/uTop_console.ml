@@ -435,6 +435,8 @@ object(self)
   initializer
     (* Set the source signal for the size of the terminal. *)
     UTop_private.set_size self#size;
+    (* Set the source signal for the key sequence. *)
+    UTop_private.set_key_sequence self#key_sequence;
     (* Set the prompt. *)
     self#set_prompt prompt
 end

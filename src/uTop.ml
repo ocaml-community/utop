@@ -42,9 +42,11 @@ let profile, set_profile = S.create Dark
 
 let size = UTop_private.size
 
+let key_sequence = UTop_private.key_sequence
+
 let count = UTop_private.count
 
-let make_prompt profile count size recording macro_count macro_counter =
+let make_prompt profile count size key_sequence (recording, macro_count, macro_counter) =
   let tm = Unix.localtime (Unix.time ()) in
   let color dark light =
     match profile with
@@ -53,15 +55,28 @@ let make_prompt profile count size recording macro_count macro_counter =
   in
   let bold = profile = Dark in
   let txta =
-    eval [
-      B_bold bold;
-      B_fg (color lcyan blue);
-      S "─( ";
-      B_fg (color lmagenta magenta); S (Printf.sprintf "%02d:%02d:%02d" tm.Unix.tm_hour tm.Unix.tm_min tm.Unix.tm_sec); E_fg;
-      S " )─< ";
-      B_fg (color lyellow yellow); S (Printf.sprintf "command %d" count); E_fg;
-      S " >─";
-    ]
+    if key_sequence = [] then
+      eval [
+        B_bold bold;
+        B_fg (color lcyan blue);
+        S "─( ";
+        B_fg (color lmagenta magenta); S (Printf.sprintf "%02d:%02d:%02d" tm.Unix.tm_hour tm.Unix.tm_min tm.Unix.tm_sec); E_fg;
+        S " )─< ";
+        B_fg (color lyellow yellow); S (Printf.sprintf "command %d" count); E_fg;
+        S " >─";
+      ]
+    else
+      eval [
+        B_bold bold;
+        B_fg (color lcyan blue);
+        S "─( ";
+        B_fg (color lmagenta magenta); S (Printf.sprintf "%02d:%02d:%02d" tm.Unix.tm_hour tm.Unix.tm_min tm.Unix.tm_sec); E_fg;
+        S " )─< ";
+        B_fg (color lyellow yellow); S (Printf.sprintf "command %d" count); E_fg;
+        S " >─[ ";
+        B_fg (color lgreen green); S (String.concat " " (List.map LTerm_key.to_string_compact key_sequence)); E_fg;
+        S " ]─";
+      ]
   in
   let txtb =
     if recording then
@@ -97,13 +112,15 @@ let make_prompt profile count size recording macro_count macro_counter =
   ) [|(UChar.of_char '#', { none with foreground = Some (color lgreen green) }); (UChar.of_char ' ', none)|]
 
 let prompt = ref (
-  S.l6 make_prompt
+  S.l5 make_prompt
     profile
     count
     size
-    (Zed_macro.recording LTerm_read_line.macro)
-    (Zed_macro.count LTerm_read_line.macro)
-    (Zed_macro.counter LTerm_read_line.macro)
+    key_sequence
+    (S.l3 (fun x y z -> (x, y, z))
+       (Zed_macro.recording LTerm_read_line.macro)
+       (Zed_macro.count LTerm_read_line.macro)
+       (Zed_macro.counter LTerm_read_line.macro))
 )
 
 let prompt_continue = ref (S.map (fun profile -> [|(UChar.of_char '>', { none with foreground = Some (if profile = Dark then lgreen else green) }); (UChar.of_char ' ', LTerm_style.none)|]) profile)

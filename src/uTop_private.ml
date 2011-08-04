@@ -13,4 +13,8 @@ let size, set_size =
   let ev, set_size = E.create () in
   (S.switch (S.const { LTerm_geom.rows = 0; LTerm_geom.cols = 0 }) ev, set_size)
 
+let key_sequence, set_key_sequence =
+  let ev, set_key_sequence = E.create () in
+  (S.switch (S.const ([] : LTerm_key.t list)) ev, set_key_sequence)
+
 let count, set_count = S.create(-1)
