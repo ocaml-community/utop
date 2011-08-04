@@ -111,6 +111,11 @@ let rbrace = UChar.of_char '}'
 let lbracket = UChar.of_char '['
 let rbracket = UChar.of_char ']'
 
+let rec last = function
+  | [] -> None
+  | [x] -> Some x
+  | _ :: l -> last l
+
 class read_line ~term ~prompt =
   let pending =
     match !pending with
@@ -120,7 +125,21 @@ class read_line ~term ~prompt =
   let pending_length = Zed_utf8.length pending in
 object(self)
   inherit LTerm_read_line.read_line ~history:!history () as super
-  inherit [Zed_utf8.t] LTerm_read_line.term term
+  inherit [Zed_utf8.t] LTerm_read_line.term term as super_term
+
+  method exec = function
+    | LTerm_read_line.Accept :: actions -> begin
+        Zed_macro.add self#macro LTerm_read_line.Accept;
+        let tokens = UTop_lexer.lex_string (pending ^ Zed_rope.to_string (Zed_edit.text self#edit)) in
+        match last tokens with
+          | Some (Symbol, _, _, ";;") ->
+              return self#eval
+          | _ ->
+              self#insert (UChar.of_char '\n');
+              self#exec actions
+      end
+    | actions ->
+        super_term#exec actions
 
   method stylise last =
     let styled, position = super#stylise last in

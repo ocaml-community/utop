@@ -49,6 +49,8 @@ type profile = Dark | Light
 
 let profile, set_profile = S.create Dark
 
+let smart_accept = ref true
+
 let size = UTop_private.size
 
 let key_sequence = UTop_private.key_sequence

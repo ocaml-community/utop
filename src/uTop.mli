@@ -30,6 +30,11 @@ val profile : profile React.signal
 val set_profile : profile -> unit
   (** Sets the profile of the terminal. *)
 
+val smart_accept : bool ref
+  (** If [true], then only lines terminated with ";;" will be sent to
+      ocaml, otherwise the input will always be sent to ocaml when the
+      user press Enter. It default to [true]. *)
+
 val size : LTerm_geom.size React.signal
   (** The current size of the terminal.  *)
 
