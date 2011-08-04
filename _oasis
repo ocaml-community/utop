@@ -48,6 +48,20 @@ Executable "utop-emacs"
   DataFiles: utop.el ($datadir/emacs/site-lisp)
 
 # +-------------------------------------------------------------------+
+# | Doc                                                               |
+# +-------------------------------------------------------------------+
+
+Document "utop-api"
+  Title: API reference for utop
+  Type: ocamlbuild (0.2)
+  Install: true
+  InstallDir: $htmldir/api
+  DataFiles: style.css
+  BuildTools: ocamldoc
+  XOCamlbuildPath: ./
+  XOCamlbuildLibraries: utop
+
+# +-------------------------------------------------------------------+
 # | Manual pages                                                      |
 # +-------------------------------------------------------------------+
 
