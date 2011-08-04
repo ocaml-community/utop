@@ -128,7 +128,7 @@ object(self)
   inherit [Zed_utf8.t] LTerm_read_line.term term as super_term
 
   method exec = function
-    | LTerm_read_line.Accept :: actions when !UTop.smart_accept -> begin
+    | LTerm_read_line.Accept :: actions when !UTop.smart_accept && S.value self#mode = LTerm_read_line.Edition -> begin
         Zed_macro.add self#macro LTerm_read_line.Accept;
         let tokens = UTop_lexer.lex_string (pending ^ Zed_rope.to_string (Zed_edit.text self#edit)) in
         match last tokens with
