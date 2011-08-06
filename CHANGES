@@ -1,0 +1,24 @@
+===== 1.1 (2010-08-06) =====
+
+  * add completion on labels
+  * add completion on methods
+  * smarter completion on record fields
+  * fix a bug in the lexer
+  * improvement for the emacs mode:
+    ** now pressing Tab really complete input
+    ** when sending input from a tuareg buffer, the cursor follow the
+       end of buffer in all utop windows
+    ** fix usage of threads
+  * add help
+  * add manual pages
+  * show more information in the prompt:
+    ** show the current value of the macro counter
+    ** show the nnumber of key pressed since the beginning of a macro
+       when recording a macro
+    ** show intermediate key sequence
+  * better support for light colors terminals
+  * add colors for module name and directives
+  * add UTop.smart_accept to send only lines terminating with a ";;" token
+  * search for compiler libraries at configure time
+  * add a script to install compiler libraries
+  * fix compatibility with ocaml 3.13
