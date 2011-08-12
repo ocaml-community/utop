@@ -439,8 +439,12 @@ let rec read_input term prompt buffer len =
             end else
               return ()
           in
+          (* Restore the Lwt signal handler for SIGINT (Toploop catches it). *)
+          Lwt_unix.reinstall_signal_handler Sys.sigint;
           (new read_line ~term ~prompt:prompt_to_display)#run
         finally
+          (* Toploop need to catch the SIGINT signal. *)
+          Sys.catch_break true;
           LTerm.flush term
       ) in
 
