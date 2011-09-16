@@ -22,6 +22,9 @@ let () =
              (* Use -linkpkg for creating toplevels *)
              flag ["ocaml"; "link"; "toplevel"] & A"-linkpkg";
 
+             (* Allow -g for toplevels. *)
+             flag ["ocaml"; "link"; "toplevel"; "debug"] & A "-g";
+
              (* Optcomp *)
              flag ["ocaml"; "compile"; "pa_optcomp"] & S[A"-ppopt"; A "syntax/pa_optcomp.cmo"];
              flag ["ocaml"; "ocamldep"; "pa_optcomp"] & S[A"-ppopt"; A "syntax/pa_optcomp.cmo"];
