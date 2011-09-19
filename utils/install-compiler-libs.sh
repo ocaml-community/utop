@@ -26,7 +26,7 @@ if [ ! -f "$SOURCEPATH/typing/types.cmi" -o ! -f "$SOURCEPATH/parsing/longident.
     exit 1
 fi
 
-STDLIBPATH=`ocamlc -where`
+STDLIBPATH=`ocamlc -where | tr -d '\r'`
 INSTALLPATH="$STDLIBPATH/compiler-libs"
 
 mkdir -p "$INSTALLPATH"
