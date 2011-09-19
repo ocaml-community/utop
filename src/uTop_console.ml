@@ -514,8 +514,16 @@ let init_read_interactive_input () =
 
     LTerm_draw.draw_styled ctx 1 ((size.cols - String.length message) / 2) (eval [B_fg LTerm_style.yellow; S message]);
 
+    (* On Windows we must make sure we are not at the end of screen. *)
+    lwt () =
+      if LTerm.windows term then
+        LTerm.fprint term "\n\n\n\n"
+      else
+        return ()
+    in
+
     (* Render to the screen. *)
-    lwt () = LTerm.print_box term matrix in
+    lwt () = LTerm.print_box term ~delta:(if LTerm.windows term then -4 else 0) matrix in
     LTerm.flush term
   end else begin
     (* Otherwise fallback to classic non-interactive mode: *)
