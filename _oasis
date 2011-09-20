@@ -27,7 +27,7 @@ Library "optcomp"
   CompiledObject: byte
 
 Library utop
-  Path: src
+  Path: src/common
   Modules: UTop
   InternalModules: UTop_private
   BuildDepends: findlib, lambda-term (>= 1.1), lwt.syntax
@@ -36,14 +36,14 @@ Library utop
 
 Executable utop
   Install: true
-  Path: src
+  Path: src/console
   CompiledObject: byte
   MainIs: uTop_console_top.ml
   BuildDepends: utop, findlib, lambda-term, lwt.syntax
 
 Executable "utop-emacs"
   Install: true
-  Path: src
+  Path: src/emacs
   CompiledObject: byte
   MainIs: uTop_emacs_top.ml
   BuildDepends: utop, findlib, lambda-term, lwt.syntax, threads
