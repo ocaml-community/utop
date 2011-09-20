@@ -2,6 +2,8 @@
 
 ! Copy this file to ~/.utoprc
 
+! Common resources
+
 profile:                  dark
 identifier.foreground:    none
 module.foreground:        x-palegreen
@@ -16,3 +18,9 @@ quotation.foreground:     x-purple
 error.foreground:         x-red
 directive.foreground:     x-lightsteelblue
 parenthesis.background:   blue
+
+! GTK resources
+
+font:                     Monospace
+foreground:               #5fbf77
+background:               black

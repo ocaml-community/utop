@@ -10,6 +10,7 @@
 <src/**>: use_compiler_libs, pkg_lambda-term, pkg_findlib
 <**/*.top>: use_utop
 <src/emacs/uTop_emacs_top.top>: pkg_threads
+<src/gtk/uTop_gtk_top.top>: pkg_threads, pkg_lablgtk2, pkg_lwt.glib
 
 # OASIS_START
 # OASIS_STOP

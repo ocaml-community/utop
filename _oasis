@@ -16,6 +16,14 @@ Synopsis: utop
 Description: Universal toplevel for OCaml
 
 # +-------------------------------------------------------------------+
+# | Flags                                                             |
+# +-------------------------------------------------------------------+
+
+Flag gtk
+  Description: Build the GTK interface
+  Default: false
+
+# +-------------------------------------------------------------------+
 # | The toplevel                                                      |
 # +-------------------------------------------------------------------+
 
@@ -48,6 +56,13 @@ Executable "utop-emacs"
   MainIs: uTop_emacs_top.ml
   BuildDepends: utop, findlib, lambda-term, lwt.syntax, threads
   DataFiles: utop.el ($datadir/emacs/site-lisp)
+
+Executable "utop-gtk"
+  Install: true
+  Path: src/gtk
+  CompiledObject: byte
+  MainIs: uTop_gtk_top.ml
+  BuildDepends: utop, findlib, lambda-term, lwt.syntax, threads, lablgtk2, lwt.glib
 
 # +-------------------------------------------------------------------+
 # | Doc                                                               |
