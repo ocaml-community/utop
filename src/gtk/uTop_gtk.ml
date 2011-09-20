@@ -84,14 +84,24 @@ let init_history () =
   return ()
 
 (* +-----------------------------------------------------------------+
-   | GTK ui                                                          |
+   | Glib main loop                                                  |
    +-----------------------------------------------------------------+ *)
 
 (* Initializes GTK. *)
-let _ = GMain.init ()
+let _ = GMain.init ~setlocale:false ()
 
-(* Start the gtk main loop in another thread. *)
-let _ = GtkThread.start ()
+(* Glib main loop. *)
+let main () =
+  while true do
+    Lwt_glib.iter ()
+  done
+
+(* Start the glib main loop in another thread. *)
+let _ = Thread.create main ()
+
+(* +-----------------------------------------------------------------+
+   | GTK ui                                                          |
+   +-----------------------------------------------------------------+ *)
 
 (* Create the main window. *)
 let window = GWindow.window ~title:"utop" ~width:800 ~height:600 ~allow_shrink:true ()
@@ -125,11 +135,9 @@ let computer_insertion = ref false
 (* Exit when the window is closed. *)
 let _ =
   window#connect#destroy (fun () ->
-                            (* Stop GTK. *)
-                            GMain.quit ();
-                            (* Destroy the main window
-                               immedlatly, because the saving
-                               of history may take a while. *)
+                            (* Destroy the main window immedlatly,
+                               because the saving of history may take
+                               a while. *)
                             window#destroy ();
                             exit 0)
 
@@ -323,22 +331,20 @@ let rec read_input prompt buffer length =
     (* Make the buffer editable. *)
     edit#set_editable true;
 
-    let text = Lwt_main.run (
-      (* Wait for the user to press Return. *)
-      lwt () = Lwt_condition.wait accept_cond in
-      Mutex.lock edit_mutex;
-      (* Get the user input. *)
-      let start = edit_buffer#get_iter (`OFFSET !prompt_stop) and stop = edit_buffer#end_iter in
-      let text = edit_buffer#get_text ~start ~stop () in
-      (* Froze the input. *)
-      edit_buffer#apply_tag ~start ~stop frozen;
-      (* Advance the prompt. *)
-      let offset = stop#offset in
-      prompt_start := offset;
-      prompt_stop := offset;
-      Mutex.unlock edit_mutex;
-      return text
-    ) in
+    (* Wait for the user to press Return. *)
+    let () = Lwt_main.run (Lwt_condition.wait accept_cond) in
+
+    Mutex.lock edit_mutex;
+    (* Get the user input. *)
+    let start = edit_buffer#get_iter (`OFFSET !prompt_stop) and stop = edit_buffer#end_iter in
+    let text = edit_buffer#get_text ~start ~stop () in
+    (* Froze the input. *)
+    edit_buffer#apply_tag ~start ~stop frozen;
+    (* Advance the prompt. *)
+    let offset = stop#offset in
+    prompt_start := offset;
+    prompt_stop := offset;
+    Mutex.unlock edit_mutex;
 
     (* Make the buffer uneditable while ocaml is executing things. *)
     edit#set_editable false;
