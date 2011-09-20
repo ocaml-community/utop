@@ -62,7 +62,7 @@ Executable "utop-gtk"
   Path: src/gtk
   CompiledObject: byte
   MainIs: uTop_gtk_top.ml
-  BuildDepends: utop, findlib, lambda-term, lwt.syntax, threads, lablgtk2, lwt.glib
+  BuildDepends: utop, findlib, lambda-term, lwt.syntax, threads, lablgtk2
 
 # +-------------------------------------------------------------------+
 # | Doc                                                               |

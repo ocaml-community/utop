@@ -36,3 +36,7 @@ val styles : styles
 
 val load : unit -> unit Lwt.t
   (** Load resources into [styles]. *)
+
+val stylise : (int -> int -> LTerm_style.t -> unit) -> (UTop_token.t * int * int * string) list -> unit
+  (** [stylise apply tokens] calls [apply] on all tokens boundary with
+      the associated style. *)

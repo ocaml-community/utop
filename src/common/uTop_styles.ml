@@ -8,6 +8,9 @@
  *)
 
 open Lwt
+open UTop_token
+
+module String_set = Set.Make (String)
 
 type styles = {
   mutable style_keyword : LTerm_style.t;
@@ -82,3 +85,210 @@ let load () =
     return ()
   with Unix.Unix_error(Unix.ENOENT, _, _) ->
     return ()
+
+let stylise stylise tokens =
+  let rec loop tokens =
+    match tokens with
+      | [] ->
+          ()
+      | (token, start, stop, src) :: rest ->
+          match token with
+            | Symbol ->
+                stylise start stop styles.style_symbol;
+                loop rest
+            | Lident ->
+                stylise start stop
+                  (if String_set.mem src !UTop.keywords then
+                     styles.style_keyword
+                   else
+                     styles.style_ident);
+                loop rest
+            | Uident ->
+                if String_set.mem src !UTop.keywords then begin
+                  stylise start stop styles.style_keyword;
+                  loop rest
+                end else
+                  loop_after_uident start stop rest
+            | Constant ->
+                stylise start stop styles.style_constant;
+                loop rest
+            | Char ->
+                stylise start stop styles.style_char;
+                loop rest
+            | String _ ->
+                stylise start stop styles.style_string;
+                loop rest
+            | Quotation _ ->
+                stylise start stop styles.style_quotation;
+                loop rest
+            | Comment _ ->
+                stylise start stop styles.style_comment;
+                loop rest
+            | Doc _ ->
+                stylise start stop styles.style_doc;
+                loop rest
+            | Blanks ->
+                stylise start stop styles.style_blanks;
+                loop rest
+            | Error ->
+                stylise start stop styles.style_error;
+                loop rest
+  and loop_after_uident uid_start uid_stop tokens =
+    match tokens with
+      | [] ->
+          ()
+      | (token, start, stop, src) :: rest ->
+          match token with
+            | Symbol ->
+                if src = "." then
+                  stylise uid_start uid_stop styles.style_module
+                else
+                  stylise uid_start uid_stop styles.style_ident;
+                stylise start stop styles.style_symbol;
+                loop rest
+            | Lident ->
+                stylise uid_start uid_stop styles.style_ident;
+                stylise start stop
+                  (if String_set.mem src !UTop.keywords then
+                     styles.style_keyword
+                   else
+                     styles.style_ident);
+                loop rest
+            | Uident ->
+                stylise uid_start uid_stop styles.style_ident;
+                if String_set.mem src !UTop.keywords then begin
+                  stylise start stop styles.style_keyword;
+                  loop rest
+                end else
+                  loop_after_uident start stop rest
+            | Constant ->
+                stylise uid_start uid_stop styles.style_ident;
+                stylise start stop styles.style_constant;
+                loop rest
+            | Char ->
+                stylise uid_start uid_stop styles.style_ident;
+                stylise start stop styles.style_char;
+                loop rest
+            | String _ ->
+                stylise uid_start uid_stop styles.style_ident;
+                stylise start stop styles.style_string;
+                loop rest
+            | Quotation _ ->
+                stylise uid_start uid_stop styles.style_ident;
+                stylise start stop styles.style_quotation;
+                loop rest
+            | Comment _ ->
+                stylise uid_start uid_stop styles.style_ident;
+                stylise start stop styles.style_comment;
+                loop_after_uident uid_start uid_stop rest
+            | Doc _ ->
+                stylise uid_start uid_stop styles.style_ident;
+                stylise start stop styles.style_doc;
+                loop_after_uident uid_start uid_stop rest
+            | Blanks ->
+                stylise uid_start uid_stop styles.style_ident;
+                stylise start stop styles.style_blanks;
+                loop_after_uident uid_start uid_stop rest
+            | Error ->
+                stylise uid_start uid_stop styles.style_ident;
+                stylise start stop styles.style_error;
+                loop rest
+  and loop_sharp tokens =
+    match tokens with
+      | [] ->
+          ()
+      | (token, start, stop, src) :: rest ->
+          match token with
+            | Symbol ->
+                if src = "#" then begin
+                  stylise start stop styles.style_directive;
+                  loop_directive rest
+                end else begin
+                  stylise start stop styles.style_symbol;
+                  loop rest
+                end
+            | Lident ->
+                stylise start stop
+                  (if String_set.mem src !UTop.keywords then
+                     styles.style_keyword
+                   else
+                     styles.style_ident);
+                loop rest
+            | Uident ->
+                if String_set.mem src !UTop.keywords then begin
+                  stylise start stop styles.style_keyword;
+                  loop rest
+                end else
+                  loop_after_uident start stop rest
+            | Constant ->
+                stylise start stop styles.style_constant;
+                loop rest
+            | Char ->
+                stylise start stop styles.style_char;
+                loop rest
+            | String _ ->
+                stylise start stop styles.style_string;
+                loop rest
+            | Quotation _ ->
+                stylise start stop styles.style_quotation;
+                loop rest
+            | Comment _ ->
+                stylise start stop styles.style_comment;
+                loop_sharp rest
+            | Doc _ ->
+                stylise start stop styles.style_doc;
+                loop_sharp rest
+            | Blanks ->
+                stylise start stop styles.style_blanks;
+                loop_sharp rest
+            | Error ->
+                stylise start stop styles.style_error;
+                loop rest
+  and loop_directive tokens =
+    match tokens with
+      | [] ->
+          ()
+      | (token, start, stop, src) :: rest ->
+          match token with
+            | Symbol ->
+                stylise start stop styles.style_symbol;
+                loop rest
+            | Lident ->
+                stylise start stop
+                  (if String_set.mem src !UTop.keywords then
+                     styles.style_keyword
+                   else
+                     styles.style_directive);
+                loop rest
+            | Uident ->
+                if String_set.mem src !UTop.keywords then begin
+                  stylise start stop styles.style_keyword;
+                  loop rest
+                end else
+                  loop_after_uident start stop rest
+            | Constant ->
+                stylise start stop styles.style_constant;
+                loop rest
+            | Char ->
+                stylise start stop styles.style_char;
+                loop rest
+            | String _ ->
+                stylise start stop styles.style_string;
+                loop rest
+            | Quotation _ ->
+                stylise start stop styles.style_quotation;
+                loop rest
+            | Comment _ ->
+                stylise start stop styles.style_comment;
+                loop_directive rest
+            | Doc _ ->
+                stylise start stop styles.style_doc;
+                loop_directive rest
+            | Blanks ->
+                stylise start stop styles.style_blanks;
+                loop_directive rest
+            | Error ->
+                stylise start stop styles.style_error;
+                loop rest
+  in
+  loop_sharp tokens
