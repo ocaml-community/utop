@@ -50,7 +50,9 @@ let () =
                   (* Build the list of dependencies. *)
                   let deps = Findlib.topological_closure [Findlib.query "lambda-term";
                                                           Findlib.query "findlib";
-                                                          Findlib.query "threads"] in
+                                                          Findlib.query "threads";
+                                                          Findlib.query "lablgtk2";
+                                                          Findlib.query "lwt.glib"] in
                   (* Build the set of locations of dependencies. *)
                   let locs = List.fold_left (fun set pkg -> StringSet.add pkg.Findlib.location set) StringSet.empty deps in
                   (* Directories to search for .cmi: *)
