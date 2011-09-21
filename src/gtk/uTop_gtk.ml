@@ -86,11 +86,29 @@ let init_history () =
   return ()
 
 (* +-----------------------------------------------------------------+
-   | GTK ui                                                          |
+   | Glib main loop                                                  |
    +-----------------------------------------------------------------+ *)
 
 (* Initializes GTK. *)
 let _ = GMain.init ~setlocale:false ()
+
+let () =
+  UTop_private.exec_in_gui :=
+    (fun job ->
+       ignore (Glib.Timeout.add ~ms:0 ~callback:(fun () -> job (); false)))
+
+(* The glib main loop. *)
+let main () =
+  while true do
+    Lwt_glib.iter true
+  done
+
+(* Start the glib main loop in another thread. *)
+let _ = Thread.create main ()
+
+(* +-----------------------------------------------------------------+
+   | GTK ui                                                          |
+   +-----------------------------------------------------------------+ *)
 
 (* Create the main window. *)
 let window = GWindow.window ~title:"utop" ~width:800 ~height:600 ~allow_shrink:true ()
@@ -463,15 +481,5 @@ let () =
     | None ->
         edit#misc#modify_base [(`NORMAL, default_background ())]
 
-(* The glib main loop. *)
-let main () =
-  (* For some reason, this must happen in the dispatcher thread on
-     windows. *)
-  window#show ();
-
-  while true do
-    Lwt_glib.iter ()
-  done
-
-(* Start the glib main loop in another thread. *)
-let _ = Thread.create main ()
+(* Show the window in the GUI thread, this is needed for windows. *)
+let () = UTop.exec_in_gui window#show

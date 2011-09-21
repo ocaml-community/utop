@@ -23,6 +23,8 @@ type ui = UTop_private.ui = Console | GTK | Emacs
 
 let get_ui () = S.value UTop_private.ui
 
+let exec_in_gui f = !UTop_private.exec_in_gui f
+
 (* +-----------------------------------------------------------------+
    | Keywords                                                        |
    +-----------------------------------------------------------------+ *)

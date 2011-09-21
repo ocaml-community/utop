@@ -22,3 +22,5 @@ let count, set_count = S.create(-1)
 type ui = Console | GTK | Emacs
 
 let ui, set_ui = S.create Console
+
+let exec_in_gui : ((unit -> unit) -> unit) ref = ref (fun f -> f ())

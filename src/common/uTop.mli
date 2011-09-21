@@ -24,6 +24,17 @@ type ui = Console | GTK | Emacs
 val get_ui : unit -> ui
   (** Returns the user interface in use. *)
 
+(** {6 GTK specific utilities} *)
+
+val exec_in_gui : (unit -> unit) -> unit
+  (** [exec_in_gui f] executes [f] in the thread that handle the
+      UI. The only use of this function is to call [window#show ()] on
+      Windows:
+
+      Since windows are attached to a thread on Windows and utop
+      handle the UI in a separate thread, doing [window#show ()] in
+      the toplevel UI will not work. *)
+
 (** {6 Console/GTK specific configuration} *)
 
 type profile = Dark | Light
