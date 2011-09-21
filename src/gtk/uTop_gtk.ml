@@ -11,6 +11,8 @@ open Lwt
 open Lwt_react
 open UTop_styles
 
+let () = UTop_private.set_ui UTop_private.GTK
+
 (* Copy stderr for errors. *)
 let stderr_fd = Unix.dup Unix.stderr
 let stderr = Unix.out_channel_of_descr stderr_fd
@@ -216,6 +218,55 @@ let _ =
     ~callback:(Gobject.Closure.create changed)
     ~after:false
 
+(* Insert the prompt. *)
+let insert_prompt ?(locked = true) prompt =
+  if locked then Mutex.lock edit_mutex;
+  computer_insertion := true;
+  let iter = edit_buffer#get_iter (`OFFSET !prompt_start) in
+  (* Remove the previous prompt. *)
+  if !prompt_start < !prompt_stop then begin
+    edit_buffer#delete ~start:iter ~stop:(edit_buffer#get_iter (`OFFSET !prompt_stop))
+  end;
+  (* Insert the text of the new one. *)
+  edit_buffer#insert ~iter ~tags:[frozen] (LTerm_text.to_string prompt);
+  (* Update the end of prompt. *)
+  prompt_stop := iter#offset;
+  (* Stylise it. *)
+  let stylise start stop style =
+    if start < stop then begin
+      let start = edit_buffer#get_iter (`OFFSET (start + !prompt_start)) and stop = edit_buffer#get_iter (`OFFSET (stop + !prompt_start)) in
+      edit_buffer#apply_tag ~start ~stop (tag_of_term_style style)
+    end
+  in
+  let rec loop i j style =
+    if j = Array.length prompt then
+      stylise i j style
+    else begin
+      let _, style' = prompt.(j) in
+      if LTerm_style.equal style style' then
+        loop i (j + 1) style
+      else begin
+        stylise i j style;
+        loop j (j + 1) style'
+      end
+    end
+  in
+  loop 0 0 LTerm_style.none;
+  computer_insertion := false;
+  if locked then Mutex.unlock edit_mutex
+
+(* The current prompt. *)
+let current_prompt, set_current_prompt = S.create ~eq:(==) (S.const [||])
+
+(* Update the prompt when it change. *)
+let () =
+  E.keep
+    (E.map
+       (fun prompt ->
+          (* Update it only if we are editing. *)
+          if edit#editable then insert_prompt ~locked:true prompt)
+       (S.changes (S.switch (S.value current_prompt) (S.changes current_prompt))))
+
 (* +-----------------------------------------------------------------+
    | Standard outputs redirections                                   |
    +-----------------------------------------------------------------+ *)
@@ -283,15 +334,16 @@ let rec read_input prompt buffer length =
            end;
 
            (* Insert the prompt. *)
-           prompt_start := edit#buffer#end_iter#offset;
-           computer_insertion := true;
-           edit_buffer#insert ~iter:edit_buffer#end_iter ~tags:[frozen] prompt;
-           computer_insertion := false;
-           prompt_stop := edit_buffer#end_iter#offset;
+           let offset = edit_buffer#end_iter#offset in
+           prompt_start := offset;
+           prompt_stop := offset;
+           insert_prompt ~locked:false (S.value !UTop.prompt);
 
            Mutex.unlock edit_mutex;
 
-       | "* " | "  " ->
+           set_current_prompt !UTop.prompt
+
+       | "  " ->
            (* Continuation of the current phrase. *)
 
            (* Call hooks. *)
@@ -299,12 +351,29 @@ let rec read_input prompt buffer length =
 
            (* Insert the prompt. *)
            Mutex.lock edit_mutex;
-           prompt_start := edit#buffer#end_iter#offset;
-           computer_insertion := true;
-           edit_buffer#insert ~iter:edit_buffer#end_iter ~tags:[frozen] prompt;
-           computer_insertion := false;
-           prompt_stop := edit_buffer#end_iter#offset;
-           Mutex.unlock edit_mutex
+           let offset = edit_buffer#end_iter#offset in
+           prompt_start := offset;
+           prompt_stop := offset;
+           insert_prompt ~locked:false (S.value !UTop.prompt_continue);
+           Mutex.unlock edit_mutex;
+
+           set_current_prompt !UTop.prompt_continue
+
+       | "* " ->
+           (* Continuation of the current phrase (in a comment). *)
+
+           (* Call hooks. *)
+           Lwt_sequence.iter_l (fun f -> f ()) UTop.new_prompt_hooks;
+
+           (* Insert the prompt. *)
+           Mutex.lock edit_mutex;
+           let offset = edit_buffer#end_iter#offset in
+           prompt_start := offset;
+           prompt_stop := offset;
+           insert_prompt ~locked:false (S.value !UTop.prompt_comment);
+           Mutex.unlock edit_mutex;
+
+           set_current_prompt !UTop.prompt_comment
 
        | _ ->
            (* Unknown prompt: error. *)
@@ -321,6 +390,9 @@ let rec read_input prompt buffer length =
     (* Wait for the user to press Return. *)
     let () = Lwt_main.run (Lwt_condition.wait accept_cond) in
 
+    (* Make the buffer uneditable while ocaml is executing things. *)
+    edit#set_editable false;
+
     Mutex.lock edit_mutex;
     (* Get the user input. *)
     let start = edit_buffer#get_iter (`OFFSET !prompt_stop) and stop = edit_buffer#end_iter in
@@ -332,9 +404,6 @@ let rec read_input prompt buffer length =
     prompt_start := offset;
     prompt_stop := offset;
     Mutex.unlock edit_mutex;
-
-    (* Make the buffer uneditable while ocaml is executing things. *)
-    edit#set_editable false;
 
     input := text;
     pos := 0;

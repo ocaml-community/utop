@@ -19,6 +19,8 @@ open UTop_styles
 
 module String_set = Set.Make(String)
 
+let () = UTop_private.set_ui UTop_private.Console
+
 (* +-----------------------------------------------------------------+
    | History                                                         |
    +-----------------------------------------------------------------+ *)

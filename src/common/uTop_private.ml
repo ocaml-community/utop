@@ -18,3 +18,7 @@ let key_sequence, set_key_sequence =
   (S.switch (S.const ([] : LTerm_key.t list)) ev, set_key_sequence)
 
 let count, set_count = S.create(-1)
+
+type ui = Console | GTK | Emacs
+
+let ui, set_ui = S.create Console

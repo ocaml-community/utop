@@ -11,6 +11,8 @@
 
 open Lwt
 
+let () = UTop_private.set_ui UTop_private.Emacs
+
 (* Copy standard output, which will be used to send commands. *)
 let command_oc = Unix.out_channel_of_descr (Unix.dup Unix.stdout)
 

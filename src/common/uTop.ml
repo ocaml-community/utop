@@ -16,6 +16,14 @@ open LTerm_style
 module String_set = Set.Make(String)
 
 (* +-----------------------------------------------------------------+
+   | UI                                                              |
+   +-----------------------------------------------------------------+ *)
+
+type ui = UTop_private.ui = Console | GTK | Emacs
+
+let get_ui () = S.value UTop_private.ui
+
+(* +-----------------------------------------------------------------+
    | Keywords                                                        |
    +-----------------------------------------------------------------+ *)
 
@@ -61,73 +69,81 @@ let time = ref 0.
 
 let () = at_new_prompt (fun () -> time := Unix.time ())
 
-let make_prompt profile count size key_sequence (recording, macro_count, macro_counter) =
+let make_prompt ui profile count size key_sequence (recording, macro_count, macro_counter) =
   let tm = Unix.localtime !time in
   let color dark light =
     match profile with
       | Dark -> dark
       | Light -> light
   in
-  let bold = profile = Dark in
-  let txta =
-    if key_sequence = [] then
-      eval [
-        B_bold bold;
-        B_fg (color lcyan blue);
-        S "─( ";
-        B_fg (color lmagenta magenta); S (Printf.sprintf "%02d:%02d:%02d" tm.Unix.tm_hour tm.Unix.tm_min tm.Unix.tm_sec); E_fg;
-        S " )─< ";
-        B_fg (color lyellow yellow); S (Printf.sprintf "command %d" count); E_fg;
-        S " >─";
-      ]
-    else
-      eval [
-        B_bold bold;
-        B_fg (color lcyan blue);
-        S "─( ";
-        B_fg (color lmagenta magenta); S (Printf.sprintf "%02d:%02d:%02d" tm.Unix.tm_hour tm.Unix.tm_min tm.Unix.tm_sec); E_fg;
-        S " )─< ";
-        B_fg (color lyellow yellow); S (Printf.sprintf "command %d" count); E_fg;
-        S " >─[ ";
-        B_fg (color lgreen green); S (String.concat " " (List.map LTerm_key.to_string_compact key_sequence)); E_fg;
-        S " ]─";
-      ]
-  in
-  let txtb =
-    if recording then
-      eval [
-        B_bold bold;
-        B_fg (color lcyan blue);
-        S "{ ";
-        B_fg (color lwhite black); S (Printf.sprintf "counter: %d" macro_counter); E_fg;
-        S " }─[ ";
-        B_fg (color lwhite black); S (Printf.sprintf "macro: %d" macro_count); E_fg;
-        S " ]─";
-      ]
-    else
-      eval [
-        B_bold bold;
-        B_fg (color lcyan blue);
-        S "{ ";
-        B_fg (color lwhite black); S (Printf.sprintf "counter: %d" macro_counter); E_fg;
-        S " }─";
-      ]
-  in
-  Array.append (
-    if Array.length txta + Array.length txtb > size.cols then
-      Array.sub (Array.append txta txtb) 0 size.cols
-    else
-      Array.concat [
-        txta;
-        Array.make
-          (size.cols - Array.length txta - Array.length txtb)
-          (UChar.of_int 0x2500, { none with foreground = Some (color lcyan blue); bold = Some bold });
-        txtb;
-      ]
-  ) [|(UChar.of_char '#', { none with foreground = Some (color lgreen green) }); (UChar.of_char ' ', none)|]
+  match ui with
+    | Emacs ->
+        [||]
+    | GTK ->
+        eval [B_fg (color lcyan blue);
+              S (Printf.sprintf "utop[%d]> " count)]
+    | Console ->
+        let bold = profile = Dark in
+        let txta =
+          if key_sequence = [] then
+            eval [
+              B_bold bold;
+              B_fg (color lcyan blue);
+              S "─( ";
+              B_fg (color lmagenta magenta); S (Printf.sprintf "%02d:%02d:%02d" tm.Unix.tm_hour tm.Unix.tm_min tm.Unix.tm_sec); E_fg;
+              S " )─< ";
+              B_fg (color lyellow yellow); S (Printf.sprintf "command %d" count); E_fg;
+              S " >─";
+            ]
+          else
+            eval [
+              B_bold bold;
+              B_fg (color lcyan blue);
+              S "─( ";
+              B_fg (color lmagenta magenta); S (Printf.sprintf "%02d:%02d:%02d" tm.Unix.tm_hour tm.Unix.tm_min tm.Unix.tm_sec); E_fg;
+              S " )─< ";
+              B_fg (color lyellow yellow); S (Printf.sprintf "command %d" count); E_fg;
+              S " >─[ ";
+              B_fg (color lgreen green); S (String.concat " " (List.map LTerm_key.to_string_compact key_sequence)); E_fg;
+              S " ]─";
+            ]
+        in
+        let txtb =
+          if recording then
+            eval [
+              B_bold bold;
+              B_fg (color lcyan blue);
+              S "{ ";
+              B_fg (color lwhite black); S (Printf.sprintf "counter: %d" macro_counter); E_fg;
+              S " }─[ ";
+              B_fg (color lwhite black); S (Printf.sprintf "macro: %d" macro_count); E_fg;
+              S " ]─";
+            ]
+          else
+            eval [
+              B_bold bold;
+              B_fg (color lcyan blue);
+              S "{ ";
+              B_fg (color lwhite black); S (Printf.sprintf "counter: %d" macro_counter); E_fg;
+              S " }─";
+            ]
+        in
+        Array.append (
+          if Array.length txta + Array.length txtb > size.cols then
+            Array.sub (Array.append txta txtb) 0 size.cols
+          else
+            Array.concat [
+              txta;
+              Array.make
+                (size.cols - Array.length txta - Array.length txtb)
+                (UChar.of_int 0x2500, { none with foreground = Some (color lcyan blue); bold = Some bold });
+              txtb;
+            ]
+        ) [|(UChar.of_char '#', { none with foreground = Some (color lgreen green) }); (UChar.of_char ' ', none)|]
 
 let prompt = ref (
-  S.l5 make_prompt
+  S.l6 make_prompt
+    UTop_private.ui
     profile
     count
     size

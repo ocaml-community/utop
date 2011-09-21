@@ -18,17 +18,23 @@ val keywords : Set.Make(String).t ref
 val add_keyword : string -> unit
   (** Add a new OCaml keyword. *)
 
-(** {6 Console specific configuration} *)
+type ui = Console | GTK | Emacs
+    (** The user interface in use. *)
+
+val get_ui : unit -> ui
+  (** Returns the user interface in use. *)
+
+(** {6 Console/GTK specific configuration} *)
 
 type profile = Dark | Light
-    (** Profile for terminal colors. *)
+    (** Profile for colors. *)
 
 val profile : profile React.signal
-  (** The profile of the terminal. It defaults to {!Dark}. This is
-      used by the default prompt to choose colors. *)
+  (** The color profile. It defaults to {!Dark}. This is used by the
+      default prompt to choose colors. *)
 
 val set_profile : profile -> unit
-  (** Sets the profile of the terminal. *)
+  (** Sets the color profile. *)
 
 val smart_accept : bool ref
   (** If [true], then only lines terminated with ";;" will be sent to
@@ -36,28 +42,33 @@ val smart_accept : bool ref
       user press Enter. It default to [true]. *)
 
 val size : LTerm_geom.size React.signal
-  (** The current size of the terminal.  *)
+  (** The current size of the terminal. This is used only in the
+      console UI. *)
 
 val key_sequence : LTerm_key.t list React.signal
-  (** The current key sequence entered by the user. *)
+  (** The current key sequence entered by the user. This is used only
+      in the console UI. *)
+
+val time : float ref
+  (** The time of the beginning of the current command. *)
 
 val prompt : LTerm_text.t React.signal ref
   (** The current prompt.
 
       For compatibility with ocaml error printing, it must ends with a
-      line of length 2. *)
+      line of length 2 in the console UI. *)
 
 val prompt_continue : LTerm_text.t React.signal ref
   (** The prompt used to continue unterminated phrase.
 
       For compatibility with ocaml error printing, it must ends with a
-      line of length 2. *)
+      line of length 2 in the console UI. *)
 
 val prompt_comment : LTerm_text.t React.signal ref
   (** The prompt used to continue unterminated comments.
 
       For compatibility with ocaml error printing, it must ends with a
-      line of length 2. *)
+      line of length 2 in the console UI. *)
 
 (** {6 Hooks} *)
 
