@@ -84,24 +84,11 @@ let init_history () =
   return ()
 
 (* +-----------------------------------------------------------------+
-   | Glib main loop                                                  |
+   | GTK ui                                                          |
    +-----------------------------------------------------------------+ *)
 
 (* Initializes GTK. *)
 let _ = GMain.init ~setlocale:false ()
-
-(* Glib main loop. *)
-let main () =
-  while true do
-    Lwt_glib.iter ()
-  done
-
-(* Start the glib main loop in another thread. *)
-let _ = Thread.create main ()
-
-(* +-----------------------------------------------------------------+
-   | GTK ui                                                          |
-   +-----------------------------------------------------------------+ *)
 
 (* Create the main window. *)
 let window = GWindow.window ~title:"utop" ~width:800 ~height:600 ~allow_shrink:true ()
@@ -407,4 +394,15 @@ let () =
     | None ->
         edit#misc#modify_base [(`NORMAL, default_background ())]
 
-let () = window#show ()
+(* The glib main loop. *)
+let main () =
+  (* For some reason, this must happen in the dispatcher thread on
+     windows. *)
+  window#show ();
+
+  while true do
+    Lwt_glib.iter ()
+  done
+
+(* Start the glib main loop in another thread. *)
+let _ = Thread.create main ()
