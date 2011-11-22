@@ -37,6 +37,6 @@ let compiler_libs =
   BaseEnv.var_define
     ~short_desc:(fun () -> "compiler libraries")
     "compiler_libs"
-    (Lazy.lazy_from_fun search_compiler_libs)
+    search_compiler_libs
 
 let () = setup ()
