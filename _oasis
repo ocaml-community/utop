@@ -31,7 +31,7 @@ Library "optcomp"
   Install: false
   Path: syntax
   Modules: Pa_optcomp
-  BuildDepends: camlp4.lib, camlp4.quotations.o
+  BuildDepends: camlp4, camlp4.quotations.o
   CompiledObject: byte
 
 Library utop
