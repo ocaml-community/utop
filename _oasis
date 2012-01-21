@@ -58,7 +58,8 @@ Executable "utop-emacs"
   DataFiles: utop.el ($datadir/emacs/site-lisp)
 
 Executable "utop-gtk"
-  Install: true
+  Install$: flag(gtk)
+  Build$: flag(gtk)
   Path: src/gtk
   CompiledObject: byte
   MainIs: uTop_gtk_top.ml
