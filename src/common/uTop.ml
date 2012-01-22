@@ -257,6 +257,9 @@ For a complete description of utop, look at the utop(1) manual page."));
    +-----------------------------------------------------------------+ *)
 
 let () =
-  (* Do not load packages linked with the toplevel. *)
-  Topfind.don't_load_deeply ["utop"; "findlib"; "lambda-term"]
+  (* Add findlib path so Topfind is available and it won't be
+     initialized twice if the user does [#use "topfind"]. *)
+  Topdirs.dir_directory (Findlib.package_directory "findlib");
+  (* Make UTop accessible. *)
+  Topdirs.dir_directory (Findlib.package_directory "utop")
 
