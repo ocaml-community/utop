@@ -30,8 +30,8 @@ let () =
                   tag_file
                     dst
                     (List.filter
-                       (* Remove the "file:..." tag *)
-                       (fun tag -> not (String.is_prefix "file:" tag))
+                       (* Remove the "file:..." tag and syntax extensions. *)
+                       (fun tag -> not (String.is_prefix "file:" tag) && not (String.is_suffix tag ".syntax"))
                        (Tags.elements (tags_of_pathname src))))
                toplevels;
 
@@ -64,7 +64,7 @@ let () =
                   let packages =
                     Tags.fold
                       (fun tag packages ->
-                         if String.is_prefix "pkg_" tag then
+                         if String.is_prefix "pkg_" tag && not (String.is_suffix tag ".syntax") then
                            String.after tag 4 :: packages
                          else
                            packages)
