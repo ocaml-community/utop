@@ -10,6 +10,9 @@
 (* OASIS_START *)
 (* OASIS_STOP *)
 
+(* List of toplevels. *)
+let toplevels = ["console"; "emacs"; "gtk"]
+
 let () =
   dispatch
     (fun hook ->
@@ -19,11 +22,21 @@ let () =
              Options.make_links := false
 
          | After_rules ->
+             (* Copy tags from *.byte to *.top *)
+             List.iter
+               (fun name ->
+                  let src = "src" / name / ("uTop_" ^ name ^ "_top.byte")
+                  and dst = "src" / name / ("uTop_" ^ name ^ "_top.top") in
+                  tag_file
+                    dst
+                    (List.filter
+                       (* Remove the "file:..." tag *)
+                       (fun tag -> not (String.is_prefix "file:" tag))
+                       (Tags.elements (tags_of_pathname src))))
+               toplevels;
+
              (* Use -linkpkg for creating toplevels *)
              flag ["ocaml"; "link"; "toplevel"] & A"-linkpkg";
-
-             (* Allow -g for toplevels. *)
-             flag ["ocaml"; "link"; "toplevel"; "debug"] & A "-g";
 
              (* Optcomp *)
              flag ["ocaml"; "compile"; "pa_optcomp"] & S[A"-ppopt"; A "syntax/pa_optcomp.cmo"];
@@ -37,22 +50,29 @@ let () =
 
              (* Add directories for compiler-libraries: *)
              let paths = List.filter Sys.file_exists [path; path / "typing"; path / "parsing"; path / "utils"] in
-             let paths = List.map (fun path -> S[A "-I"; A path]) paths in
-             List.iter
-               (fun stage -> flag ["ocaml"; stage; "use_compiler_libs"] & S paths)
-               ["compile"; "ocamldep"; "doc"; "link"];
+             let paths = List.map (fun path -> S [A "-I"; A path]) paths in
+             flag ["ocaml"; "compile"; "use_compiler_libs"] & S paths;
+             flag ["ocaml"; "ocamldep"; "use_compiler_libs"] & S paths;
+             flag ["ocaml"; "doc"; "use_compiler_libs"] & S paths;
 
              (* Expunge compiler modules *)
              rule "toplevel expunge"
                ~dep:"%.top"
                ~prod:"%.byte"
                (fun env _ ->
+                  (* Build the list of explicit dependencies. *)
+                  let packages =
+                    Tags.fold
+                      (fun tag packages ->
+                         if String.is_prefix "pkg_" tag then
+                           String.after tag 4 :: packages
+                         else
+                           packages)
+                      (tags_of_pathname (env "%.byte"))
+                      []
+                  in
                   (* Build the list of dependencies. *)
-                  let deps = Findlib.topological_closure [Findlib.query "lambda-term";
-                                                          Findlib.query "findlib";
-                                                          Findlib.query "threads";
-                                                          Findlib.query "lablgtk2";
-                                                          Findlib.query "lwt.glib"] in
+                  let deps = Findlib.topological_closure (List.rev_map Findlib.query packages) in
                   (* Build the set of locations of dependencies. *)
                   let locs = List.fold_left (fun set pkg -> StringSet.add pkg.Findlib.location set) StringSet.empty deps in
                   (* Directories to search for .cmi: *)
@@ -72,11 +92,9 @@ let () =
                            (Array.to_list (Pathname.readdir directory)))
                       directories StringSet.empty
                   in
-                  Cmd(S[A(stdlib / "expunge");
-                        A(env "%.top");
-                        A(env "%.byte");
-                        A"UTop"; A"Outcometree"; A"Topdirs"; A"Toploop";
-                        S(List.map (fun x -> A x) (StringSet.elements modules))]))
+                  Cmd (S [A (stdlib / "expunge");
+                          A (env "%.top");
+                          A (env "%.byte");
+                          A "UTop"; S(List.map (fun x -> A x) (StringSet.elements modules))]))
          | _ ->
              ())
-

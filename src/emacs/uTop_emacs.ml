@@ -174,5 +174,4 @@ and loop prompt buffer length =
     | Some (command, argument) ->
         process prompt buffer length command argument
 
-let () =
-  Toploop.read_interactive_input := read_input
+let () = Toploop.read_interactive_input := read_input
