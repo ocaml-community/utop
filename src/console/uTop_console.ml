@@ -218,16 +218,15 @@ let read_input_non_interactive prompt buffer len =
   Lwt_main.run (Lwt_io.write Lwt_io.stdout prompt >> loop 0)
 
 let init_read_interactive_input () =
+  (* Open the standard terminal. *)
+  lwt term = Lazy.force LTerm.stdout in
   (* If standard channels are connected to a tty, use interactive
      read-line and display a welcome message: *)
-  if Unix.isatty Unix.stdin && Unix.isatty Unix.stdout then begin
-    (* Open the standard terminal. *)
-    lwt term = Lazy.force LTerm.stdout in
-
+  if LTerm.incoming_is_a_tty term && LTerm.outgoing_is_a_tty term then begin
     Toploop.read_interactive_input := (read_input term);
 
     (* Create a context to render the welcome message. *)
-    lwt size = LTerm.get_size term in
+    let size = LTerm.size term in
     let size = { rows = 3; cols = size.cols } in
     let matrix = LTerm_draw.make_matrix size in
     let ctx = LTerm_draw.context matrix size in
