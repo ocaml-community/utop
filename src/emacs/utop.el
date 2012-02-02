@@ -428,12 +428,14 @@ sub-process."
 (defun utop-interrupt ()
   "Interrupt utop."
   (interactive)
-  (interrupt-process utop-process))
+  (with-current-buffer utop-buffer-name
+    (interrupt-process utop-process)))
 
 (defun utop-kill ()
   "Kill utop."
   (interactive)
-  (kill-process utop-process))
+  (with-current-buffer utop-buffer-name
+    (kill-process utop-process)))
 
 ;; +-----------------------------------------------------------------+
 ;; | The mode                                                        |

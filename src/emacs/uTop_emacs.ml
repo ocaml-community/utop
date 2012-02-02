@@ -66,8 +66,18 @@ let input = ref ""
 (* The position of the text already sent to ocaml in {!input}. *)
 let pos = ref 0
 
+let read_line () =
+  let behavior = Sys.signal Sys.sigint Sys.Signal_ignore in
+  try
+    let line = Lwt_main.run (Lwt_io.read_line_opt Lwt_io.stdin) in
+    Sys.set_signal Sys.sigint behavior;
+    line
+  with exn ->
+    Sys.set_signal Sys.sigint behavior;
+    raise exn
+
 let read_command () =
-  match Lwt_main.run (Lwt_io.read_line_opt Lwt_io.stdin) with
+  match read_line () with
     | None ->
         None
     | Some line ->
