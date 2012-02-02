@@ -185,3 +185,34 @@ and loop prompt buffer length =
         process prompt buffer length command argument
 
 let () = Toploop.read_interactive_input := read_input
+
+(* +-----------------------------------------------------------------+
+   | Hacks                                                           |
+   +-----------------------------------------------------------------+ *)
+
+(* Force camlp4 to display its welcome message when it is loaded. *)
+
+let () =
+  List.iter
+    (fun directive ->
+       let orig =
+         try
+           match Hashtbl.find Toploop.directive_table directive with
+             | Toploop.Directive_none func ->
+                 func
+             | _ ->
+                 ignore
+         with Not_found ->
+           ignore
+       in
+       Hashtbl.replace Toploop.directive_table directive
+         (Toploop.Directive_none
+            (fun () ->
+               orig ();
+               (* Parse something so camlp4 will display its welcome
+                  message. *)
+               try
+                 ignore (!Toploop.parse_toplevel_phrase (Lexing.from_string ""))
+               with _ ->
+                 ())))
+    ["camlp4o"; "camlp4r"]
