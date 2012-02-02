@@ -118,6 +118,9 @@ before the end of prompt.")
 - wait: ocaml is evaluating a phrase
 - done: ocaml has died.")
 
+(defvar utop-initial-command nil
+  "Initial phrase to evaluate.")
+
 ;; +-----------------------------------------------------------------+
 ;; | Utils                                                           |
 ;; +-----------------------------------------------------------------+
@@ -151,11 +154,6 @@ before the end of prompt.")
     (signal 'text-read-only '("You cannot edit the buffer when ocaml is not running")))
    ((eq utop-state 'comp)
     (signal 'text-read-only '("You cannot edit the buffer while waiting for completion")))))
-
-(defun utop-check-edit ()
-  (with-current-buffer utop-buffer-name
-    (unless (eq utop-state 'edit)
-      (utop-cannot-edit))))
 
 (defun utop-before-change (start stop)
   (unless utop-inhibit-check
@@ -214,38 +212,36 @@ before the end of prompt.")
 
 (defun utop-insert-output (output &optional face)
   "Insert the given output before the prompt."
-  (with-current-buffer utop-buffer-name
-    (save-excursion
-      (let ((line (concat output "\n")))
-        ;; Apply the given face if provided
-        (when face (add-text-properties 0 (length line) (list 'face face) line))
-        ;; Goto before the prompt
-        (goto-char utop-prompt-min)
-        ;; Insert the output
-        (insert line)
-        ;; Advance the prompt
-        (setq utop-prompt-min (+ utop-prompt-min (length line)))
-        (setq utop-prompt-max (+ utop-prompt-max (length line)))
-        ;; Make everything before the end prompt read-only
-        (add-text-properties (point-min) utop-prompt-max utop-non-editable-properties)))))
+  (save-excursion
+    (let ((line (concat output "\n")))
+      ;; Apply the given face if provided
+      (when face (add-text-properties 0 (length line) (list 'face face) line))
+      ;; Goto before the prompt
+      (goto-char utop-prompt-min)
+      ;; Insert the output
+      (insert line)
+      ;; Advance the prompt
+      (setq utop-prompt-min (+ utop-prompt-min (length line)))
+      (setq utop-prompt-max (+ utop-prompt-max (length line)))
+      ;; Make everything before the end prompt read-only
+      (add-text-properties (point-min) utop-prompt-max utop-non-editable-properties))))
 
 (defun utop-insert-prompt (prompt)
   "Insert the given prompt."
-  (with-current-buffer utop-buffer-name
-    ;; Goto the end of the buffer
-    (goto-char (point-max))
-    ;; Make it the start of the prompt
-    (setq utop-prompt-min (point))
-    ;; Insert the prompt
-    (insert prompt)
-    ;; Set the end of prompt
-    (setq utop-prompt-max (point))
-    ;; Make everything before the end prompt read-only
-    (add-text-properties (point-min) utop-prompt-max utop-non-editable-properties)
-    ;; We are now editing
-    (setq utop-state 'edit)
-    ;; Move the point to the end of buffer in all utop windows
-    (utop-goto-point-max-all-windows)))
+  ;; Goto the end of the buffer
+  (goto-char (point-max))
+  ;; Make it the start of the prompt
+  (setq utop-prompt-min (point))
+  ;; Insert the prompt
+  (insert prompt)
+  ;; Set the end of prompt
+  (setq utop-prompt-max (point))
+  ;; Make everything before the end prompt read-only
+  (add-text-properties (point-min) utop-prompt-max utop-non-editable-properties)
+  ;; We are now editing
+  (setq utop-state 'edit)
+  ;; Move the point to the end of buffer in all utop windows
+  (utop-goto-point-max-all-windows))
 
 (defun utop-process-line (line)
   "Process one line from the utop sub-process."
@@ -262,12 +258,10 @@ before the end of prompt.")
      ;; A new prompt
      ((string= command "prompt")
       (let ((prompt (apply utop-prompt ())))
-        ;; Check whether there is something to push to the history
-        (if (stringp utop-pending)
-            ;; Push pending input to the history if it is different
-            ;; from the top of the history
-            (unless (and (consp utop-history) (string= utop-pending (car utop-history)))
-              (push utop-pending utop-history)))
+        ;; Push pending input to the history if it is different from
+        ;; the top of the history
+        (when (and utop-pending (or (null utop-history) (not (string= utop-pending (car utop-history)))))
+          (push utop-pending utop-history))
         ;; Clear pending input
         (setq utop-pending nil)
         ;; Reset history
@@ -278,7 +272,13 @@ before the end of prompt.")
         ;; Insert the new prompt
         (utop-insert-prompt prompt)
         ;; Increment the command number
-        (setq utop-command-number (+ utop-command-number 1))))
+        (setq utop-command-number (+ utop-command-number 1))
+        ;; Send the initial command if any
+        (when utop-initial-command
+          (goto-char (point-max))
+          (insert utop-initial-command ";;")
+          (setq utop-initial-command nil)
+          (utop-send-input))))
      ;; Continuation of previous input
      ((string= command "continue")
       ;; Reset history
@@ -336,7 +336,7 @@ sub-process."
        (setq utop-state 'wait)
        ;; Push input to pending input
        (let ((input (buffer-substring-no-properties utop-prompt-max (point-max))))
-         (if (stringp utop-pending)
+         (if utop-pending
              (setq utop-pending (concat utop-pending "\n" input))
            (setq utop-pending input))
          ;; Goto the end of the buffer
@@ -356,7 +356,7 @@ sub-process."
            ;; Send all lines to utop
            (let ((lines (split-string input "\n")))
              (process-send-string utop-process "input:\n")
-             (while (consp lines)
+             (while lines
                ;; Send the line
                (process-send-string utop-process (concat "data:" (car lines) "\n"))
                ;; Remove it and continue
@@ -380,7 +380,7 @@ sub-process."
         (setq utop-state 'comp)
         ;; Send all lines to utop
         (process-send-string utop-process "complete:\n")
-        (while (consp lines)
+        (while lines
           ;; Send the line
           (process-send-string utop-process (concat "data:" (car lines) "\n"))
           ;; Remove it and continue
@@ -391,23 +391,28 @@ sub-process."
 ;; | Tuareg integration                                              |
 ;; +-----------------------------------------------------------------+
 
-(defun utop-start ()
-  "Start utop if not already started."
-  ;; Create the utop buffer if it does not exists, otherwise just
-  ;; retreive it
-  (let ((buf (get-buffer-create utop-buffer-name)))
-    ;; Make it appear
-    (display-buffer buf)
-    ;; Set the utop mode in that buffer if not already done
-    (with-current-buffer buf (unless (eq major-mode 'utop-mode) (utop-mode)))))
+(defun utop-prepare-for-eval ()
+  "Prepare utop for evaluation."
+  (save-excursion
+    ;; Create the utop buffer if it does not exists, otherwise just
+    ;; retreive it
+    (let ((buf (get-buffer-create utop-buffer-name)))
+      ;; Make it appear
+      (display-buffer buf)
+      (with-current-buffer buf
+        (cond
+         ((not (eq major-mode 'utop-mode))
+          ;; The buffer has just been created, start utop
+          (utop-mode))
+         ((eq utop-state 'done)
+          ;; UTop exited, restart it
+          (utop-restart))
+         ((not (eq utop-state 'edit))
+          ;; Edition cannot be performed right now
+          (utop-cannot-edit)))))))
 
-(defun utop-eval-region (start end)
-  "Eval the current region in utop."
-  (interactive "r")
-  ;; Start utop if needed
-  (save-excursion (utop-start))
-  ;; Check that we can send command now
-  (utop-check-edit)
+(defun utop-eval (start end)
+  "Eval the given region in utop."
   ;; From tuareg
   (setq tuareg-interactive-last-phrase-pos-in-source start)
   ;; Select the text of the region
@@ -422,32 +427,40 @@ sub-process."
            (setq end (point))
            (buffer-substring-no-properties start end))))
     (with-current-buffer utop-buffer-name
-      ;; Insert it at the end of the utop buffer
-      (goto-char (point-max))
-      (insert text ";;")
-      ;; Send input to utop now
-      (utop-send-input))))
+      (cond
+       ((eq utop-state 'edit)
+        ;; Insert it at the end of the utop buffer
+        (goto-char (point-max))
+        (insert text ";;")
+        ;; Send input to utop now
+        (utop-send-input))
+       ((eq utop-state 'wait)
+        ;; utop is starting, save the initial command to send
+        (setq utop-initial-command text))))))
+
+(defun utop-eval-region (start end)
+  "Eval the current region in utop."
+  (interactive "r")
+  (utop-prepare-for-eval)
+  (utop-eval (start end)))
 
 (defun utop-eval-phrase ()
   "Eval the surrounding Caml phrase (or block) in utop."
   (interactive)
-  ;; Start utop if needed
-  (save-excursion (utop-start))
-  ;; Check that we can send command now
-  (utop-check-edit)
-  ;; Locate the near phrase and eval it
+  (utop-prepare-for-eval)
   (let ((end))
     (save-excursion
       (let ((pair (tuareg-discover-phrase)))
 	(setq end (nth 2 pair))
-	(utop-eval-region (nth 0 pair) (nth 1 pair))))
+	(utop-eval (nth 0 pair) (nth 1 pair))))
     (if tuareg-skip-after-eval-phrase
 	(goto-char end))))
 
 (defun utop-eval-buffer ()
   "Send the buffer to utop."
   (interactive)
-  (utop-eval-region (point-min) (point-max)))
+  (utop-prepare-for-eval)
+  (utop-eval (point-min) (point-max)))
 
 ;; +-----------------------------------------------------------------+
 ;; | Edition functions                                               |
@@ -505,6 +518,35 @@ sub-process."
 ;; | The mode                                                        |
 ;; +-----------------------------------------------------------------+
 
+(defun utop-start ()
+  "Start utop."
+  ;; Set the initial state: we are waiting for ocaml to send the
+  ;; initial prompt
+  (setq utop-state 'wait)
+
+  ;; Reset variables
+  (setq utop-prompt-min (point-max))
+  (setq utop-prompt-max (point-max))
+  (setq utop-output "")
+  (setq utop-command-number 0)
+  (setq utop-pending nil)
+  (setq utop-completion nil)
+
+  ;; Create the sub-process
+  (setq utop-process (start-process "utop" (current-buffer) utop-command))
+
+  ;; Filter the output of the sub-process with our filter function
+  (set-process-filter utop-process 'utop-process-output)
+
+  ;; Set the process sentinel
+  (set-process-sentinel utop-process 'utop-sentinel))
+
+(defun utop-restart ()
+  "Restart utop."
+  (goto-char (point-max))
+  (utop-insert "\nRestarting...\n\n")
+  (utop-start))
+
 (defun utop-mode ()
   "Caml Emacs-Lisp Toplevel.
 
@@ -524,6 +566,7 @@ sub-process."
   (make-local-variable 'utop-pending)
   (make-local-variable 'utop-inhibit-check)
   (make-local-variable 'utop-state)
+  (make-local-variable 'utop-initial-command)
 
   ;; Set the major mode
   (setq major-mode 'utop-mode)
@@ -532,19 +575,6 @@ sub-process."
   ;; Create and use the local keymap utop-mode-map
   (setq utop-mode-map (make-sparse-keymap))
   (use-local-map utop-mode-map)
-
-  ;; Set the initial state: we are waiting for ocaml to send the
-  ;; initial prompt
-  (setq utop-state 'wait)
-
-  ;; Create the sub-process
-  (setq utop-process (start-process "utop" (current-buffer) utop-command))
-
-  ;; Filter the output of the sub-process with our filter function
-  (set-process-filter utop-process 'utop-process-output)
-
-  ;; Set the process sentinel
-  (set-process-sentinel utop-process 'utop-sentinel)
 
   ;; Set the hook to call before changing the buffer
   (add-hook 'before-change-functions 'utop-before-change nil t)
@@ -565,6 +595,9 @@ sub-process."
   ;; Register the exit hook
   (add-hook 'kill-buffer-hook (lambda () (run-hooks 'utop-exit-hook)) t t)
 
+  ;; Start utop
+  (utop-start)
+
   ;; Call hooks
   (run-mode-hooks 'utop-mode-hook))
 
@@ -581,8 +614,13 @@ sub-process."
   (let ((buf (get-buffer-create utop-buffer-name)))
     ;; Jump to that buffer
     (pop-to-buffer buf)
-    ;; Set the utop mode in that buffer if not already done
-    (unless (eq major-mode 'utop-mode) (utop-mode))
+    (cond
+     ((not (eq major-mode 'utop-mode))
+      ;; The buffer has just been created, set the utop mode
+      (utop-mode))
+     ((eq utop-state 'done)
+      ;; utop has exited, restart it
+      (utop-restart)))
     ;; Finally return it
     buf))
 
