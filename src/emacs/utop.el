@@ -437,6 +437,26 @@ sub-process."
   (with-current-buffer utop-buffer-name
     (kill-process utop-process)))
 
+(defun utop-sentinel (process msg)
+  "Callback for process' state change."
+  (with-current-buffer utop-buffer-name
+    (let ((status (process-status utop-process)))
+      (when (or (eq status 'exit) (eq status 'signal))
+        ;; The process is terminated
+        (let ((inhibit-read-only t) (exit-code (process-exit-status utop-process)))
+          ;; Insert a message at the end
+          (goto-char (point-max))
+          (cond
+           ((eq status 'exit)
+            (insert "\n\nProcess utop exited with code " (number-to-string exit-code) "\n"))
+           ((eq status 'signal)
+            (insert "\n\nProcess utop has been killed by signal " (number-to-string exit-code) "\n")))
+          ;; Make the whole buffer sticky and read-only
+          (remove-text-properties (point-min) (point-max) '(rear-nonsticky nil))
+          (add-text-properties (point-min) (point-max) '(read-only t))
+          ;; Go to the end of the buffer
+          (goto-char (point-max)))))))
+
 ;; +-----------------------------------------------------------------+
 ;; | The mode                                                        |
 ;; +-----------------------------------------------------------------+
@@ -472,6 +492,9 @@ sub-process."
 
   ;; Filter the output of the sub-process with our filter function
   (set-process-filter utop-process 'utop-process-output)
+
+  ;; Set the process sentinel
+  (set-process-sentinel utop-process 'utop-sentinel)
 
   ;; Define keys
   (define-key utop-mode-map [return] 'utop-send-input)
