@@ -63,6 +63,9 @@ This hook is only run if exiting actually kills the buffer."
 (defconst utop-buffer-name "*utop*"
   "The name of the buffer utop is running on.")
 
+(defconst utop-non-editable-properties '(read-only t rear-nonsticky (read-only face))
+  "List of text properties for the non-editable part of the buffer")
+
 ;; +-----------------------------------------------------------------+
 ;; | Variables                                                       |
 ;; +-----------------------------------------------------------------+
@@ -107,22 +110,60 @@ This hook is only run if exiting actually kills the buffer."
   "Whether to move the point to the end of prompt after
 displaying the prompt")
 
+(defvar utop-inhibit-check nil
+  "When set to a non-nil value, always insert text, even if it is
+before the end of prompt.")
+
+(defvar utop-state nil
+  "State of utop. It is one of:
+
+- edit: the user is typing a command
+- comp: waiting for completion
+- wait: ocaml is evaluating a phrase
+- done: ocaml has died.")
+
 ;; +-----------------------------------------------------------------+
 ;; | Utils                                                           |
 ;; +-----------------------------------------------------------------+
 
-(defun utop-add-text-properties-rear-nonsticky (start end properties nonsticky-properties &optional object)
-  "Same as ``add-text-properties'' but put the last character in
-non-sticky mode."
-  (when (< start end)
-    ;; Put everything between start and end-1 in sticky read-only mode
-    (add-text-properties start (- end 1) properties object)
-    ;; Put the last character in non-sticky mode
-    (add-text-properties (- end 1) end
-                         (append
-                          properties
-                          (list 'rear-nonsticky nonsticky-properties))
-                         object)))
+(defmacro utop-perform (&rest actions)
+  "Execute the given actions while checks are inhibited."
+  (list 'let (list (list 'utop-inhibit-check t) (list 'inhibit-read-only t)) (cons 'progn actions)))
+
+(defun utop-insert (&rest args)
+  "Insert text with checks inhibited."
+  (utop-perform (apply 'insert args)))
+
+;; +-----------------------------------------------------------------+
+;; | Edition control                                                 |
+;; +-----------------------------------------------------------------+
+
+(defun utop-cannot-edit ()
+  (cond
+   ((eq utop-state 'wait)
+    (signal 'text-read-only '("You cannot edit the buffer while ocaml is evaluating a phrase")))
+   ((eq utop-state 'done)
+    (signal 'text-read-only '("You cannot edit the buffer when ocaml is not running")))
+   ((eq utop-state 'comp)
+    (signal 'text-read-only '("You cannot edit the buffer while waiting for completion")))))
+
+(defun utop-check-edit ()
+  (with-current-buffer utop-buffer-name
+    (unless (eq utop-state 'edit)
+      (utop-cannot-edit))))
+
+(defun utop-before-change (start stop)
+  (unless utop-inhibit-check
+    (cond
+     ((not (eq utop-state 'edit))
+      (add-hook 'post-command-hook 'utop-add-change nil t)
+      (utop-cannot-edit))
+     ((< stop utop-prompt-max)
+      (utop-cannot-edit "You cannot edit this part of the buffer")))))
+
+(defun utop-add-change ()
+  (remove-hook 'post-command-hook 'utop-add-change t)
+  (add-hook 'before-change-functions 'utop-before-change nil t))
 
 ;; +-----------------------------------------------------------------+
 ;; | Prompt                                                          |
@@ -141,8 +182,8 @@ non-sticky mode."
 (defun utop-history-goto-prev ()
   "Go to the previous entry of the history."
   (interactive)
-  (unless (null utop-history-prev)
-    (with-current-buffer utop-buffer-name
+  (with-current-buffer utop-buffer-name
+    (when (and (eq utop-state 'edit) utop-history-prev)
       ;; Push current input after the history cursor
       (push (delete-and-extract-region utop-prompt-max (point-max)) utop-history-next)
       ;; Go to after the prompt to insert the previous input
@@ -153,8 +194,8 @@ non-sticky mode."
 (defun utop-history-goto-next ()
   "Go to the next entry of the history."
   (interactive)
-  (unless (null utop-history-next)
-    (with-current-buffer utop-buffer-name
+  (with-current-buffer utop-buffer-name
+    (when (and (eq utop-state 'edit) utop-history-next)
       ;; Push current input before the history cursor
       (push (delete-and-extract-region utop-prompt-max (point-max)) utop-history-prev)
       ;; Go to after the prompt to insert the next input
@@ -171,35 +212,33 @@ non-sticky mode."
   (with-current-buffer utop-buffer-name
     (save-excursion
       (let ((line (concat output "\n")))
-        ;; Make the line read-only
-        (add-text-properties 0 (length line) '(read-only t) line)
         ;; Apply the given face if provided
         (when face (add-text-properties 0 (length line) (list 'face face) line))
         ;; Goto before the prompt
         (goto-char utop-prompt-min)
         ;; Insert the output
-        (let ((inhibit-read-only t)) (insert line))
+        (insert line)
         ;; Advance the prompt
         (setq utop-prompt-min (+ utop-prompt-min (length line)))
-        (setq utop-prompt-max (+ utop-prompt-max (length line)))))))
+        (setq utop-prompt-max (+ utop-prompt-max (length line)))
+        ;; Make everything before the end prompt read-only
+        (add-text-properties (point-min) utop-prompt-max utop-non-editable-properties)))))
 
 (defun utop-insert-prompt (prompt)
   "Insert the given prompt."
   (with-current-buffer utop-buffer-name
-    ;; Make the old prompt sticky so we cannot edit after it
-    (let ((inhibit-read-only t))
-      (remove-text-properties utop-prompt-min utop-prompt-max '(rear-nonsticky nil)))
-    ;; Make the prompt read-only. Make the read-only property
-    ;; non-sticky so the buffer can be edited after the prompt
-    (utop-add-text-properties-rear-nonsticky 0 (length prompt) '(read-only t) '(face read-only) prompt)
     ;; Goto the end of the buffer
     (goto-char (point-max))
     ;; Make it the start of the prompt
     (setq utop-prompt-min (point))
     ;; Insert the prompt
-    (let ((inhibit-read-only t)) (insert prompt))
+    (insert prompt)
     ;; Set the end of prompt
-    (setq utop-prompt-max (point))))
+    (setq utop-prompt-max (point))
+    ;; Make everything before the end prompt read-only
+    (add-text-properties (point-min) utop-prompt-max utop-non-editable-properties)
+    ;; We are now editing
+    (setq utop-state 'edit)))
 
 (defun utop-process-line (line)
   "Process one line from the utop sub-process."
@@ -252,15 +291,17 @@ non-sticky mode."
       (utop-insert-prompt utop-last-prompt))
      ;; Complete with a word
      ((string= command "completion-word")
+      (setq utop-state 'edit)
       (insert argument))
      ;; Start of completion
      ((string= command "completion-start")
       (setq utop-completion nil))
      ;; A new possible completion
      ((string= command "completion")
-      (setq utop-completion (cons argument utop-completion)))
+      (push argument utop-completion))
      ;; End of completion
      ((string= command "completion-stop")
+      (setq utop-state 'edit)
       (with-output-to-temp-buffer "*Completions*"
         (display-completion-list (nreverse utop-completion)))
       (setq utop-completion nil)))))
@@ -268,19 +309,20 @@ non-sticky mode."
 (defun utop-process-output (process output)
   "Process the output of utop"
   (with-current-buffer utop-buffer-name
-    ;; Concatenate the output with the output not yet processed
-    (setq utop-output (concat utop-output output))
-    ;; Split lines. Each line contains exactly one command
-    (let ((lines (split-string utop-output "\n")))
-      (while (>= (length lines) 2)
-        ;; Process the first line
-        (utop-process-line (car lines))
-        ;; Remove it and continue
-        (setq lines (cdr lines)))
-      ;; When the list contains only one element, then this is either
-      ;; the end of commands, either an unterminated one, so we save
-      ;; it for later
-      (setq utop-output (car lines)))))
+    (utop-perform
+     ;; Concatenate the output with the output not yet processed
+     (setq utop-output (concat utop-output output))
+     ;; Split lines. Each line contains exactly one command
+     (let ((lines (split-string utop-output "\n")))
+       (while (>= (length lines) 2)
+         ;; Process the first line
+         (utop-process-line (car lines))
+         ;; Remove it and continue
+         (setq lines (cdr lines)))
+       ;; When the list contains only one element, then this is either
+       ;; the end of commands, either an unterminated one, so we save
+       ;; it for later
+       (setq utop-output (car lines))))))
 
 ;; +-----------------------------------------------------------------+
 ;; | Sending data to the utop sub-process                            |
@@ -291,36 +333,36 @@ non-sticky mode."
 sub-process."
   (interactive)
   (with-current-buffer utop-buffer-name
-    ;; Push input to pending input
-    (let ((input (buffer-substring-no-properties utop-prompt-max (point-max))))
-      (if (stringp utop-pending)
-          (setq utop-pending (concat utop-pending "\n" input))
-        (setq utop-pending input))
-      ;; Goto the end of the buffer
-      (goto-char (point-max))
-      ;; Terminate input by a newline
-      (insert "\n")
-      (let ((start utop-prompt-max) (stop (point-max)))
-        ;; Make the text read-only
-        (add-text-properties start stop '(read-only t))
-        ;; Make the old prompt sticky so we cannot edit after it
-        (let ((inhibit-read-only t))
-          (remove-text-properties utop-prompt-min utop-prompt-max '(rear-nonsticky nil)))
-        ;; Makes the text sent read only and add it the frozen face.
-        (let ((inhibit-read-only t))
-          (add-text-properties start stop '(read-only t face utop-frozen)))
-        ;; Move the prompt to the end of the buffer
-        (setq utop-prompt-min stop)
-        (setq utop-prompt-max stop)
-        ;; Send all lines to utop
-        (let ((lines (split-string input "\n")))
-          (process-send-string utop-process "input:\n")
-          (while (consp lines)
-            ;; Send the line
-            (process-send-string utop-process (concat "data:" (car lines) "\n"))
-            ;; Remove it and continue
-            (setq lines (cdr lines)))
-          (process-send-string utop-process "end:\n"))))))
+    (when (eq utop-state 'edit)
+      (utop-perform
+       ;; We are now waiting for ocaml
+       (setq utop-state 'wait)
+       ;; Push input to pending input
+       (let ((input (buffer-substring-no-properties utop-prompt-max (point-max))))
+         (if (stringp utop-pending)
+             (setq utop-pending (concat utop-pending "\n" input))
+           (setq utop-pending input))
+         ;; Goto the end of the buffer
+         (goto-char (point-max))
+         ;; Terminate input by a newline
+         (insert "\n")
+         ;; Make everything read-only
+         (add-text-properties (point-min) (point-max) utop-non-editable-properties)
+         (let ((start utop-prompt-max) (stop (point-max)))
+           ;; Set the frozen face for the text we just sent.
+           (add-text-properties start stop '(face utop-frozen))
+           ;; Move the prompt to the end of the buffer
+           (setq utop-prompt-min stop)
+           (setq utop-prompt-max stop)
+           ;; Send all lines to utop
+           (let ((lines (split-string input "\n")))
+             (process-send-string utop-process "input:\n")
+             (while (consp lines)
+               ;; Send the line
+               (process-send-string utop-process (concat "data:" (car lines) "\n"))
+               ;; Remove it and continue
+               (setq lines (cdr lines)))
+             (process-send-string utop-process "end:\n"))))))))
 
 ;; +-----------------------------------------------------------------+
 ;; | Completion                                                      |
@@ -330,19 +372,21 @@ sub-process."
   "Complete current input."
   (interactive)
   ;; Complete only if the cursor is after the prompt
-  (if (>= (point) utop-prompt-max)
-      ;; Extract the input before the cursor
-      (let ((input (buffer-substring-no-properties utop-prompt-max (point))))
-        ;; Split it
-        (let ((lines (split-string input "\n")))
-          ;; Send all lines to utop
-          (process-send-string utop-process "complete:\n")
-          (while (consp lines)
-            ;; Send the line
-            (process-send-string utop-process (concat "data:" (car lines) "\n"))
-            ;; Remove it and continue
-            (setq lines (cdr lines)))
-          (process-send-string utop-process "end:\n")))))
+  (when (and (eq utop-state 'edit) (>= (point) utop-prompt-max))
+    ;; Extract the input before the cursor
+    (let ((input (buffer-substring-no-properties utop-prompt-max (point))))
+      ;; Split it
+      (let ((lines (split-string input "\n")))
+        ;; We are now waiting for completion
+        (setq utop-state 'comp)
+        ;; Send all lines to utop
+        (process-send-string utop-process "complete:\n")
+        (while (consp lines)
+          ;; Send the line
+          (process-send-string utop-process (concat "data:" (car lines) "\n"))
+          ;; Remove it and continue
+          (setq lines (cdr lines)))
+        (process-send-string utop-process "end:\n")))))
 
 ;; +-----------------------------------------------------------------+
 ;; | Tuareg integration                                              |
@@ -363,6 +407,8 @@ sub-process."
   (interactive "r")
   ;; Start utop if needed
   (save-excursion (utop-start))
+  ;; Check that we can send command now
+  (utop-check-edit)
   ;; From tuareg
   (setq tuareg-interactive-last-phrase-pos-in-source start)
   ;; Select the text of the region
@@ -396,6 +442,11 @@ sub-process."
 (defun utop-eval-phrase ()
   "Eval the surrounding Caml phrase (or block) in utop."
   (interactive)
+  ;; Start utop if needed
+  (save-excursion (utop-start))
+  ;; Check that we can send command now
+  (utop-check-edit)
+  ;; Locate the near phrase and eval it
   (let ((end))
     (save-excursion
       (let ((pair (tuareg-discover-phrase)))
@@ -439,23 +490,27 @@ sub-process."
 
 (defun utop-sentinel (process msg)
   "Callback for process' state change."
-  (with-current-buffer utop-buffer-name
-    (let ((status (process-status utop-process)))
-      (when (or (eq status 'exit) (eq status 'signal))
-        ;; The process is terminated
-        (let ((inhibit-read-only t) (exit-code (process-exit-status utop-process)))
-          ;; Insert a message at the end
-          (goto-char (point-max))
-          (cond
-           ((eq status 'exit)
-            (insert "\n\nProcess utop exited with code " (number-to-string exit-code) "\n"))
-           ((eq status 'signal)
-            (insert "\n\nProcess utop has been killed by signal " (number-to-string exit-code) "\n")))
-          ;; Make the whole buffer sticky and read-only
-          (remove-text-properties (point-min) (point-max) '(rear-nonsticky nil))
-          (add-text-properties (point-min) (point-max) '(read-only t))
-          ;; Go to the end of the buffer
-          (goto-char (point-max)))))))
+  (let ((buffer (get-buffer utop-buffer-name)))
+    ;; Do nothing if the buffer does not exist anymore
+    (when buffer
+      (with-current-buffer utop-buffer-name
+        (let ((status (process-status utop-process)))
+          (when (or (eq status 'exit) (eq status 'signal))
+            ;; The process is terminated
+            (setq utop-state 'done)
+            (let ((exit-code (process-exit-status utop-process)))
+              (utop-perform
+               ;; Insert a message at the end
+               (goto-char (point-max))
+               (cond
+                ((eq status 'exit)
+                 (insert "\n\nProcess utop exited with code " (number-to-string exit-code) "\n"))
+                ((eq status 'signal)
+                 (insert "\n\nProcess utop has been killed by signal " (number-to-string exit-code) "\n")))
+               ;; Go to the end of the buffer
+               (goto-char (point-max))
+               ;; Make the whole buffer read-only
+               (add-text-properties (point-min) (point-max) utop-non-editable-properties)))))))))
 
 ;; +-----------------------------------------------------------------+
 ;; | The mode                                                        |
@@ -478,6 +533,8 @@ sub-process."
   (make-local-variable 'utop-history-prev)
   (make-local-variable 'utop-history-next)
   (make-local-variable 'utop-pending)
+  (make-local-variable 'utop-inhibit-check)
+  (make-local-variable 'utop-state)
 
   ;; Set the major mode
   (setq major-mode 'utop-mode)
@@ -487,6 +544,10 @@ sub-process."
   (setq utop-mode-map (make-sparse-keymap))
   (use-local-map utop-mode-map)
 
+  ;; Set the initial state: we are waiting for ocaml to send the
+  ;; initial prompt
+  (setq utop-state 'wait)
+
   ;; Create the sub-process
   (setq utop-process (start-process "utop" (current-buffer) utop-command))
 
@@ -495,6 +556,9 @@ sub-process."
 
   ;; Set the process sentinel
   (set-process-sentinel utop-process 'utop-sentinel)
+
+  ;; Set the hook to call before changing the buffer
+  (add-hook 'before-change-functions 'utop-before-change nil t)
 
   ;; Define keys
   (define-key utop-mode-map [return] 'utop-send-input)
