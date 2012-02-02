@@ -422,6 +422,20 @@ sub-process."
       (move-beginning-of-line 1))))
 
 ;; +-----------------------------------------------------------------+
+;; | Process control                                                 |
+;; +-----------------------------------------------------------------+
+
+(defun utop-interrupt ()
+  "Interrupt utop."
+  (interactive)
+  (interrupt-process utop-process))
+
+(defun utop-kill ()
+  "Kill utop."
+  (interactive)
+  (kill-process utop-process))
+
+;; +-----------------------------------------------------------------+
 ;; | The mode                                                        |
 ;; +-----------------------------------------------------------------+
 
@@ -466,6 +480,9 @@ sub-process."
   (define-key utop-mode-map [(meta ?p)] 'utop-history-goto-prev)
   (define-key utop-mode-map [(meta ?n)] 'utop-history-goto-next)
   (define-key utop-mode-map [tab] 'utop-complete)
+  (define-key utop-mode-map [(control ?c) (control ?c)] 'utop-interrupt)
+  (define-key utop-mode-map [(control ?c) (control ?i)] 'utop-interrupt)
+  (define-key utop-mode-map [(control ?c) (control ?k)] 'utop-kill)
 
   ;; Register the exit hook
   (add-hook 'kill-buffer-hook (lambda () (run-hooks 'utop-exit-hook)) t t)
