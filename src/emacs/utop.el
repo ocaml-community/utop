@@ -106,10 +106,6 @@ This hook is only run if exiting actually kills the buffer."
 (defvar utop-completion nil
   "Current completion.")
 
-(defvar utop-move-to-end-of-buffer nil
-  "Whether to move the point to the end of prompt after
-displaying the prompt")
-
 (defvar utop-inhibit-check nil
   "When set to a non-nil value, always insert text, even if it is
 before the end of prompt.")
@@ -133,6 +129,15 @@ before the end of prompt.")
 (defun utop-insert (&rest args)
   "Insert text with checks inhibited."
   (utop-perform (apply 'insert args)))
+
+(defun utop-goto-point-max-all-windows ()
+  "Move the point to the end of buffer in all utop windows."
+  (let ((buffer (get-buffer utop-buffer-name)))
+    (walk-windows
+     (lambda (window)
+       (when (eq (window-buffer window) buffer)
+         (select-window window)
+         (goto-char (point-max)))))))
 
 ;; +-----------------------------------------------------------------+
 ;; | Edition control                                                 |
@@ -238,7 +243,9 @@ before the end of prompt.")
     ;; Make everything before the end prompt read-only
     (add-text-properties (point-min) utop-prompt-max utop-non-editable-properties)
     ;; We are now editing
-    (setq utop-state 'edit)))
+    (setq utop-state 'edit)
+    ;; Move the point to the end of buffer in all utop windows
+    (utop-goto-point-max-all-windows)))
 
 (defun utop-process-line (line)
   "Process one line from the utop sub-process."
@@ -271,17 +278,7 @@ before the end of prompt.")
         ;; Insert the new prompt
         (utop-insert-prompt prompt)
         ;; Increment the command number
-        (setq utop-command-number (+ utop-command-number 1))
-        ;; Move the point to the end of buffer in all utop windows if
-        ;; needed
-        (when utop-move-to-end-of-buffer
-          (setq utop-move-to-end-of-buffer nil)
-          (let ((buffer (current-buffer)))
-            (walk-windows
-             (lambda (window)
-               (when (eq (window-buffer window) buffer)
-                 (select-window window)
-                 (goto-char (point-max)))))))))
+        (setq utop-command-number (+ utop-command-number 1))))
      ;; Continuation of previous input
      ((string= command "continue")
       ;; Reset history
@@ -346,6 +343,8 @@ sub-process."
          (goto-char (point-max))
          ;; Terminate input by a newline
          (insert "\n")
+         ;; Move the point to the end of buffer of all utop windows
+         (utop-goto-point-max-all-windows)
          ;; Make everything read-only
          (add-text-properties (point-min) (point-max) utop-non-editable-properties)
          (let ((start utop-prompt-max) (stop (point-max)))
@@ -426,16 +425,6 @@ sub-process."
       ;; Insert it at the end of the utop buffer
       (goto-char (point-max))
       (insert text ";;")
-      ;; Move the point to the end of buffer in all utop windows
-      (let ((buffer (current-buffer)))
-        (walk-windows
-         (lambda (window)
-           (when (eq (window-buffer window) buffer)
-             (select-window window)
-             (goto-char (point-max))))))
-      ;; Make sure the cursor is after the prompt when the prompt
-      ;; reappear
-      (setq utop-move-to-end-of-buffer t)
       ;; Send input to utop now
       (utop-send-input))))
 
