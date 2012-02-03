@@ -5,6 +5,38 @@
 ;;
 ;; This file is a part of utop.
 
+(require 'easymenu)
+
+;; +-----------------------------------------------------------------+
+;; | License                                                         |
+;; +-----------------------------------------------------------------+
+
+(defconst utop-license "BSD3"
+"Copyright (c) 2011, Jeremie Dimino <jeremie@dimino.org>
+All rights reserved.
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in the
+      documentation and/or other materials provided with the distribution.
+    * Neither the name of Jeremie Dimino nor the names of his
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND ANY
+EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE AUTHOR AND CONTRIBUTORS BE LIABLE FOR ANY
+DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.")
+
 ;; +-----------------------------------------------------------------+
 ;; | Customizable variables                                          |
 ;; +-----------------------------------------------------------------+
@@ -73,7 +105,20 @@ This hook is only run if exiting actually kills the buffer."
 (defvar utop-process nil
   "The Lisp-object for the utop sub-process")
 
-(defvar utop-mode-map nil
+(defvar utop-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map [return] 'utop-send-input)
+    (define-key map [(control ?m)] 'utop-send-input)
+    (define-key map [(control ?j)] 'utop-send-input)
+    (define-key map [home] 'utop-bol)
+    (define-key map [(control ?a)] 'utop-bol)
+    (define-key map [(meta ?p)] 'utop-history-goto-prev)
+    (define-key map [(meta ?n)] 'utop-history-goto-next)
+    (define-key map [tab] 'utop-complete)
+    (define-key map [(control ?c) (control ?c)] 'utop-interrupt)
+    (define-key map [(control ?c) (control ?i)] 'utop-interrupt)
+    (define-key map [(control ?c) (control ?k)] 'utop-kill)
+    map)
   "The utop local keymap.")
 
 (defvar utop-prompt-min 0
@@ -366,6 +411,16 @@ sub-process."
                (setq lines (cdr lines)))
              (process-send-string utop-process "end:\n"))))))))
 
+(defun utop-end-phrase-and-send-input ()
+  "End the current phrase and send it to ocaml."
+  (interactive)
+  (with-current-buffer utop-buffer-name
+    (when (eq utop-state 'edit)
+      (goto-char (point-max))
+      (when (= utop-prompt-max (point-max)) (insert "()"))
+      (insert ";;")
+      (utop-send-input))))
+
 ;; +-----------------------------------------------------------------+
 ;; | Completion                                                      |
 ;; +-----------------------------------------------------------------+
@@ -477,12 +532,15 @@ To automatically do that just add these lines to your .emacs:
   (autoload 'utop-tuareg-setup \"utop\" \"Toplevel for OCaml\" t)
   (add-hook 'tuareg-mode-hook 'utop-tuareg-setup)"
   (interactive)
+  ;; Redefine tuareg functions
   (defun tuareg-eval-phrase () (interactive) (utop-eval-phrase))
   (defun tuareg-eval-region (start end) (interactive "r") (utop-eval-region start end))
   (defun tuareg-eval-buffer () (interactive) (utop-eval-buffer))
   (defun tuareg-interrupt-caml () (interactive) (utop-interrupt))
   (defun tuareg-kill-caml () (interactive) (utop-kill))
   (defun tuareg-run-caml () (interactive) (utop))
+  ;; Redefine this variable so menu will work
+  (setq tuareg-interactive-buffer-name utop-buffer-name)
   nil)
 
 ;; +-----------------------------------------------------------------+
@@ -538,6 +596,38 @@ To automatically do that just add these lines to your .emacs:
                (add-text-properties (point-min) (point-max) utop-non-editable-properties)))))))))
 
 ;; +-----------------------------------------------------------------+
+;; | Menu                                                            |
+;; +-----------------------------------------------------------------+
+
+(defun utop-is-running ()
+  (let ((buf (get-buffer utop-buffer-name)))
+    (when buf
+      (with-current-buffer buf
+        (and utop-process (eq (process-status utop-process) 'run))))))
+
+(defun utop-about ()
+  (interactive)
+  (describe-variable 'utop-license))
+
+(defun utop-help ()
+  (interactive)
+  (describe-function 'utop))
+
+(easy-menu-define
+  utop-menu utop-mode-map
+  "utop menu."
+  '("utop"
+    ["Start OCaml" utop t]
+    ["Interrupt OCaml" utop-interrupt :active (utop-is-running)]
+    ["Kill OCaml" utop-kill :active (utop-is-running)]
+    ["Evaluate Phrase" utop-end-phrase-and-send-input :active (and (utop-is-running) (eq utop-state 'edit))]
+    "---"
+    ["Customize utop" (customize-group 'utop) t]
+    "---"
+    ["About" utop-about t]
+    ["Help" utop-help t]))
+
+;; +-----------------------------------------------------------------+
 ;; | The mode                                                        |
 ;; +-----------------------------------------------------------------+
 
@@ -571,12 +661,9 @@ To automatically do that just add these lines to your .emacs:
   (utop-start))
 
 (defun utop-mode ()
-  "Caml Emacs-Lisp Toplevel.
-
-\\{utop-mode-map}"
+  "Set the buffer mode to utop."
 
   ;; Local variables
-  (make-local-variable 'utop-mode-map)
   (make-local-variable 'utop-process)
   (make-local-variable 'utop-prompt-min)
   (make-local-variable 'utop-prompt-max)
@@ -595,25 +682,11 @@ To automatically do that just add these lines to your .emacs:
   (setq major-mode 'utop-mode)
   (setq mode-name "utop")
 
-  ;; Create and use the local keymap utop-mode-map
-  (setq utop-mode-map (make-sparse-keymap))
+  ;; Use the utop keymap
   (use-local-map utop-mode-map)
 
   ;; Set the hook to call before changing the buffer
   (add-hook 'before-change-functions 'utop-before-change nil t)
-
-  ;; Define keys
-  (define-key utop-mode-map [return] 'utop-send-input)
-  (define-key utop-mode-map [(control ?m)] 'utop-send-input)
-  (define-key utop-mode-map [(control ?j)] 'utop-send-input)
-  (define-key utop-mode-map [home] 'utop-bol)
-  (define-key utop-mode-map [(control ?a)] 'utop-bol)
-  (define-key utop-mode-map [(meta ?p)] 'utop-history-goto-prev)
-  (define-key utop-mode-map [(meta ?n)] 'utop-history-goto-next)
-  (define-key utop-mode-map [tab] 'utop-complete)
-  (define-key utop-mode-map [(control ?c) (control ?c)] 'utop-interrupt)
-  (define-key utop-mode-map [(control ?c) (control ?i)] 'utop-interrupt)
-  (define-key utop-mode-map [(control ?c) (control ?k)] 'utop-kill)
 
   ;; Register the exit hook
   (add-hook 'kill-buffer-hook (lambda () (run-hooks 'utop-exit-hook)) t t)
@@ -622,7 +695,10 @@ To automatically do that just add these lines to your .emacs:
   (utop-start)
 
   ;; Call hooks
-  (run-mode-hooks 'utop-mode-hook))
+  (run-mode-hooks 'utop-mode-hook)
+
+  ;; Add the menu
+  (easy-menu-add utop-menu))
 
 ;; +-----------------------------------------------------------------+
 ;; | Starting utop                                                   |
@@ -630,7 +706,20 @@ To automatically do that just add these lines to your .emacs:
 
 ;;;###autoload
 (defun utop ()
-  "Start utop."
+  "A universal toplevel for OCaml.
+
+url: https://forge.ocamlcore.org/projects/utop/
+
+utop is a enhanced toplevel for OCaml with many features,
+including context sensitive completion.
+
+This is the emacs frontend for utop. You can use the utop buffer
+as a standard OCaml toplevel.
+
+To complete an identifier, simply press TAB.
+
+Special keys for utop:
+\\{utop-mode-map}"
   (interactive)
   ;; Create the utop buffer if it does not exists, otherwise just
   ;; retreive it
