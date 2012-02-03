@@ -187,6 +187,35 @@ before the end of prompt.")
          (select-window window)
          (goto-char (point-max)))))))
 
+(defun set-utop-state (state)
+  "Change the utop state and mode-line-process."
+  (setq utop-state state)
+  (setq mode-line-process
+        (cond
+         ((eq state 'edit)
+          ": idle")
+         ((eq state 'comp)
+          ": completion")
+         ((eq state 'wait)
+          ": running")
+         ((eq state 'done)
+          (let ((status (process-status utop-process)) (code (process-exit-status utop-process)))
+            (cond
+             ((and (eq status 'exit) (= code 0))
+              ": exited[0]")
+             ((eq status 'exit)
+              (let ((msg (concat ": exited[" (int-to-string code) "]")))
+                (add-text-properties 0 (length msg) '(face bold) msg)
+                msg))
+             ((eq status 'signal)
+              (let ((msg (concat ": killed[" (int-to-string code) "]")))
+                (add-text-properties 0 (length msg) '(face bold) msg)
+                msg))
+             (t
+              ": unknown"))))
+         (t
+          ": unknown"))))
+
 ;; +-----------------------------------------------------------------+
 ;; | Edition control                                                 |
 ;; +-----------------------------------------------------------------+
@@ -285,7 +314,7 @@ before the end of prompt.")
   ;; Make everything before the end prompt read-only
   (add-text-properties (point-min) utop-prompt-max utop-non-editable-properties)
   ;; We are now editing
-  (setq utop-state 'edit)
+  (set-utop-state 'edit)
   ;; Move the point to the end of buffer in all utop windows
   (utop-goto-point-max-all-windows))
 
@@ -334,7 +363,7 @@ before the end of prompt.")
       (utop-insert-prompt utop-last-prompt))
      ;; Complete with a word
      ((string= command "completion-word")
-      (setq utop-state 'edit)
+      (set-utop-state 'edit)
       (insert argument)
       ;; Hide completion
       (minibuffer-hide-completions))
@@ -346,7 +375,7 @@ before the end of prompt.")
       (push argument utop-completion))
      ;; End of completion
      ((string= command "completion-stop")
-      (setq utop-state 'edit)
+      (set-utop-state 'edit)
       (with-output-to-temp-buffer "*Completions*"
         (display-completion-list (nreverse utop-completion)))
       (setq utop-completion nil)))))
@@ -381,7 +410,7 @@ sub-process."
     (when (eq utop-state 'edit)
       (utop-perform
        ;; We are now waiting for ocaml
-       (setq utop-state 'wait)
+       (set-utop-state 'wait)
        ;; Push input to pending input
        (let ((input (buffer-substring-no-properties utop-prompt-max (point-max))))
          (if utop-pending
@@ -435,7 +464,7 @@ sub-process."
       ;; Split it
       (let ((lines (split-string input "\n")))
         ;; We are now waiting for completion
-        (setq utop-state 'comp)
+        (set-utop-state 'comp)
         ;; Send all lines to utop
         (process-send-string utop-process "complete:\n")
         (while lines
@@ -580,7 +609,7 @@ To automatically do that just add these lines to your .emacs:
         (let ((status (process-status utop-process)))
           (when (or (eq status 'exit) (eq status 'signal))
             ;; The process is terminated
-            (setq utop-state 'done)
+            (set-utop-state 'done)
             (let ((exit-code (process-exit-status utop-process)))
               (utop-perform
                ;; Insert a message at the end
@@ -635,7 +664,7 @@ To automatically do that just add these lines to your .emacs:
   "Start utop."
   ;; Set the initial state: we are waiting for ocaml to send the
   ;; initial prompt
-  (setq utop-state 'wait)
+  (set-utop-state 'wait)
 
   ;; Reset variables
   (setq utop-prompt-min (point-max))
