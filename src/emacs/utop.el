@@ -445,7 +445,7 @@ sub-process."
   "Eval the current region in utop."
   (interactive "r")
   (utop-prepare-for-eval)
-  (utop-eval (start end)))
+  (utop-eval start end))
 
 (defun utop-eval-phrase ()
   "Eval the surrounding Caml phrase (or block) in utop."
@@ -464,6 +464,26 @@ sub-process."
   (interactive)
   (utop-prepare-for-eval)
   (utop-eval (point-min) (point-max)))
+
+(defun utop-tuareg-setup ()
+  "Override tuareg interactive functions by utop ones.
+
+You can call this function after loading the tuareg mode to let
+it use utop instead of its builtin support for interactive
+toplevel.
+
+To automatically do that just add these lines to your .emacs:
+
+  (autoload 'utop-tuareg-setup \"utop\" \"Toplevel for OCaml\" t)
+  (add-hook 'tuareg-mode-hook 'utop-tuareg-setup)"
+  (interactive)
+  (defun tuareg-eval-phrase () (interactive) (utop-eval-phrase))
+  (defun tuareg-eval-region (start end) (interactive "r") (utop-eval-region start end))
+  (defun tuareg-eval-buffer () (interactive) (utop-eval-buffer))
+  (defun tuareg-interrupt-caml () (interactive) (utop-interrupt))
+  (defun tuareg-kill-caml () (interactive) (utop-kill))
+  (defun tuareg-run-caml () (interactive) (utop))
+  nil)
 
 ;; +-----------------------------------------------------------------+
 ;; | Edition functions                                               |

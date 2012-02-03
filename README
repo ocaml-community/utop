@@ -66,18 +66,8 @@ url: https://forge.ocamlcore.org/projects/utop/
   You can replace the default toplevel used by the tuareg mode by
   utop, for that add the following lines to your ~/.emacs file:
 
-    (autoload 'utop-eval-region "utop" "Toplevel for OCaml" t)
-    (autoload 'utop-eval-phrase "utop" "Toplevel for OCaml" t)
-    (autoload 'utop-eval-buffer "utop" "Toplevel for OCaml" t)
-
-    (defun tuareg-utop-hook ()
-      (local-set-key "\M-\C-x" 'utop-eval-phrase)
-      (local-set-key "\C-x\C-e" 'utop-eval-phrase)
-      (local-set-key "\C-c\C-e" 'utop-eval-phrase)
-      (local-set-key "\C-c\C-r" 'utop-eval-region)
-      (local-set-key "\C-c\C-b" 'utop-eval-buffer))
-
-    (add-hook 'tuareg-mode-hook 'tuareg-utop-hook)
+    (autoload 'utop-tuareg-setup "utop" "Toplevel for OCaml" t)
+    (add-hook 'tuareg-mode-hook 'utop-tuareg-setup)
 
 * Development:
 
