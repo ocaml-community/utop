@@ -290,7 +290,9 @@ before the end of prompt.")
      ;; Complete with a word
      ((string= command "completion-word")
       (setq utop-state 'edit)
-      (insert argument))
+      (insert argument)
+      ;; Hide completion
+      (minibuffer-hide-completions))
      ;; Start of completion
      ((string= command "completion-start")
       (setq utop-completion nil))
