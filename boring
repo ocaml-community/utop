@@ -2,3 +2,4 @@
 ^utop-.*\.tar\.gz$
 ^setup\.data$
 ^setup\.log$
+^src/lib/uTop_version.ml$

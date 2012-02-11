@@ -10,9 +10,6 @@
 (* OASIS_START *)
 (* OASIS_STOP *)
 
-(* List of toplevels. *)
-let toplevels = ["console"; "emacs"; "gtk"]
-
 let () =
   dispatch
     (fun hook ->
@@ -23,17 +20,12 @@ let () =
 
          | After_rules ->
              (* Copy tags from *.byte to *.top *)
-             List.iter
-               (fun name ->
-                  let src = "src" / name / ("uTop_" ^ name ^ "_top.byte")
-                  and dst = "src" / name / ("uTop_" ^ name ^ "_top.top") in
-                  tag_file
-                    dst
-                    (List.filter
-                       (* Remove the "file:..." tag and syntax extensions. *)
-                       (fun tag -> not (String.is_prefix "file:" tag) && not (String.is_suffix tag ".syntax"))
-                       (Tags.elements (tags_of_pathname src))))
-               toplevels;
+             tag_file
+               "src/top/uTop_top.top"
+               (List.filter
+                  (* Remove the "file:..." tag and syntax extensions. *)
+                  (fun tag -> not (String.is_prefix "file:" tag) && not (String.is_suffix tag ".syntax"))
+                  (Tags.elements (tags_of_pathname "src/top/uTop_top.byte")));
 
              (* Use -linkpkg for creating toplevels *)
              flag ["ocaml"; "link"; "toplevel"] & A"-linkpkg";
@@ -95,6 +87,6 @@ let () =
                   Cmd (S [A (stdlib / "expunge");
                           A (env "%.top");
                           A (env "%.byte");
-                          A "UTop"; S(List.map (fun x -> A x) (StringSet.elements modules))]))
+                          A "UTop"; A "UTop_private"; S(List.map (fun x -> A x) (StringSet.elements modules))]))
          | _ ->
              ())

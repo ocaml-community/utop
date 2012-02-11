@@ -48,7 +48,7 @@ with Emacs to provide an enhanced environment."
   :version "1.0"
   :group 'applications)
 
-(defcustom utop-command "utop-emacs"
+(defcustom utop-command "utop"
   "The command to execute for utop."
   :type 'string
   :group 'utop)
@@ -70,7 +70,8 @@ This hook is only run if exiting actually kills the buffer."
   :group 'utop)
 
 (defface utop-prompt
-  '((t (:foreground "Cyan1")))
+  '((((background dark)) (:foreground "Cyan1"))
+    (((background light)) (:foreground "blue")))
   "The face used to highlight the prompt."
   :group 'utop)
 
@@ -81,12 +82,17 @@ This hook is only run if exiting actually kills the buffer."
 
 (defface utop-stderr
   nil
-  "The face used to highlight messages commong from stderr."
+  "The face used to highlight messages comming from stderr."
   :group 'utop)
 
 (defface utop-frozen
   '((t (:bold t)))
   "The face used to highlight text that has been sent to utop.")
+
+(defface utop-error
+  '((t (:foreground "#ff4040" :bold t :underline t)))
+  "The face used to highlight errors in phrases."
+  :group 'utop)
 
 ;; +-----------------------------------------------------------------+
 ;; | Constants                                                       |
@@ -107,9 +113,9 @@ This hook is only run if exiting actually kills the buffer."
 
 (defvar utop-mode-map
   (let ((map (make-sparse-keymap)))
-    (define-key map [return] 'utop-send-input)
-    (define-key map [(control ?m)] 'utop-send-input)
-    (define-key map [(control ?j)] 'utop-send-input)
+    (define-key map [return] 'utop-eval-input-or-newline)
+    (define-key map [(control ?m)] 'utop-eval-input-or-newline)
+    (define-key map [(control ?j)] 'utop-eval-input-or-newline)
     (define-key map [home] 'utop-bol)
     (define-key map [(control ?a)] 'utop-bol)
     (define-key map [(meta ?p)] 'utop-history-goto-prev)
@@ -127,9 +133,6 @@ This hook is only run if exiting actually kills the buffer."
 (defvar utop-prompt-max 0
   "The point at the end of the current prompt.")
 
-(defvar utop-last-prompt 0
-  "The contents of the last displayed prompt.")
-
 (defvar utop-output ""
   "The output of the utop sub-process not yet processed.")
 
@@ -144,9 +147,6 @@ This hook is only run if exiting actually kills the buffer."
 
 (defvar utop-history-next nil
   "The history after the cursor.")
-
-(defvar utop-pending nil
-  "The text not yet added to the history.")
 
 (defvar utop-completion nil
   "Current completion.")
@@ -165,6 +165,16 @@ before the end of prompt.")
 
 (defvar utop-initial-command nil
   "Initial phrase to evaluate.")
+
+(defvar utop-phrase-terminator ";;"
+  "The OCaml phrase terminator.")
+
+(defvar utop-pending-input nil
+  "The phrase to add to history if it is accepted by OCaml.")
+
+(defvar utop-pending-position nil
+  "The position of the cursor in the phrase sent to OCaml (where
+to add the newline character if it is not accepted).")
 
 ;; +-----------------------------------------------------------------+
 ;; | Utils                                                           |
@@ -318,6 +328,16 @@ before the end of prompt.")
   ;; Move the point to the end of buffer in all utop windows
   (utop-goto-point-max-all-windows))
 
+(defun utop-insert-phrase-terminator ()
+  "Insert the phrase terminator at the end of buffer."
+  ;; Search the longest suffix of the input which is a prefix of the
+  ;; phrase terminator
+  (let* ((end (point-max)) (pos (max utop-prompt-max (- end (length utop-phrase-terminator)))))
+    (while (not (string-prefix-p (buffer-substring-no-properties pos end) utop-phrase-terminator))
+      (setq pos (1+ pos)))
+    ;; Insert only the missing part
+    (insert (substring utop-phrase-terminator (- end pos)))))
+
 (defun utop-process-line (line)
   "Process one line from the utop sub-process."
   ;; Extract the command and its argument
@@ -330,20 +350,15 @@ before the end of prompt.")
      ;; Output on stderr
      ((string= command "stderr")
       (utop-insert-output argument 'utop-stderr))
+     ;; Synchronisation of the phrase terminator
+     ((string= command "phrase-terminator")
+      (setq utop-phrase-terminator argument))
      ;; A new prompt
      ((string= command "prompt")
       (let ((prompt (apply utop-prompt ())))
-        ;; Push pending input to the history if it is different from
-        ;; the top of the history
-        (when (and utop-pending (or (null utop-history) (not (string= utop-pending (car utop-history)))))
-          (push utop-pending utop-history))
-        ;; Clear pending input
-        (setq utop-pending nil)
         ;; Reset history
         (setq utop-history-prev utop-history)
         (setq utop-history-next nil)
-        ;; Save current prompt
-        (setq utop-last-prompt prompt)
         ;; Insert the new prompt
         (utop-insert-prompt prompt)
         ;; Increment the command number
@@ -351,16 +366,42 @@ before the end of prompt.")
         ;; Send the initial command if any
         (when utop-initial-command
           (goto-char (point-max))
-          (insert utop-initial-command ";;")
+          (insert utop-initial-command)
+          (utop-insert-phrase-terminator)
           (setq utop-initial-command nil)
-          (utop-send-input))))
-     ;; Continuation of previous input
+          (utop-eval-input))))
+     ;; Input has been accepted
+     ((string= command "accept")
+      ;; Push input to the history if it is different from the top
+      ;; of the history
+      (when (or (null utop-history) (not (string= utop-pending-input (car utop-history))))
+        (push utop-pending-input utop-history))
+      ;; Add a newline character at the end of the buffer
+      (goto-char (point-max))
+      (insert "\n")
+      ;; Make input frozen
+      (add-text-properties utop-prompt-max (point-max) '(face utop-frozen))
+      ;; Highlight errors
+      (let ((offsets (split-string argument "," t)))
+        (while offsets
+          (let ((a (string-to-int (car offsets)))
+                (b (string-to-int (car (cdr offsets)))))
+            (add-text-properties (+ utop-prompt-max a) (+ utop-prompt-max b) '(face utop-error))
+            (setq offsets (cdr (cdr offsets))))))
+      ;; Make everything read-only
+      (add-text-properties (point-min) (point-max) utop-non-editable-properties)
+      ;; Advance the prompt
+      (setq utop-prompt-min (point-max))
+      (setq utop-prompt-max (point-max)))
+     ;; Continue editiong
      ((string= command "continue")
-      ;; Reset history
-      (setq utop-history-prev utop-history)
-      (setq utop-history-next nil)
-      ;; Insert the last prompt
-      (utop-insert-prompt utop-last-prompt))
+      ;; Add a newline character at the position where the user
+      ;; pressed enter
+      (when utop-pending-position
+        (goto-char (+ utop-prompt-max utop-pending-position))
+        (insert "\n"))
+      ;; Reset the state
+      (set-utop-state 'edit))
      ;; Complete with a word
      ((string= command "completion-word")
       (set-utop-state 'edit)
@@ -402,53 +443,57 @@ before the end of prompt.")
 ;; | Sending data to the utop sub-process                            |
 ;; +-----------------------------------------------------------------+
 
-(defun utop-send-input ()
-  "Send the text typed at current prompt to the utop
-sub-process."
-  (interactive)
-  (with-current-buffer utop-buffer-name
-    (when (eq utop-state 'edit)
-      (utop-perform
-       ;; We are now waiting for ocaml
-       (set-utop-state 'wait)
-       ;; Push input to pending input
-       (let ((input (buffer-substring-no-properties utop-prompt-max (point-max))))
-         (if utop-pending
-             (setq utop-pending (concat utop-pending "\n" input))
-           (setq utop-pending input))
-         ;; Goto the end of the buffer
-         (goto-char (point-max))
-         ;; Terminate input by a newline
-         (insert "\n")
-         ;; Move the point to the end of buffer of all utop windows
-         (utop-goto-point-max-all-windows)
-         ;; Make everything read-only
-         (add-text-properties (point-min) (point-max) utop-non-editable-properties)
-         (let ((start utop-prompt-max) (stop (point-max)))
-           ;; Set the frozen face for the text we just sent.
-           (add-text-properties start stop '(face utop-frozen))
-           ;; Move the prompt to the end of the buffer
-           (setq utop-prompt-min stop)
-           (setq utop-prompt-max stop)
-           ;; Send all lines to utop
-           (let ((lines (split-string input "\n")))
-             (process-send-string utop-process "input:\n")
-             (while lines
-               ;; Send the line
-               (process-send-string utop-process (concat "data:" (car lines) "\n"))
-               ;; Remove it and continue
-               (setq lines (cdr lines)))
-             (process-send-string utop-process "end:\n"))))))))
+(defun utop-eval-input (&optional allow-incomplete auto-end)
+  "Send the current input to the utop process and let ocaml
+evaluate it.
 
-(defun utop-end-phrase-and-send-input ()
-  "End the current phrase and send it to ocaml."
+If ALLOW-INCOMPLETE is non-nil and the phrase is not terminated,
+then a newline character will be inserted and edition will
+continue.
+
+If AUTO-END is non-nill then ALLOW-INCOMPLETE is ignored and a
+phrase terminator (;; or ; if using revised syntax) will be
+automatically inserted by utop."
   (interactive)
   (with-current-buffer utop-buffer-name
     (when (eq utop-state 'edit)
-      (goto-char (point-max))
-      (when (= utop-prompt-max (point-max)) (insert "()"))
-      (insert ";;")
-      (utop-send-input))))
+      ;; Clear saved pending position
+      (setq utop-pending-position nil)
+      ;; Insert the phrase terminator if requested
+      (cond
+       (auto-end
+        (utop-insert-phrase-terminator))
+       (allow-incomplete
+        ;; Save cursor position
+        (setq utop-pending-position (- (point) utop-prompt-max))
+        ;; If the point is before the prompt, insert the newline
+        ;; character at the end
+        (when (< utop-pending-position 0)
+          (setq utop-pending-position (- (point) utop-prompt-max)))))
+      (let* ((input (buffer-substring-no-properties utop-prompt-max (point-max)))
+             (lines (split-string input "\n")))
+        ;; Save for history
+        (setq utop-pending-input input)
+        ;; We are now waiting for ocaml
+        (set-utop-state 'wait)
+        ;; Send all lines to utop
+        (process-send-string utop-process (if (and allow-incomplete (not auto-end)) "input:allow-incomplete\n" "input:\n"))
+        (while lines
+          ;; Send the line
+          (process-send-string utop-process (concat "data:" (car lines) "\n"))
+          ;; Remove it and continue
+          (setq lines (cdr lines)))
+        (process-send-string utop-process "end:\n")))))
+
+(defun utop-eval-input-or-newline ()
+  "Same as (`utop-eval-input' t nil)."
+  (interactive)
+  (utop-eval-input t nil))
+
+(defun utop-eval-input-auto-end ()
+  "Same as (`utop-eval-input' nil t)."
+  (interactive)
+  (utop-eval-input nil t))
 
 ;; +-----------------------------------------------------------------+
 ;; | Completion                                                      |
@@ -518,9 +563,10 @@ sub-process."
        ((eq utop-state 'edit)
         ;; Insert it at the end of the utop buffer
         (goto-char (point-max))
-        (insert text ";;")
-        ;; Send input to utop now
-        (utop-send-input))
+        (insert text)
+        ;; Send input to utop now, telling it to automatically add the
+        ;; phrase terminator
+        (utop-eval-input nil t))
        ((eq utop-state 'wait)
         ;; utop is starting, save the initial command to send
         (setq utop-initial-command text))))))
@@ -625,6 +671,54 @@ To automatically do that just add these lines to your .emacs:
                (add-text-properties (point-min) (point-max) utop-non-editable-properties)))))))))
 
 ;; +-----------------------------------------------------------------+
+;; | ocamlfind package loading                                       |
+;; +-----------------------------------------------------------------+
+
+(defun utop-ocamlfind-list-packages ()
+  "Return the list of all findlib packages with their version."
+  (let ((lines (split-string (shell-command-to-string "ocamlfind list") "[ \t]*\r?\n")))
+    (let ((packages))
+      ;; Split lines and extract package names and versions
+      (mapc
+       (lambda (line)
+         (when (string-match "\\([^ \t(]*\\)[ \t]*(version:[ \t]*\\([^)]*\\))" line)
+           (push (cons (match-string 1 line) (match-string 2 line)) packages)))
+       lines)
+      (nreverse packages))))
+
+(defun utop-require ()
+  "Show the list of findlib packages."
+  (interactive)
+  ;; Get the list of packages
+  (let ((packages (utop-ocamlfind-list-packages)))
+    (save-excursion
+      (with-output-to-temp-buffer "*Findlib packages*"
+        (set-buffer standard-output)
+        (let ((inhibit-read-only t))
+          (insert "Choose a findlib package to load:\n\n")
+          (let ((max-name-length 0))
+            ;; Find the longest package name
+            (mapc
+             (lambda (package)
+               (setq max-name-length (max max-name-length (length (car package)))))
+             packages)
+            (setq max-name-length (1+ (max max-name-length 16)))
+            ;; Insert headers
+            (insert "Package name")
+            (insert-char 32 (- max-name-length 12))
+            (insert "Version\n")
+            ;; Insert buttons
+            (while packages
+              (let* ((package (car packages))
+                     (name (car package))
+                     (version (cdr package)))
+                (insert-text-button name 'face nil)
+                (insert-char 32 (- max-name-length (length name)))
+                (insert version "\n"))
+              (setq packages (cdr packages)))
+            (goto-char (point-min))))))))
+
+;; +-----------------------------------------------------------------+
 ;; | Menu                                                            |
 ;; +-----------------------------------------------------------------+
 
@@ -649,7 +743,7 @@ To automatically do that just add these lines to your .emacs:
     ["Start OCaml" utop t]
     ["Interrupt OCaml" utop-interrupt :active (utop-is-running)]
     ["Kill OCaml" utop-kill :active (utop-is-running)]
-    ["Evaluate Phrase" utop-end-phrase-and-send-input :active (and (utop-is-running) (eq utop-state 'edit))]
+    ["Evaluate Phrase" utop-eval-input-auto-end :active (and (utop-is-running) (eq utop-state 'edit))]
     "---"
     ["Customize utop" (customize-group 'utop) t]
     "---"
@@ -675,7 +769,7 @@ To automatically do that just add these lines to your .emacs:
   (setq utop-completion nil)
 
   ;; Create the sub-process
-  (setq utop-process (start-process "utop" (current-buffer) utop-command))
+  (setq utop-process (start-process "utop" (current-buffer) utop-command "-emacs"))
 
   ;; Filter the output of the sub-process with our filter function
   (set-process-filter utop-process 'utop-process-output)
@@ -706,6 +800,9 @@ To automatically do that just add these lines to your .emacs:
   (make-local-variable 'utop-inhibit-check)
   (make-local-variable 'utop-state)
   (make-local-variable 'utop-initial-command)
+  (make-local-variable 'utop-phrase-terminator)
+  (make-local-variable 'utop-pending-input)
+  (make-local-variable 'utop-pending-position)
 
   ;; Set the major mode
   (setq major-mode 'utop-mode)

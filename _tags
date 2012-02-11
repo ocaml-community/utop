@@ -6,8 +6,8 @@
 # Do not use optcomp on syntax extensions
 <syntax/*.ml>: -pa_optcomp
 
-# Completion needs compiler interfaces
-<src/common/*.ml>: use_compiler_libs
+# Use compiler interfaces
+<src/**/*.ml{,i}>: use_compiler_libs
 
 # OASIS_START
 # OASIS_STOP

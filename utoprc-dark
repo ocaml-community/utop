@@ -15,7 +15,7 @@ symbol.foreground:        x-cyan1
 string.foreground:        x-light-salmon
 char.foreground:          x-light-salmon
 quotation.foreground:     x-purple
-error.foreground:         x-red
+error.foreground:         red
 directive.foreground:     x-lightsteelblue
 parenthesis.background:   blue
 

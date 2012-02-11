@@ -82,6 +82,7 @@ let load () =
        | "dark" -> UTop.set_profile UTop.Dark
        | "" -> ()
        | str -> raise (LTerm_resources.Error (Printf.sprintf "invalid profile %S" str)));
+    UTop_private.error_style := styles.style_error;
     return ()
   with Unix.Unix_error(Unix.ENOENT, _, _) ->
     return ()

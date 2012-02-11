@@ -14,14 +14,7 @@ BuildTools: ocamlbuild
 Plugins: DevFiles (0.2), META (0.2)
 Synopsis: utop
 Description: Universal toplevel for OCaml
-
-# +-------------------------------------------------------------------+
-# | Flags                                                             |
-# +-------------------------------------------------------------------+
-
-Flag gtk
-  Description: Build the GTK interface
-  Default: false
+FilesAB: src/lib/uTop_version.ml.ab
 
 # +-------------------------------------------------------------------+
 # | The toplevel                                                      |
@@ -35,35 +28,37 @@ Library "optcomp"
   CompiledObject: byte
 
 Library utop
-  Path: src/common
-  Modules: UTop
-  InternalModules: UTop_private
-  BuildDepends: findlib, lambda-term (>= 1.1), lwt.syntax
+  Path: src/lib
+  Modules:
+    UTop,
+    UTop_main
+  InternalModules:
+    UTop_private,
+    UTop_version,
+    UTop_lexer,
+    UTop_token,
+    UTop_complete,
+    UTop_styles
+  BuildDepends: findlib, lambda-term (>= 1.1), lwt.syntax, threads
   XMETADescription: utop configuration
   XMETARequires: findlib, lambda-term
 
+Library "utop-camlp4"
+  FindlibName: camlp4
+  FindlibParent: utop
+  Path: src/camlp4
+  InternalModules: UTop_camlp4
+  BuildDepends: utop, camlp4
+  XMETAType: syntax
+  XMETADescription: Camlp4 integration
+
 Executable utop
   Install: true
-  Path: src/console
+  Path: src/top
   CompiledObject: byte
-  MainIs: uTop_console_top.ml
-  BuildDepends: utop, findlib, lambda-term, lwt.syntax
-
-Executable "utop-emacs"
-  Install: true
-  Path: src/emacs
-  CompiledObject: byte
-  MainIs: uTop_emacs_top.ml
+  MainIs: uTop_top.ml
   BuildDepends: utop, findlib, lambda-term, lwt.syntax, threads
   DataFiles: utop.el ($datadir/emacs/site-lisp)
-
-Executable "utop-gtk"
-  Install$: flag(gtk)
-  Build$: flag(gtk)
-  Path: src/gtk
-  CompiledObject: byte
-  MainIs: uTop_gtk_top.ml
-  BuildDepends: utop, findlib, lambda-term, lwt.syntax, threads, lablgtk2, lwt.glib
 
 # +-------------------------------------------------------------------+
 # | Doc                                                               |

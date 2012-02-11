@@ -70,7 +70,7 @@ let env = ref Env.empty
 let define id value = env := Env.add id value !env
 
 let _ =
-  define "ocaml_version" (Scanf.sscanf Sys.ocaml_version "%d.%d" (fun major minor -> Tuple [Int major; Int minor]))
+  define "ocaml_version" (Scanf.sscanf Sys.ocaml_version "%d.%d.%d" (fun major minor patchlevel -> Tuple [Int major; Int minor; Int patchlevel]))
 
 let dirs = ref []
 let add_include_dir dir = dirs := dir :: !dirs

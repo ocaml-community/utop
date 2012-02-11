@@ -19,13 +19,10 @@ let blank = [' ' '\009' '\012']
 let lowercase = ['a'-'z' '_']
 let uppercase = ['A'-'Z']
 let identchar = ['A'-'Z' 'a'-'z' '_' '\'' '0'-'9']
+let lident = lowercase identchar*
+let uident = uppercase identchar*
 let ident = (lowercase|uppercase) identchar*
-let locname = ident
-let not_star_symbolchar =
-  ['$' '!' '%' '&' '+' '-' '.' '/' ':' '<' '=' '>' '?' '@' '^' '|' '~' '\\']
-let symbolchar = '*' | not_star_symbolchar
-let quotchar =
-  ['!' '%' '&' '+' '-' '.' '/' ':' '=' '?' '@' '^' '|' '~' '\\' '*']
+
 let hexa_char = ['0'-'9' 'A'-'F' 'a'-'f']
 let decimal_literal =
   ['0'-'9'] ['0'-'9' '_']*
@@ -42,37 +39,19 @@ let float_literal =
   ('.' ['0'-'9' '_']* )?
   (['e' 'E'] ['+' '-']? ['0'-'9'] ['0'-'9' '_']*)?
 
-let safe_delimchars = ['%' '&' '/' '@' '^']
+let symbolchar =
+  ['!' '$' '%' '&' '*' '+' '-' '.' '/' ':' '<' '=' '>' '?' '@' '^' '|' '~']
 
-let delimchars = safe_delimchars | ['|' '<' '>' ':' '=' '.']
-
-let left_delims  = ['(' '[' '{']
-let right_delims = [')' ']' '}']
-
-let left_delimitor =
-  left_delims delimchars* safe_delimchars (delimchars|left_delims)*
-  | '(' (['|' ':'] delimchars*)?
-  | '[' ['|' ':']?
-  | ['[' '{'] delimchars* '<'
-  | '{' (['|' ':'] delimchars*)?
-
-let right_delimitor =
-  (delimchars|right_delims)* safe_delimchars (delimchars|right_delims)* right_delims
-  | (delimchars* ['|' ':'])? ')'
-  | ['|' ':']? ']'
-  | '>' delimchars* [']' '}']
-  | (delimchars* ['|' ':'])? '}'
-
-rule token = parse
+rule token fallback = parse
   | ('\n' | blank)+
       { Blanks }
   | "true"
       { Constant }
   | "false"
       { Constant }
-  | lowercase identchar*
+  | lident
       { Lident }
-  | uppercase identchar*
+  | uident
       { Uident }
   | int_literal "l"
       { Constant }
@@ -104,24 +83,37 @@ rule token = parse
       { Doc (comment 0 lexbuf) }
   | "(*"
       { Comment (comment 0 lexbuf) }
-  | '<' (':' ident)? ('@' locname)? '<'
-      { Quotation (quotation lexbuf) }
-  | ( "#"  | "`"  | "'"  | ","  | "."  | ".." | ":"  | "::"
-    | ":=" | ":>" | ";"  | ";;" | "_"
-    | left_delimitor | right_delimitor )
-      { Symbol }
-  | ['~' '?' '!' '=' '<' '>' '|' '&' '@' '^' '+' '-' '*' '/' '%' '\\' '$'] symbolchar*
+  | ""
+      { fallback lexbuf }
+
+and token_fallback = parse
+  | "(" | ")"
+  | "[" | "]"
+  | "{" | "}"
+  | "`"
+  | "#"
+  | ","
+  | ";" | ";;"
+  | symbolchar+
       { Symbol }
   | uchar
       { Error }
   | eof
       { raise End_of_file }
 
+and token_fallback_camlp4 = parse
+  | '<' (':' ident)? ('@' lident)? '<'
+      { Quotation (quotation lexbuf) }
+  | ""
+      { token_fallback lexbuf }
+
 and comment depth = parse
   | "(*"
       { comment (depth + 1) lexbuf }
   | "*)"
       { if depth > 0 then comment (depth - 1) lexbuf else true }
+  | '"'
+      { string lexbuf && comment depth lexbuf }
   | uchar
       { comment depth lexbuf }
   | eof
@@ -140,16 +132,27 @@ and string = parse
 and quotation = parse
   | ">>"
       { true }
+  | '$'
+      { antiquotation lexbuf }
   | uchar
       { quotation lexbuf }
   | eof
       { false }
 
+and antiquotation = parse
+  | '$'
+      { quotation lexbuf }
+  | eof
+      { false }
+  | ""
+      { ignore (token token_fallback_camlp4 lexbuf); antiquotation lexbuf }
+
 {
-  let lex_string str =
+  let lex_string ?(camlp4=false) str =
+    let fallback = if camlp4 then token_fallback_camlp4 else token_fallback in
     let lexbuf = Lexing.from_string str in
     let rec loop idx ofs_a =
-      match try Some (token lexbuf) with End_of_file -> None with
+      match try Some (token fallback lexbuf) with End_of_file -> None with
         | Some token ->
             let ofs_b = Lexing.lexeme_end lexbuf in
             let src = String.sub str ofs_a (ofs_b - ofs_a) in

@@ -344,7 +344,7 @@ let add_fields_of_type decl acc =
 let add_names_of_type decl acc =
   match decl.type_kind with
     | Type_variant constructors ->
-#if ocaml_version >= (3, 13)
+#if ocaml_version >= (3, 13, 0)
         List.fold_left (fun acc (name, _, _) -> add name acc) acc constructors
 #else
         List.fold_left (fun acc (name, _) -> add name acc) acc constructors
@@ -644,7 +644,7 @@ let rec filter tokens =
    +-----------------------------------------------------------------+ *)
 
 let complete str =
-  let tokens = UTop_lexer.lex_string str in
+  let tokens = UTop_lexer.lex_string ~camlp4:(UTop.get_camlp4 ()) str in
   (* Filter blanks and comments. *)
   let tokens = filter tokens in
   match tokens with
