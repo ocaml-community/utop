@@ -48,9 +48,16 @@ with Emacs to provide an enhanced environment."
   :version "1.0"
   :group 'applications)
 
-(defcustom utop-command "utop"
+(defcustom utop-command "utop -emacs"
   "The command to execute for utop."
   :type 'string
+  :group 'utop)
+
+(defcustom utop-edit-command t
+  "Whether to read the command from the minibuffer before running utop.
+
+If nil, `utop-command' will be used without modification."
+  :type 'boolean
   :group 'utop)
 
 (defcustom utop-prompt 'utop-default-prompt
@@ -526,22 +533,29 @@ automatically inserted by utop."
 (defun utop-prepare-for-eval ()
   "Prepare utop for evaluation."
   (save-excursion
-    ;; Create the utop buffer if it does not exists, otherwise just
-    ;; retreive it
-    (let ((buf (get-buffer-create utop-buffer-name)))
-      ;; Make it appear
-      (display-buffer buf)
-      (with-current-buffer buf
-        (cond
-         ((not (eq major-mode 'utop-mode))
-          ;; The buffer has just been created, start utop
-          (utop-mode))
-         ((eq utop-state 'done)
-          ;; UTop exited, restart it
-          (utop-restart))
-         ((not (eq utop-state 'edit))
-          ;; Edition cannot be performed right now
-          (utop-cannot-edit)))))))
+    (let ((buf (get-buffer utop-buffer-name)))
+      (cond
+       (buf
+        ;; Make the buffer appear
+        (display-buffer buf)
+        (with-current-buffer buf
+          (cond
+           ((eq utop-state 'done)
+            ;; UTop exited, restart it
+            (utop-restart))
+           ((not (eq utop-state 'edit))
+            ;; Edition cannot be performed right now
+            (utop-cannot-edit)))))
+       (t
+        ;; The buffer does not exist, read arguments before creating
+        ;; it so the user can cancel starting utop
+        (let ((arguments (utop-get-arguments)))
+          ;; Create the buffer
+          (setq buf (get-buffer-create utop-buffer-name))
+          ;; Make it appear
+          (display-buffer buf)
+          ;; Put it in utop mode
+          (with-current-buffer buf (utop-mode arguments))))))))
 
 (defun utop-eval (start end)
   "Eval the given region in utop."
@@ -754,12 +768,19 @@ To automatically do that just add these lines to your .emacs:
 ;; | The mode                                                        |
 ;; +-----------------------------------------------------------------+
 
-(defun utop-start ()
-  "Start utop."
-  ;; Set the initial state: we are waiting for ocaml to send the
-  ;; initial prompt
-  (set-utop-state 'wait)
+(defun utop-get-arguments ()
+  "Returns the arguments of the utop command to run."
+  ;; Read the command to run
+  (when utop-edit-command
+    (setq utop-command (read-shell-command "utop command line: " utop-command)))
+  ;; Split the command line
+  (let ((arguments (split-string-and-unquote utop-command)))
+    ;; Ensure it contains at least one argument
+    (when (not arguments) (error "The utop command line is empty"))
+    arguments))
 
+(defun utop-start (arguments)
+  "Start utop."
   ;; Reset variables
   (setq utop-prompt-min (point-max))
   (setq utop-prompt-max (point-max))
@@ -768,8 +789,16 @@ To automatically do that just add these lines to your .emacs:
   (setq utop-pending nil)
   (setq utop-completion nil)
 
+  ;; Set the state to done to allow utop to be restarted if
+  ;; start-process fails
+  (setq utop-state 'done)
+
   ;; Create the sub-process
-  (setq utop-process (start-process "utop" (current-buffer) utop-command "-emacs"))
+  (setq utop-process (apply 'start-process "utop" (current-buffer) (car arguments) (cdr arguments)))
+
+  ;; Set the initial state: we are waiting for ocaml to send the
+  ;; initial prompt
+  (set-utop-state 'wait)
 
   ;; Filter the output of the sub-process with our filter function
   (set-process-filter utop-process 'utop-process-output)
@@ -779,11 +808,12 @@ To automatically do that just add these lines to your .emacs:
 
 (defun utop-restart ()
   "Restart utop."
-  (goto-char (point-max))
-  (utop-insert "\nRestarting...\n\n")
-  (utop-start))
+  (let ((arguments (utop-get-arguments)))
+    (goto-char (point-max))
+    (utop-insert "\nRestarting...\n\n")
+    (utop-start arguments)))
 
-(defun utop-mode ()
+(defun utop-mode (arguments)
   "Set the buffer mode to utop."
 
   ;; Local variables
@@ -818,7 +848,7 @@ To automatically do that just add these lines to your .emacs:
   (add-hook 'kill-buffer-hook (lambda () (run-hooks 'utop-exit-hook)) t t)
 
   ;; Start utop
-  (utop-start)
+  (utop-start arguments)
 
   ;; Call hooks
   (run-mode-hooks 'utop-mode-hook)
@@ -847,19 +877,23 @@ To complete an identifier, simply press TAB.
 Special keys for utop:
 \\{utop-mode-map}"
   (interactive)
-  ;; Create the utop buffer if it does not exists, otherwise just
-  ;; retreive it
-  (let ((buf (get-buffer-create utop-buffer-name)))
-    ;; Jump to that buffer
-    (pop-to-buffer buf)
+  (let ((buf (get-buffer utop-buffer-name)))
     (cond
-     ((not (eq major-mode 'utop-mode))
-      ;; The buffer has just been created, set the utop mode
-      (utop-mode))
-     ((eq utop-state 'done)
-      ;; utop has exited, restart it
-      (utop-restart)))
-    ;; Finally return it
+     (buf
+      ;; Jump to the buffer
+      (pop-to-buffer buf)
+      ;; Restart utop if it exited
+      (when (eq utop-state 'done) (utop-restart)))
+     (t
+      ;; The buffer does not exist, read the command line before
+      ;; creating it so if the user quit it won't be created
+      (let ((arguments (utop-get-arguments)))
+        ;; Create the buffer
+        (setq buf (get-buffer-create utop-buffer-name))
+        ;; Jump to the buffer
+        (pop-to-buffer buf)
+        ;; Put it in utop mode
+        (with-current-buffer buf (utop-mode arguments)))))
     buf))
 
 (provide 'utop)
