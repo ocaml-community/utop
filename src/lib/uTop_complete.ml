@@ -40,6 +40,12 @@ let is_valid_identifier id =
 
 let add id set = if is_valid_identifier id then String_set.add id set else set
 
+let lookup_env f x env =
+  try
+    Some (f x env)
+  with Not_found | Env.Error _ ->
+    None
+
 (* +-----------------------------------------------------------------+
    | Parsing                                                         |
    +-----------------------------------------------------------------+ *)
@@ -369,7 +375,7 @@ let rec names_of_module_type = function
                add_names_of_type decl (add (Ident.name id) acc))
         String_set.empty decls
   | Tmty_ident path -> begin
-      match try Some (Env.find_modtype path !Toploop.toplevel_env) with Not_found -> None with
+      match lookup_env Env.find_modtype path !Toploop.toplevel_env with
         | Some Tmodtype_abstract -> String_set.empty
         | Some Tmodtype_manifest module_type -> names_of_module_type module_type
         | None -> String_set.empty
@@ -392,7 +398,7 @@ let rec fields_of_module_type = function
                add_fields_of_type decl acc)
         String_set.empty decls
   | Tmty_ident path -> begin
-      match try Some (Env.find_modtype path !Toploop.toplevel_env) with Not_found -> None with
+      match lookup_env Env.find_modtype path !Toploop.toplevel_env with
         | Some Tmodtype_abstract -> String_set.empty
         | Some Tmodtype_manifest module_type -> fields_of_module_type module_type
         | None -> String_set.empty
@@ -404,7 +410,7 @@ let names_of_module longident =
   try
     Longident_map.find longident !local_names_by_longident
   with Not_found ->
-    match try Some (Env.lookup_module longident !Toploop.toplevel_env) with Not_found -> None with
+    match lookup_env Env.lookup_module longident !Toploop.toplevel_env with
       | Some(path, module_type) ->
           let names = names_of_module_type module_type in
           local_names_by_path := Path_map.add path names !local_names_by_path;
@@ -418,7 +424,7 @@ let fields_of_module longident =
   try
     Longident_map.find longident !local_fields_by_longident
   with Not_found ->
-    match try Some (Env.lookup_module longident !Toploop.toplevel_env) with Not_found -> None with
+    match lookup_env Env.lookup_module longident !Toploop.toplevel_env with
       | Some(path, module_type) ->
           let fields = fields_of_module_type module_type in
           local_fields_by_path := Path_map.add path fields !local_fields_by_path;
@@ -450,7 +456,7 @@ let list_global_names () =
           | Some names ->
               loop (String_set.union acc names) summary
           | None ->
-              match try Some (Env.find_module path !Toploop.toplevel_env) with Not_found -> None with
+              match lookup_env Env.find_module path !Toploop.toplevel_env with
                 | Some module_type ->
                     let names = names_of_module_type module_type in
                     local_names_by_path := Path_map.add path names !local_names_by_path;
@@ -486,7 +492,7 @@ let list_global_fields () =
           | Some fields ->
               loop (String_set.union acc fields) summary
           | None ->
-              match try Some (Env.find_module path !Toploop.toplevel_env) with Not_found -> None with
+              match lookup_env Env.find_module path !Toploop.toplevel_env with
                 | Some module_type ->
                     let fields = fields_of_module_type module_type in
                     local_fields_by_path := Path_map.add path fields !local_fields_by_path;
@@ -526,7 +532,7 @@ let rec find_method meth type_expr =
     | Tpoly (type_expr, _) ->
         find_method meth type_expr
     | Tconstr (path, _, _) -> begin
-        match try Some (Env.find_type path !Toploop.toplevel_env) with Not_found -> None with
+        match lookup_env Env.find_type path !Toploop.toplevel_env with
           | None
           | Some { type_manifest = None } ->
               None
@@ -547,7 +553,7 @@ let rec methods_of_type acc type_expr =
     | Tpoly (type_expr, _) ->
         methods_of_type acc type_expr
     | Tconstr (path, _, _) -> begin
-        match try Some (Env.find_type path !Toploop.toplevel_env) with Not_found -> None with
+        match lookup_env Env.find_type path !Toploop.toplevel_env with
           | None
           | Some { type_manifest = None } ->
               acc
@@ -569,7 +575,7 @@ let rec find_object meths type_expr =
               None
 
 let methods_of_object longident meths =
-  match try Some (Env.lookup_value longident !Toploop.toplevel_env) with Not_found -> None with
+  match lookup_env Env.lookup_value longident !Toploop.toplevel_env with
     | None ->
         []
     | Some (path, { val_type = type_expr }) ->
@@ -597,7 +603,7 @@ let rec labels_of_type acc type_expr =
         else
           labels_of_type (String_map.add label Required acc) te
     | Tconstr(path, _, _) -> begin
-        match try Some (Env.find_type path !Toploop.toplevel_env) with Not_found -> None with
+        match lookup_env Env.find_type path !Toploop.toplevel_env with
           | None
           | Some { type_manifest = None } ->
               String_map.bindings acc
@@ -608,7 +614,7 @@ let rec labels_of_type acc type_expr =
         String_map.bindings acc
 
 let labels_of_function longident meths =
-  match try Some (Env.lookup_value longident !Toploop.toplevel_env) with Not_found -> None with
+  match lookup_env Env.lookup_value longident !Toploop.toplevel_env with
     | None ->
         []
     | Some (path, { val_type = type_expr }) ->
@@ -619,7 +625,7 @@ let labels_of_function longident meths =
               labels_of_type String_map.empty type_expr
 
 let labels_of_newclass longident =
-  match try Some (Env.lookup_class longident !Toploop.toplevel_env) with Not_found -> None with
+  match lookup_env Env.lookup_class longident !Toploop.toplevel_env with
     | None ->
         []
     | Some (path, { cty_new = None }) ->
