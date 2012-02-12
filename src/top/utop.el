@@ -146,15 +146,6 @@ This hook is only run if exiting actually kills the buffer."
 (defvar utop-command-number 0
   "The number of the current command.")
 
-(defvar utop-history nil
-  "The history of typed command.")
-
-(defvar utop-history-prev nil
-  "The history before the cursor.")
-
-(defvar utop-history-next nil
-  "The history after the cursor.")
-
 (defvar utop-completion nil
   "Current completion.")
 
@@ -167,6 +158,7 @@ before the end of prompt.")
 
 - edit: the user is typing a command
 - comp: waiting for completion
+- hist: waiting for history
 - wait: ocaml is evaluating a phrase
 - done: ocaml has died.")
 
@@ -176,8 +168,8 @@ before the end of prompt.")
 (defvar utop-phrase-terminator ";;"
   "The OCaml phrase terminator.")
 
-(defvar utop-pending-input nil
-  "The phrase to add to history if it is accepted by OCaml.")
+(defvar utop-pending-entry nil
+  "History entry")
 
 (defvar utop-pending-position nil
   "The position of the cursor in the phrase sent to OCaml (where
@@ -204,7 +196,7 @@ to add the newline character if it is not accepted).")
          (select-window window)
          (goto-char (point-max)))))))
 
-(defun set-utop-state (state)
+(defun utop-set-state (state)
   "Change the utop state and mode-line-process."
   (setq utop-state state)
   (setq mode-line-process
@@ -213,6 +205,8 @@ to add the newline character if it is not accepted).")
           ": idle")
          ((eq state 'comp)
           ": completion")
+         ((eq state 'hist)
+          ": history")
          ((eq state 'wait)
           ": running")
          ((eq state 'done)
@@ -233,6 +227,18 @@ to add the newline character if it is not accepted).")
          (t
           ": unknown"))))
 
+(defun utop-send-data (cmd)
+  "Send current input to utop"
+  (let ((lines (split-string (buffer-substring-no-properties utop-prompt-max (point-max)) "\n")))
+    ;; Send all lines to utop
+    (process-send-string utop-process cmd)
+    (while lines
+      ;; Send the line
+      (process-send-string utop-process (concat "data:" (car lines) "\n"))
+      ;; Remove it and continue
+      (setq lines (cdr lines)))
+    (process-send-string utop-process "end:\n")))
+
 ;; +-----------------------------------------------------------------+
 ;; | Edition control                                                 |
 ;; +-----------------------------------------------------------------+
@@ -244,7 +250,9 @@ to add the newline character if it is not accepted).")
    ((eq utop-state 'done)
     (signal 'text-read-only '("You cannot edit the buffer when ocaml is not running")))
    ((eq utop-state 'comp)
-    (signal 'text-read-only '("You cannot edit the buffer while waiting for completion")))))
+    (signal 'text-read-only '("You cannot edit the buffer while waiting for completion")))
+   ((eq utop-state 'comp)
+    (signal 'text-read-only '("You cannot edit the buffer while waiting for history")))))
 
 (defun utop-before-change (start stop)
   (unless utop-inhibit-check
@@ -278,25 +286,19 @@ to add the newline character if it is not accepted).")
   "Go to the previous entry of the history."
   (interactive)
   (with-current-buffer utop-buffer-name
-    (when (and (eq utop-state 'edit) utop-history-prev)
-      ;; Push current input after the history cursor
-      (push (delete-and-extract-region utop-prompt-max (point-max)) utop-history-next)
-      ;; Go to after the prompt to insert the previous input
-      (goto-char utop-prompt-max)
-      ;; Pop one element from history before the cursor and insert it
-      (insert (pop utop-history-prev)))))
+    (when (eq utop-state 'edit)
+      (utop-set-state 'hist)
+      (setq utop-pending-entry nil)
+      (utop-send-data "history-prev:\n"))))
 
 (defun utop-history-goto-next ()
   "Go to the next entry of the history."
   (interactive)
   (with-current-buffer utop-buffer-name
-    (when (and (eq utop-state 'edit) utop-history-next)
-      ;; Push current input before the history cursor
-      (push (delete-and-extract-region utop-prompt-max (point-max)) utop-history-prev)
-      ;; Go to after the prompt to insert the next input
-      (goto-char utop-prompt-max)
-      ;; Pop one element from history after the cursor and insert it
-      (insert (pop utop-history-next)))))
+    (when (eq utop-state 'edit)
+      (utop-set-state 'hist)
+      (setq utop-pending-entry nil)
+      (utop-send-data "history-next:\n"))))
 
 ;; +-----------------------------------------------------------------+
 ;; | Receiving input from the utop sub-process                     |
@@ -331,7 +333,7 @@ to add the newline character if it is not accepted).")
   ;; Make everything before the end prompt read-only
   (add-text-properties (point-min) utop-prompt-max utop-non-editable-properties)
   ;; We are now editing
-  (set-utop-state 'edit)
+  (utop-set-state 'edit)
   ;; Move the point to the end of buffer in all utop windows
   (utop-goto-point-max-all-windows))
 
@@ -363,9 +365,6 @@ to add the newline character if it is not accepted).")
      ;; A new prompt
      ((string= command "prompt")
       (let ((prompt (apply utop-prompt ())))
-        ;; Reset history
-        (setq utop-history-prev utop-history)
-        (setq utop-history-next nil)
         ;; Insert the new prompt
         (utop-insert-prompt prompt)
         ;; Increment the command number
@@ -374,15 +373,10 @@ to add the newline character if it is not accepted).")
         (when utop-initial-command
           (goto-char (point-max))
           (insert utop-initial-command)
-          (utop-insert-phrase-terminator)
           (setq utop-initial-command nil)
-          (utop-eval-input))))
+          (utop-eval-input nil t nil))))
      ;; Input has been accepted
      ((string= command "accept")
-      ;; Push input to the history if it is different from the top
-      ;; of the history
-      (when (or (null utop-history) (not (string= utop-pending-input (car utop-history))))
-        (push utop-pending-input utop-history))
       ;; Add a newline character at the end of the buffer
       (goto-char (point-max))
       (insert "\n")
@@ -408,10 +402,30 @@ to add the newline character if it is not accepted).")
         (goto-char (+ utop-prompt-max utop-pending-position))
         (insert "\n"))
       ;; Reset the state
-      (set-utop-state 'edit))
+      (utop-set-state 'edit))
+     ;; Part of a history entry
+     ((string= command "history-data")
+      (cond
+       (utop-pending-entry
+        (setq utop-pending-entry (concat utop-pending-entry "\n" argument)))
+       (t
+        (setq utop-pending-entry argument))))
+     ;; End of history data
+     ((string= command "history-end")
+      (goto-char utop-prompt-max)
+      ;; Delete current input
+      (delete-region utop-prompt-max (point-max))
+      ;; Insert entry
+      (insert utop-pending-entry)
+      ;; Resume edition
+      (utop-set-state 'edit))
+     ;; We are at a bound of history
+     ((string= command "history-bound")
+      ;; Just resume edition
+      (utop-set-state 'edit))
      ;; Complete with a word
      ((string= command "completion-word")
-      (set-utop-state 'edit)
+      (utop-set-state 'edit)
       (insert argument)
       ;; Hide completion
       (minibuffer-hide-completions))
@@ -423,7 +437,7 @@ to add the newline character if it is not accepted).")
       (push argument utop-completion))
      ;; End of completion
      ((string= command "completion-stop")
-      (set-utop-state 'edit)
+      (utop-set-state 'edit)
       (with-output-to-temp-buffer "*Completions*"
         (display-completion-list (nreverse utop-completion)))
       (setq utop-completion nil)))))
@@ -450,7 +464,7 @@ to add the newline character if it is not accepted).")
 ;; | Sending data to the utop sub-process                            |
 ;; +-----------------------------------------------------------------+
 
-(defun utop-eval-input (&optional allow-incomplete auto-end)
+(defun utop-eval-input (&optional allow-incomplete auto-end add-to-history)
   "Send the current input to the utop process and let ocaml
 evaluate it.
 
@@ -460,7 +474,9 @@ continue.
 
 If AUTO-END is non-nill then ALLOW-INCOMPLETE is ignored and a
 phrase terminator (;; or ; if using revised syntax) will be
-automatically inserted by utop."
+automatically inserted by utop.
+
+If ADD-TO-HISTORY is t then the input will be added to history."
   (interactive)
   (with-current-buffer utop-buffer-name
     (when (eq utop-state 'edit)
@@ -477,30 +493,26 @@ automatically inserted by utop."
         ;; character at the end
         (when (< utop-pending-position 0)
           (setq utop-pending-position (- (point) utop-prompt-max)))))
-      (let* ((input (buffer-substring-no-properties utop-prompt-max (point-max)))
-             (lines (split-string input "\n")))
-        ;; Save for history
-        (setq utop-pending-input input)
-        ;; We are now waiting for ocaml
-        (set-utop-state 'wait)
-        ;; Send all lines to utop
-        (process-send-string utop-process (if (and allow-incomplete (not auto-end)) "input:allow-incomplete\n" "input:\n"))
-        (while lines
-          ;; Send the line
-          (process-send-string utop-process (concat "data:" (car lines) "\n"))
-          ;; Remove it and continue
-          (setq lines (cdr lines)))
-        (process-send-string utop-process "end:\n")))))
+      ;; We are now waiting for ocaml
+      (utop-set-state 'wait)
+      (utop-send-data
+       (cond
+        ((and allow-incomplete (not auto-end) add-to-history)
+         "input:allow-incomplete,add-to-history\n")
+        (add-to-history
+         "input:add-to-history\n")
+        (t
+         "input:\n"))))))
 
 (defun utop-eval-input-or-newline ()
-  "Same as (`utop-eval-input' t nil)."
+  "Same as (`utop-eval-input' t nil t)."
   (interactive)
-  (utop-eval-input t nil))
+  (utop-eval-input t nil t))
 
 (defun utop-eval-input-auto-end ()
-  "Same as (`utop-eval-input' nil t)."
+  "Same as (`utop-eval-input' nil t t)."
   (interactive)
-  (utop-eval-input nil t))
+  (utop-eval-input nil t t))
 
 ;; +-----------------------------------------------------------------+
 ;; | Completion                                                      |
@@ -516,7 +528,7 @@ automatically inserted by utop."
       ;; Split it
       (let ((lines (split-string input "\n")))
         ;; We are now waiting for completion
-        (set-utop-state 'comp)
+        (utop-set-state 'comp)
         ;; Send all lines to utop
         (process-send-string utop-process "complete:\n")
         (while lines
@@ -580,7 +592,7 @@ automatically inserted by utop."
         (insert text)
         ;; Send input to utop now, telling it to automatically add the
         ;; phrase terminator
-        (utop-eval-input nil t))
+        (utop-eval-input nil t nil))
        ((eq utop-state 'wait)
         ;; utop is starting, save the initial command to send
         (setq utop-initial-command text))))))
@@ -669,7 +681,7 @@ To automatically do that just add these lines to your .emacs:
         (let ((status (process-status utop-process)))
           (when (or (eq status 'exit) (eq status 'signal))
             ;; The process is terminated
-            (set-utop-state 'done)
+            (utop-set-state 'done)
             (let ((exit-code (process-exit-status utop-process)))
               (utop-perform
                ;; Insert a message at the end
@@ -786,7 +798,6 @@ To automatically do that just add these lines to your .emacs:
   (setq utop-prompt-max (point-max))
   (setq utop-output "")
   (setq utop-command-number 0)
-  (setq utop-pending nil)
   (setq utop-completion nil)
 
   ;; Set the state to done to allow utop to be restarted if
@@ -798,7 +809,7 @@ To automatically do that just add these lines to your .emacs:
 
   ;; Set the initial state: we are waiting for ocaml to send the
   ;; initial prompt
-  (set-utop-state 'wait)
+  (utop-set-state 'wait)
 
   ;; Filter the output of the sub-process with our filter function
   (set-process-filter utop-process 'utop-process-output)
@@ -823,16 +834,12 @@ To automatically do that just add these lines to your .emacs:
   (make-local-variable 'utop-last-prompt)
   (make-local-variable 'utop-output)
   (make-local-variable 'utop-command-number)
-  (make-local-variable 'utop-history)
-  (make-local-variable 'utop-history-prev)
-  (make-local-variable 'utop-history-next)
-  (make-local-variable 'utop-pending)
   (make-local-variable 'utop-inhibit-check)
   (make-local-variable 'utop-state)
   (make-local-variable 'utop-initial-command)
   (make-local-variable 'utop-phrase-terminator)
-  (make-local-variable 'utop-pending-input)
   (make-local-variable 'utop-pending-position)
+  (make-local-variable 'utop-pending-entry)
 
   ;; Set the major mode
   (setq major-mode 'utop-mode)

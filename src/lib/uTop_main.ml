@@ -374,11 +374,14 @@ module Emacs(M : sig end) = struct
   (* Copy standard output, which will be used to send commands. *)
   let command_oc = Unix.out_channel_of_descr (Unix.dup Unix.stdout)
 
-  let split_lines str =
+  let split_at ?(trim=false) ch str =
     let rec aux i j =
       if j = String.length str then
-        []
-      else if str.[j] = '\n' then
+        if trim && i = j then
+          []
+        else
+          [String.sub str i (j - i)]
+      else if str.[j] = ch then
         String.sub str i (j - i) :: aux (j + 1) (j + 1)
       else
         aux i (j + 1)
@@ -455,7 +458,7 @@ module Emacs(M : sig end) = struct
             | Some idx ->
                 Some (String.sub line 0 idx, String.sub line (idx + 1) (String.length line - (idx + 1)))
 
-  let read_data ?(final_newline = true) () =
+  let read_data () =
     let buf = Buffer.create 1024 in
     let rec loop first =
       match read_command () with
@@ -467,7 +470,6 @@ module Emacs(M : sig end) = struct
             Buffer.add_string buf data;
             loop false
         | Some ("end", _) ->
-            if final_newline then Buffer.add_char buf '\n';
             Buffer.contents buf
         | Some (command, argument) ->
             Printf.ksprintf (send "stderr") "'data' or 'end' command expected, got %S!" command;
@@ -475,17 +477,19 @@ module Emacs(M : sig end) = struct
     in
     loop true
 
-  let process_input eos_is_error =
-    match parse_and_check (read_data ()) eos_is_error with
+  let process_input add_to_history eos_is_error =
+    let input = read_data () in
+    match parse_and_check input eos_is_error with
       | UTop.Value phrase ->
           send "accept" "";
+          if add_to_history then LTerm_history.add UTop.history input;
           (* Add Lwt_main.run to toplevel evals. *)
           let phrase = if UTop.get_auto_run_lwt () then insert_lwt_main_run phrase else phrase in
           (* No exception can be raised at this stage. *)
           ignore (Toploop.execute_phrase true Format.std_formatter phrase)
       | UTop.Error (locs, msg) ->
           send "accept" (String.concat "," (List.map (fun (a, b) -> Printf.sprintf "%d,%d" a b) locs));
-          List.iter (send "stderr") (split_lines msg)
+          List.iter (send "stderr") (split_at ~trim:true '\n' msg)
 
   let rec loop () =
     (* Reset completion. *)
@@ -500,30 +504,30 @@ module Emacs(M : sig end) = struct
     (* Tell emacs we are ready. *)
     send "prompt" "";
 
-    loop_commands ()
+    loop_commands (LTerm_history.contents UTop.history) []
 
-  and loop_commands () =
+  and loop_commands history_prev history_next =
     match read_command () with
       | None ->
           ()
-      | Some ("input", "allow-incomplete") ->
+      | Some ("input", arg) ->
+          let args = split_at ',' arg in
+          let allow_incomplete = List.mem "allow-incomplete" args
+          and add_to_history = List.mem "add-to-history" args in
           let continue =
             try
-              process_input false;
+              process_input add_to_history (not allow_incomplete);
               false
             with UTop.Need_more ->
               send "continue" "";
               true
           in
           if continue then
-            loop_commands ()
+            loop_commands history_prev history_next
           else
             loop ()
-      | Some ("input", "") ->
-          process_input true;
-          loop ()
       | Some ("complete", _) ->
-          let input = read_data ~final_newline:false () in
+          let input = read_data () in
           let start, words = UTop_complete.complete input in
           let words = List.map fst words in
           let prefix = LTerm_read_line.common_prefix words in
@@ -536,11 +540,33 @@ module Emacs(M : sig end) = struct
           in
           if suffix = "" then begin
             send "completion-start" "";
-            List.iter (fun word -> send "completion" word) words;
+            List.iter (send "completion") words;
             send "completion-stop" "";
           end else
             send "completion-word" suffix;
-          loop_commands ()
+          loop_commands history_prev history_next
+      | Some ("history-prev", _) -> begin
+          let input = read_data () in
+          match history_prev with
+            | [] ->
+                send "history-bound" "";
+                loop_commands history_prev history_next
+            | entry :: history_prev ->
+                List.iter (send "history-data") (split_at '\n' entry);
+                send "history-end" "";
+                loop_commands history_prev (input :: history_next)
+        end
+      | Some ("history-next", _) -> begin
+          let input = read_data () in
+          match history_next with
+            | [] ->
+                send "history-bound" "";
+                loop_commands history_prev history_next
+            | entry :: history_next ->
+                List.iter (send "history-data") (split_at '\n' entry);
+                send "history-end" "";
+                loop_commands (input :: history_prev) history_next
+        end
       | Some (command, _) ->
           Printf.ksprintf (send "stderr") "unrecognized command %S!" command;
           exit 1
@@ -641,19 +667,22 @@ let common_init () =
   (* Make sure SIGINT is catched while executing OCaml code. *)
   Sys.catch_break true;
   (* Load user's .ocamlinit file. *)
-  match !Clflags.init_file with
-    | Some fn ->
-        if Sys.file_exists fn then
-          ignore (Toploop.use_silently Format.err_formatter fn)
-        else
-          Printf.eprintf "Init file not found: \"%s\".\n" fn
-    | None ->
-        if Sys.file_exists ".ocamlinit" then
-          ignore (Toploop.use_silently Format.err_formatter ".ocamlinit")
-        else
-          let fn = Filename.concat LTerm_resources.home ".ocamlinit" in
-          if Sys.file_exists fn then
-            ignore (Toploop.use_silently Format.err_formatter fn)
+  (match !Clflags.init_file with
+     | Some fn ->
+         if Sys.file_exists fn then
+           ignore (Toploop.use_silently Format.err_formatter fn)
+         else
+           Printf.eprintf "Init file not found: \"%s\".\n" fn
+     | None ->
+         if Sys.file_exists ".ocamlinit" then
+           ignore (Toploop.use_silently Format.err_formatter ".ocamlinit")
+         else
+           let fn = Filename.concat LTerm_resources.home ".ocamlinit" in
+           if Sys.file_exists fn then
+             ignore (Toploop.use_silently Format.err_formatter fn));
+  (* Load history after the initialization file so the user can change
+     the history file name. *)
+  Lwt_main.run (init_history ())
 
 let load_inputrc () =
   try_lwt
@@ -684,9 +713,6 @@ let main_aux () =
       Lwt_main.run (welcome term);
       (* Common initialization. *)
       common_init ();
-      (* Load history after the initialization file so the user can
-         change the history file name. *)
-      Lwt_main.run (init_history ());
       (* Print help message. *)
       print_string "\nType #utop_help for help about using utop.\n\n";
       flush stdout;
