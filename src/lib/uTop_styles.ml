@@ -55,8 +55,9 @@ let styles = {
 }
 
 let load () =
+  let fn = Filename.concat LTerm_resources.home ".utoprc" in
   try_lwt
-    lwt res = LTerm_resources.load (Filename.concat LTerm_resources.home ".utoprc") in
+    lwt res = LTerm_resources.load fn in
     styles.style_keyword <- LTerm_resources.get_style "keyword" res;
     styles.style_symbol <- LTerm_resources.get_style "symbol" res;
     styles.style_ident <- LTerm_resources.get_style "identifier" res;
@@ -84,8 +85,11 @@ let load () =
        | str -> raise (LTerm_resources.Error (Printf.sprintf "invalid profile %S" str)));
     UTop_private.error_style := styles.style_error;
     return ()
-  with Unix.Unix_error(Unix.ENOENT, _, _) ->
-    return ()
+  with
+    | Unix.Unix_error(Unix.ENOENT, _, _) ->
+        return ()
+    | Unix.Unix_error (error, func, arg) ->
+        Lwt_log.error_f "cannot load styles from %S: %s: %s" fn func (Unix.error_message error)
 
 let stylise stylise tokens =
   let rec loop tokens =

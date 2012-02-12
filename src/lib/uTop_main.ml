@@ -22,16 +22,15 @@ module String_set = Set.Make(String)
    | History                                                         |
    +-----------------------------------------------------------------+ *)
 
-let history = ref []
-
 let init_history () =
-  let hist_name = Filename.concat LTerm_resources.home ".utop-history" in
+  let fn = Filename.concat LTerm_resources.home ".utop-history" in
   (* Save history on exit. *)
-  Lwt_main.at_exit (fun () -> LTerm_read_line.save_history hist_name !history);
+  Lwt_main.at_exit (fun () -> LTerm_history.save UTop.history ~append:true fn);
   (* Load history. *)
-  lwt h = LTerm_read_line.load_history hist_name in
-  history := h;
-  return ()
+  try_lwt
+    LTerm_history.load UTop.history fn
+  with Unix.Unix_error (error, func, arg) ->
+    Lwt_log.error_f "cannot load history from %S: %s: %s" fn func (Unix.error_message error)
 
 (* +-----------------------------------------------------------------+
    | offset --> index                                                |
@@ -72,7 +71,7 @@ let parse_and_check input eos_is_error =
 (* Read a phrase. If the result is a value, it is guaranteed to by a
    valid phrase (i.e. typable and compilable). *)
 class read_phrase ~term = object(self)
-  inherit [Parsetree.toplevel_phrase UTop.result] LTerm_read_line.engine ~history:!history () as super
+  inherit [Parsetree.toplevel_phrase UTop.result] LTerm_read_line.engine ~history:(LTerm_history.contents UTop.history) () as super
   inherit [Parsetree.toplevel_phrase UTop.result] LTerm_read_line.term term as super_term
 
   val mutable return_value = None
@@ -94,7 +93,7 @@ class read_phrase ~term = object(self)
         try
           let result = parse_and_check input false in
           return_value <- Some result;
-          history := LTerm_read_line.add_entry input !history;
+          LTerm_history.add UTop.history input;
           return result
         with UTop.Need_more ->
           (* Input not finished, continue. *)
@@ -619,7 +618,8 @@ let args = Arg.align [
   "-emacs", Arg.Set emacs_mode, " Run in emacs mode";
 ]
 
-let usage = "Usage: utop <options> <object-files> [script-file [arguments]]\noptions are:"
+let app_name = Filename.basename Sys.executable_name
+let usage = Printf.sprintf "Usage: %s <options> <object-files> [script-file [arguments]]\noptions are:" app_name
 
 let common_init () =
   (* Initializes toplevel environment. *)
@@ -643,7 +643,13 @@ let common_init () =
           if Sys.file_exists fn then
             ignore (Toploop.use_silently Format.err_formatter fn)
 
-let main () =
+let load_inputrc () =
+  try_lwt
+    LTerm_inputrc.load ()
+  with Unix.Unix_error (error, func, arg) ->
+    Lwt_log.error_f "cannot key bindings from %S: %s: %s" LTerm_inputrc.default func (Unix.error_message error)
+
+let main_aux () =
   Arg.parse args file_argument usage;
   if not (prepare ()) then exit 2;
   if !emacs_mode then begin
@@ -661,7 +667,7 @@ let main () =
       (* Install our out phrase printer. *)
       Toploop.print_out_phrase := print_out_phrase term !Toploop.print_out_phrase;
       (* Load user data. *)
-      Lwt_main.run (join [init_history (); UTop_styles.load (); LTerm_inputrc.load ()]);
+      Lwt_main.run (join [init_history (); UTop_styles.load (); load_inputrc ()]);
       (* Display a welcome message. *)
       Lwt_main.run (welcome term);
       (* Common initialization. *)
@@ -683,3 +689,18 @@ let main () =
   end;
   (* Don't let the standard toplevel run... *)
   exit 0
+
+let main () =
+  try
+    main_aux ()
+  with exn ->
+    (match exn with
+       | Unix.Unix_error (error, func, "") ->
+           Printf.eprintf "%s: %s: %s\n" app_name func (Unix.error_message error)
+       | Unix.Unix_error (error, func, arg) ->
+           Printf.eprintf "%s: %s(%S): %s\n" app_name func arg (Unix.error_message error)
+       | exn ->
+           Printf.eprintf "Fatal error: exception %s\n" (Printexc.to_string exn));
+    Printexc.print_backtrace stderr;
+    flush stderr;
+    exit 2
