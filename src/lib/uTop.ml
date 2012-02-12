@@ -17,7 +17,14 @@ module String_set = Set.Make(String)
 
 let version = UTop_version.version
 
+(* +-----------------------------------------------------------------+
+   | History                                                         |
+   +-----------------------------------------------------------------+ *)
+
 let history = LTerm_history.create []
+let history_file_name = ref (Some (Filename.concat LTerm_resources.home ".utop-history"))
+let history_file_max_size = ref None
+let history_file_max_entries = ref None
 
 (* +-----------------------------------------------------------------+
    | Hooks                                                           |

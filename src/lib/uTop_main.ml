@@ -23,14 +23,26 @@ module String_set = Set.Make(String)
    +-----------------------------------------------------------------+ *)
 
 let init_history () =
-  let fn = Filename.concat LTerm_resources.home ".utop-history" in
   (* Save history on exit. *)
-  Lwt_main.at_exit (fun () -> LTerm_history.save UTop.history ~append:true fn);
+  Lwt_main.at_exit
+    (fun () ->
+       match !UTop.history_file_name with
+         | None ->
+             return ()
+         | Some fn ->
+             try_lwt
+               LTerm_history.save UTop.history ?max_size:!UTop.history_file_max_size ?max_entries:!UTop.history_file_max_entries fn
+             with Unix.Unix_error (error, func, arg) ->
+               Lwt_log.error_f "cannot save history to %S: %s: %s" fn func (Unix.error_message error));
   (* Load history. *)
-  try_lwt
-    LTerm_history.load UTop.history fn
-  with Unix.Unix_error (error, func, arg) ->
-    Lwt_log.error_f "cannot load history from %S: %s: %s" fn func (Unix.error_message error)
+  match !UTop.history_file_name with
+    | None ->
+        return ()
+    | Some fn ->
+        try_lwt
+          LTerm_history.load UTop.history fn
+        with Unix.Unix_error (error, func, arg) ->
+          Lwt_log.error_f "cannot load history from %S: %s: %s" fn func (Unix.error_message error)
 
 (* +-----------------------------------------------------------------+
    | offset --> index                                                |
@@ -667,11 +679,14 @@ let main_aux () =
       (* Install our out phrase printer. *)
       Toploop.print_out_phrase := print_out_phrase term !Toploop.print_out_phrase;
       (* Load user data. *)
-      Lwt_main.run (join [init_history (); UTop_styles.load (); load_inputrc ()]);
+      Lwt_main.run (join [UTop_styles.load (); load_inputrc ()]);
       (* Display a welcome message. *)
       Lwt_main.run (welcome term);
       (* Common initialization. *)
       common_init ();
+      (* Load history after the initialization file so the user can
+         change the history file name. *)
+      Lwt_main.run (init_history ());
       (* Print help message. *)
       print_string "\nType #utop_help for help about using utop.\n\n";
       flush stdout;

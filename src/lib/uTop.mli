@@ -14,19 +14,6 @@ open React
 val version : string
   (** Version of utop. *)
 
-val history : LTerm_history.t
-  (** The history used by utop. You can configure limits using the
-      [LTerm_history] module.
-
-      For example if you want to limit the history to 1000 line, add
-      these lines to your ~/.ocamlinit file:
-
-      {[
-        #require "lambda-term";;
-        LTerm_history.set_max_entries UTop.history 1000;;
-      ]}
-  *)
-
 val count : int React.signal
   (** The number of commands already executed. *)
 
@@ -83,6 +70,34 @@ val get_auto_run_lwt : unit -> bool
 
 val set_auto_run_lwt : bool -> unit
   (** Modifies {!auto_run_lwt}. *)
+
+(** {6 History} *)
+
+val history : LTerm_history.t
+  (** The history used by utop. You can configure limits using the
+      [LTerm_history] module.
+
+      For example if you want to limit the history to 1000 line, add
+      these lines to your ~/.ocamlinit file:
+
+      {[
+        #require "lambda-term";;
+        LTerm_history.set_max_entries UTop.history 1000;;
+      ]}
+  *)
+
+val history_file_name : string option ref
+  (** Name of the history file. If [None], no history will be loaded
+      or saved. *)
+
+val history_file_max_size : int option ref
+  (** Maximum size of the history file. If [None] (the default) the
+      maximum size of [history] will be used. *)
+
+val history_file_max_entries : int option ref
+  (** Maximum entries to store in the history file. If [None] (the
+      default) the maximum number of entries if [history] will be
+      used. *)
 
 (** {6 Console specific configuration} *)
 
