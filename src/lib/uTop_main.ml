@@ -567,6 +567,8 @@ module Emacs(M : sig end) = struct
                 send "history-end" "";
                 loop_commands (input :: history_prev) history_next
         end
+      | Some ("exit", code) ->
+          exit (int_of_string code)
       | Some (command, _) ->
           Printf.ksprintf (send "stderr") "unrecognized command %S!" command;
           exit 1

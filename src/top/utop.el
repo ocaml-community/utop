@@ -131,6 +131,8 @@ This hook is only run if exiting actually kills the buffer."
     (define-key map [(control ?c) (control ?c)] 'utop-interrupt)
     (define-key map [(control ?c) (control ?i)] 'utop-interrupt)
     (define-key map [(control ?c) (control ?k)] 'utop-kill)
+    (define-key map [(control ?c) (control ?g)] 'utop-exit)
+    (define-key map [(control ?c) (control ?s)] 'utop)
     map)
   "The utop local keymap.")
 
@@ -672,6 +674,14 @@ To automatically do that just add these lines to your .emacs:
   (with-current-buffer utop-buffer-name
     (kill-process utop-process)))
 
+(defun utop-exit (&optional exit-code)
+  "Try to gracefully exit utop.
+
+EXIT-CODE is the exit code that shoud be used. It defaults to 0."
+  (interactive)
+  (with-current-buffer utop-buffer-name
+    (process-send-string utop-process (format "exit:%d\n" (or exit-code 0)))))
+
 (defun utop-sentinel (process msg)
   "Callback for process' state change."
   (let ((buffer (get-buffer utop-buffer-name)))
@@ -769,6 +779,7 @@ To automatically do that just add these lines to your .emacs:
     ["Start OCaml" utop t]
     ["Interrupt OCaml" utop-interrupt :active (utop-is-running)]
     ["Kill OCaml" utop-kill :active (utop-is-running)]
+    ["Exit utop gracefully" utop-exit :active (utop-is-running)]
     ["Evaluate Phrase" utop-eval-input-auto-end :active (and (utop-is-running) (eq utop-state 'edit))]
     "---"
     ["Customize utop" (customize-group 'utop) t]
