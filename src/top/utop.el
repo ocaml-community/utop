@@ -302,6 +302,13 @@ to add the newline character if it is not accepted).")
       (setq utop-pending-entry nil)
       (utop-send-data "history-next:\n"))))
 
+(defun utop-save-history ()
+  "Save history to the history file."
+  (interactive)
+  (with-current-buffer utop-buffer-name
+    (unless (eq utop-state 'done)
+      (process-send-string utop-process "save-history:\n"))))
+
 ;; +-----------------------------------------------------------------+
 ;; | Receiving input from the utop sub-process                     |
 ;; +-----------------------------------------------------------------+
@@ -677,10 +684,12 @@ To automatically do that just add these lines to your .emacs:
 (defun utop-exit (&optional exit-code)
   "Try to gracefully exit utop.
 
-EXIT-CODE is the exit code that shoud be used. It defaults to 0."
+EXIT-CODE is the exit code that shoud be returned by utop. It
+defaults to 0."
   (interactive)
   (with-current-buffer utop-buffer-name
-    (process-send-string utop-process (format "exit:%d\n" (or exit-code 0)))))
+    (unless (eq utop-state 'done)
+      (process-send-string utop-process (format "exit:%d\n" (or exit-code 0))))))
 
 (defun utop-sentinel (process msg)
   "Callback for process' state change."
@@ -864,6 +873,9 @@ EXIT-CODE is the exit code that shoud be used. It defaults to 0."
 
   ;; Register the exit hook
   (add-hook 'kill-buffer-hook (lambda () (run-hooks 'utop-exit-hook)) t t)
+
+  ;; Save history before killing the buffer
+  (add-hook 'kill-buffer-query-functions (lambda () (utop-save-history) t) nil t)
 
   ;; Start utop
   (utop-start arguments)

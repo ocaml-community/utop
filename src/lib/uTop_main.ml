@@ -22,18 +22,19 @@ module String_set = Set.Make(String)
    | History                                                         |
    +-----------------------------------------------------------------+ *)
 
+let save_history () =
+  match !UTop.history_file_name with
+    | None ->
+        return ()
+    | Some fn ->
+        try_lwt
+          LTerm_history.save UTop.history ?max_size:!UTop.history_file_max_size ?max_entries:!UTop.history_file_max_entries fn
+        with Unix.Unix_error (error, func, arg) ->
+          Lwt_log.error_f "cannot save history to %S: %s: %s" fn func (Unix.error_message error)
+
 let init_history () =
   (* Save history on exit. *)
-  Lwt_main.at_exit
-    (fun () ->
-       match !UTop.history_file_name with
-         | None ->
-             return ()
-         | Some fn ->
-             try_lwt
-               LTerm_history.save UTop.history ?max_size:!UTop.history_file_max_size ?max_entries:!UTop.history_file_max_entries fn
-             with Unix.Unix_error (error, func, arg) ->
-               Lwt_log.error_f "cannot save history to %S: %s: %s" fn func (Unix.error_message error));
+  Lwt_main.at_exit save_history;
   (* Load history. *)
   match !UTop.history_file_name with
     | None ->
@@ -569,6 +570,9 @@ module Emacs(M : sig end) = struct
         end
       | Some ("exit", code) ->
           exit (int_of_string code)
+      | Some ("save-history", code) ->
+          Lwt_main.run (save_history ());
+          loop_commands history_prev history_next
       | Some (command, _) ->
           Printf.ksprintf (send "stderr") "unrecognized command %S!" command;
           exit 1
