@@ -18,6 +18,8 @@ open UTop_private
 
 module String_set = Set.Make(String)
 
+exception Term of int
+
 (* +-----------------------------------------------------------------+
    | History                                                         |
    +-----------------------------------------------------------------+ *)
@@ -688,7 +690,20 @@ let common_init () =
              ignore (Toploop.use_silently Format.err_formatter fn));
   (* Load history after the initialization file so the user can change
      the history file name. *)
-  Lwt_main.run (init_history ())
+  Lwt_main.run (init_history ());
+  (* Install signal handlers. *)
+  let behavior = Sys.Signal_handle (fun signo -> raise (Term signo)) in
+  let catch signo =
+    try
+      Sys.set_signal signo behavior
+    with _ ->
+      (* All signals may not be supported on some OS. *)
+      ()
+  in
+  (* We lost the terminal. *)
+  catch Sys.sighup;
+  (* Termination request. *)
+  catch Sys.sigterm
 
 let load_inputrc () =
   try_lwt

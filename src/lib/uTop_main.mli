@@ -9,3 +9,9 @@
 
 val main : unit -> unit
   (** Start utop. *)
+
+exception Term of int
+  (** Exception raised when a signal that should terminate the process
+      is received. The argument is the signal number.
+
+      utop raises this exception for SIGHUP and SIGTERM by default. *)
