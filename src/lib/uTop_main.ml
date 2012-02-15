@@ -167,6 +167,32 @@ end
    | Out phrase printing                                             |
    +-----------------------------------------------------------------+ *)
 
+let fix_string str =
+  let len = String.length str in
+  let ofs = ref 0 in
+  try
+    while !ofs < len do
+      ofs := Zed_utf8.unsafe_next str !ofs
+    done;
+    str
+  with Zed_utf8.Invalid _ ->
+    let buf = Buffer.create (len + 128) in
+    if !ofs > 0 then Buffer.add_substring buf str 0 !ofs;
+    Printf.bprintf buf "\\y%02x" (Char.code (String.unsafe_get str !ofs));
+    incr ofs;
+    let ofs2 = ref !ofs in
+    while !ofs2 < len do
+      try
+        ofs2 := Zed_utf8.unsafe_next str !ofs2
+      with Zed_utf8.Invalid _ ->
+        if !ofs < !ofs2 then Buffer.add_substring buf str !ofs (!ofs2 - !ofs);
+        Printf.bprintf buf "\\y%02x" (Char.code (String.unsafe_get str !ofs2));
+        incr ofs2;
+        ofs := !ofs2
+    done;
+    if !ofs < len then Buffer.add_substring buf str !ofs (len - !ofs);
+    Buffer.contents buf
+
 let print_out_phrase term printer pp out_phrase =
   flush stdout;
   flush stderr;
@@ -183,7 +209,7 @@ let print_out_phrase term printer pp out_phrase =
   Format.pp_set_margin pp (LTerm.size term).cols;
   printer pp out_phrase;
   Format.pp_print_flush pp ();
-  let string = Buffer.contents buffer in
+  let string = fix_string (Buffer.contents buffer) in
   let styled = LTerm_text.of_string string in
   let stylise start stop token_style =
     for i = start to stop - 1 do
