@@ -169,29 +169,25 @@ end
 
 let fix_string str =
   let len = String.length str in
-  let ofs = ref 0 in
-  try
-    while !ofs < len do
-      ofs := Zed_utf8.unsafe_next str !ofs
-    done;
+  let ofs, _, _ = Zed_utf8.next_error str 0 in
+  if ofs = len then
     str
-  with Zed_utf8.Invalid _ ->
+  else begin
     let buf = Buffer.create (len + 128) in
-    if !ofs > 0 then Buffer.add_substring buf str 0 !ofs;
-    Printf.bprintf buf "\\y%02x" (Char.code (String.unsafe_get str !ofs));
-    incr ofs;
-    let ofs2 = ref !ofs in
-    while !ofs2 < len do
-      try
-        ofs2 := Zed_utf8.unsafe_next str !ofs2
-      with Zed_utf8.Invalid _ ->
-        if !ofs < !ofs2 then Buffer.add_substring buf str !ofs (!ofs2 - !ofs);
-        Printf.bprintf buf "\\y%02x" (Char.code (String.unsafe_get str !ofs2));
-        incr ofs2;
-        ofs := !ofs2
-    done;
-    if !ofs < len then Buffer.add_substring buf str !ofs (len - !ofs);
-    Buffer.contents buf
+    if ofs > 0 then Buffer.add_substring buf str 0 ofs;
+    let rec loop ofs =
+      Printf.bprintf buf "\\y%02x" (Char.code (String.unsafe_get str ofs));
+      let ofs1 = ofs + 1 in
+      let ofs2, _, _ = Zed_utf8.next_error str ofs1 in
+      if ofs1 < ofs2 then
+        Buffer.add_substring buf str ofs1 (ofs2 - ofs1);
+      if ofs2 < len then
+        loop ofs2
+      else
+        Buffer.contents buf
+    in
+    loop ofs
+  end
 
 let print_out_phrase term printer pp out_phrase =
   flush stdout;
