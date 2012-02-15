@@ -492,6 +492,7 @@ module Emacs(M : sig end) = struct
           ignore (Toploop.execute_phrase true Format.std_formatter phrase)
       | UTop.Error (locs, msg) ->
           send "accept" (String.concat "," (List.map (fun (a, b) -> Printf.sprintf "%d,%d" a b) locs));
+          if add_to_history then LTerm_history.add UTop.history input;
           List.iter (send "stderr") (split_at ~trim:true '\n' msg)
 
   let rec loop () =
