@@ -328,8 +328,20 @@ let rec loop term =
         let cols = (LTerm.size term).cols in
         update_margin Format.std_formatter cols;
         update_margin Format.err_formatter cols;
-        (* No exception can be raised at this stage. *)
-        ignore (Toploop.execute_phrase true Format.std_formatter phrase);
+        (try
+           ignore (Toploop.execute_phrase true Format.std_formatter phrase)
+         with exn ->
+           (* The only possible errors are directive errors. *)
+           let msg = UTop.get_message Errors.report_error exn in
+           (* Skip the dumb location. *)
+           let msg =
+             try
+               let idx = String.index msg '\n' + 1 in
+               String.sub msg idx (String.length msg - idx)
+             with Not_found ->
+               msg
+           in
+           Lwt_main.run (print_error msg));
         loop term
     | None ->
         loop term
@@ -505,13 +517,26 @@ module Emacs(M : sig end) = struct
   let process_input add_to_history eos_is_error =
     let input = read_data () in
     match parse_and_check input eos_is_error with
-      | UTop.Value phrase ->
+      | UTop.Value phrase -> begin
           send "accept" "";
           if add_to_history then LTerm_history.add UTop.history input;
           (* Add Lwt_main.run to toplevel evals. *)
           let phrase = if UTop.get_auto_run_lwt () then insert_lwt_main_run phrase else phrase in
-          (* No exception can be raised at this stage. *)
-          ignore (Toploop.execute_phrase true Format.std_formatter phrase)
+          try
+            ignore (Toploop.execute_phrase true Format.std_formatter phrase)
+          with exn ->
+            (* The only possible errors are directive errors. *)
+            let msg = UTop.get_message Errors.report_error exn in
+            (* Skip the dumb location. *)
+            let msg =
+              try
+                let idx = String.index msg '\n' + 1 in
+                String.sub msg idx (String.length msg - idx)
+              with Not_found ->
+                msg
+            in
+            List.iter (send "stderr") (split_at ~trim:true '\n' msg)
+        end
       | UTop.Error (locs, msg) ->
           send "accept" (String.concat "," (List.map (fun (a, b) -> Printf.sprintf "%d,%d" a b) locs));
           if add_to_history then LTerm_history.add UTop.history input;
