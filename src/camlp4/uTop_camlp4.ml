@@ -55,7 +55,7 @@ let parse_toplevel_phrase_camlp4 str eos_is_error =
 let () =
   UTop.set_camlp4 true;
   UTop.parse_toplevel_phrase := parse_toplevel_phrase_camlp4;
-  (* Force camlp4 to display its error message. *)
+  (* Force camlp4 to display its welcome message. *)
   try
     ignore (!Toploop.parse_toplevel_phrase (Lexing.from_string ""))
   with _ ->
