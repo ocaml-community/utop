@@ -12,9 +12,14 @@ Authors: Jérémie Dimino
 Homepage: http://utop.forge.ocamlcore.org/
 BuildTools: ocamlbuild
 Plugins: DevFiles (0.2), META (0.2)
-Synopsis: utop
-Description: Universal toplevel for OCaml
 FilesAB: src/lib/uTop_version.ml.ab
+Synopsis: Universal toplevel for OCaml
+Description:
+  utop is an improved toplevel for OCaml. It can run in a terminal or
+  in Emacs. It supports line edition, history, real-time and context
+  sensitive completion, colors, and more.
+  .
+  It integrates with the tuareg mode in Emacs.
 
 # +-------------------------------------------------------------------+
 # | The toplevel                                                      |
