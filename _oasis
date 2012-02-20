@@ -47,7 +47,7 @@ Library "utop-camlp4"
   FindlibName: camlp4
   FindlibParent: utop
   Path: src/camlp4
-  InternalModules: UTop_camlp4
+  Modules: UTop_camlp4
   BuildDepends: utop, camlp4
   XMETAType: syntax
   XMETADescription: Camlp4 integration
