@@ -20,6 +20,8 @@ let print_camlp4_error pp exn =
   Format.pp_print_flush pp ()
 
 let parse_toplevel_phrase_camlp4 str eos_is_error =
+  (* Execute delayed actions now. *)
+  Register.iter_and_take_callbacks (fun (_, f) -> f ());
   let eof = ref false in
   try
     let token_stream = Gram.filter (Gram.lex_string (Loc.mk UTop.input_name) str) in
