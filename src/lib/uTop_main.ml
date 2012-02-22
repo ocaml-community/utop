@@ -194,23 +194,8 @@ let fix_string str =
     loop ofs
   end
 
-let print_out_phrase term printer pp out_phrase =
-  flush stdout;
-  flush stderr;
-  (match out_phrase with
-     | Outcometree.Ophr_exception _ ->
-         if Printexc.backtrace_status () then begin
-           Printexc.print_backtrace stdout;
-           flush stdout
-         end
-     | _ ->
-         ());
-  let buffer = Buffer.create 1024 in
-  let pp = Format.formatter_of_buffer buffer in
-  Format.pp_set_margin pp (LTerm.size term).cols;
-  printer pp out_phrase;
-  Format.pp_print_flush pp ();
-  let string = fix_string (Buffer.contents buffer) in
+let print_out_phrase term string =
+  let string = fix_string string in
   let styled = LTerm_text.of_string string in
   let stylise loc token_style =
     for i = loc.idx1 to loc.idx2 - 1 do
@@ -293,8 +278,7 @@ let update_margin pp cols =
   if Format.pp_get_margin pp () <> cols then
     Format.pp_set_margin pp cols
 
-let print_error msg =
-  lwt term = Lazy.force LTerm.stdout in
+let print_error term msg =
   lwt () = LTerm.set_style term styles.style_error in
   lwt () = Lwt_io.print msg in
   lwt () = LTerm.set_style term LTerm_style.none in
@@ -318,7 +302,7 @@ let rec loop term =
           | UTop.Value phrase ->
               return (Some phrase)
           | UTop.Error (_, msg) ->
-              lwt () = print_error msg in
+              lwt () = print_error term msg in
               return None
       finally
         LTerm.flush term
@@ -333,8 +317,27 @@ let rec loop term =
         let cols = (LTerm.size term).cols in
         update_margin Format.std_formatter cols;
         update_margin Format.err_formatter cols;
+        (* Formatter to get the output phrase. *)
+        let buffer = Buffer.create 1024 in
+        let pp = Format.formatter_of_buffer buffer in
+        Format.pp_set_margin pp (LTerm.size term).cols;
         (try
-           ignore (Toploop.execute_phrase true Format.std_formatter phrase)
+           ignore (Toploop.execute_phrase true pp phrase);
+           (* Flush everything. *)
+           Format.pp_print_flush Format.std_formatter ();
+           Format.pp_print_flush Format.err_formatter ();
+           flush stdout;
+           flush stderr;
+           (* Get the string printed. *)
+           Format.pp_print_flush pp ();
+           let string = Buffer.contents buffer in
+           match phrase with
+             | Parsetree.Ptop_def _ ->
+                 (* The string is an output phrase, colorize it. *)
+                 print_out_phrase term string
+             | Parsetree.Ptop_dir _ ->
+                 (* The string is an error message. *)
+                 Lwt_main.run (print_error term string)
          with exn ->
            (* The only possible errors are directive errors. *)
            let msg = UTop.get_message Errors.report_error exn in
@@ -346,7 +349,7 @@ let rec loop term =
              with Not_found ->
                msg
            in
-           Lwt_main.run (print_error msg));
+           Lwt_main.run (print_error term msg));
         loop term
     | None ->
         loop term
@@ -784,8 +787,6 @@ let main_aux () =
     if LTerm.incoming_is_a_tty term && LTerm.outgoing_is_a_tty term then begin
       (* Set the initial size. *)
       UTop_private.set_size (S.const (LTerm.size term));
-      (* Install our out phrase printer. *)
-      Toploop.print_out_phrase := print_out_phrase term !Toploop.print_out_phrase;
       (* Load user data. *)
       Lwt_main.run (join [UTop_styles.load (); load_inputrc ()]);
       (* Display a welcome message. *)
