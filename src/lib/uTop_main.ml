@@ -216,6 +216,15 @@ let is_eval = function
   | { Parsetree.pstr_desc = Parsetree.Pstr_eval _ } -> true
   | _ -> false
 
+let rec is_lwt_t typ =
+  match typ.Types.desc with
+    | Types.Tlink typ ->
+        is_lwt_t typ
+    | Types.Tconstr (Path.Pdot (Path.Pident id, "t", -1), _, _) ->
+        Ident.persistent id && Ident.name id = "Lwt"
+    | _ ->
+        false
+
 let insert_lwt_main_run phrase =
   match phrase with
     | Parsetree.Ptop_def pstr ->
@@ -237,13 +246,8 @@ let insert_lwt_main_run phrase =
                (fun pstr_item tstr_item ->
                   match pstr_item, tstr_item with
                     | { Parsetree.pstr_desc = Parsetree.Pstr_eval e; Parsetree.pstr_loc = loc },
-                      Typedtree.Tstr_eval {
-                        Typedtree.exp_type = {
-                          Types.desc =
-                            Types.Tconstr (Path.Pdot (Path.Pident id, "t", -1), _, _)
-                        }
-                      } ->
-                        if Ident.persistent id && Ident.name id = "Lwt" then {
+                      Typedtree.Tstr_eval { Typedtree.exp_type = typ } when is_lwt_t typ ->
+                        {
                           Parsetree.pstr_desc =
                             Parsetree.Pstr_eval {
                               Parsetree.pexp_desc =
@@ -253,8 +257,7 @@ let insert_lwt_main_run phrase =
                               Parsetree.pexp_loc = loc;
                             };
                           Parsetree.pstr_loc = loc;
-                        } else
-                          pstr_item
+                        }
                     | _ ->
                         pstr_item)
                pstr tstr)
