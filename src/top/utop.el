@@ -548,8 +548,26 @@ If ADD-TO-HISTORY is t then the input will be added to history."
         (process-send-string utop-process "end:\n")))))
 
 ;; +-----------------------------------------------------------------+
-;; | Tuareg integration                                              |
+;; | Tuareg/Typerex integration                                      |
 ;; +-----------------------------------------------------------------+
+
+(defun utop-choose (symbol)
+  (cond
+   ((eq major-mode 'tuareg-mode)
+    (intern (concat "tuareg-" symbol)))
+   ((eq major-mode 'typerex-mode)
+    (intern (concat "typerex-" symbol)))
+   (t
+    (error (concat "unsupported mode: " (symbol-name major-mode) ", utop support only tuareg and typerex modes")))))
+
+(defmacro utop-choose-symbol (symbol)
+  (utop-choose symbol))
+
+(defmacro utop-choose-call (symbol &rest args)
+  (cons (utop-choose symbol) args))
+
+(defmacro utop-choose-defun (symbol &rest args)
+  (cons 'defun (cons (utop-choose symbol) args)))
 
 (defun utop-prepare-for-eval ()
   "Prepare utop for evaluation."
@@ -581,16 +599,16 @@ If ADD-TO-HISTORY is t then the input will be added to history."
 (defun utop-eval (start end)
   "Eval the given region in utop."
   ;; From tuareg
-  (setq tuareg-interactive-last-phrase-pos-in-source start)
+  (set (utop-choose "interactive-last-phrase-pos-in-source") start)
   ;; Select the text of the region
   (let ((text
          (save-excursion
            ;; Search the start and end of the current paragraph
            (goto-char start)
-           (tuareg-skip-blank-and-comments)
+           (utop-choose-call "skip-blank-and-comments")
            (setq start (point))
            (goto-char end)
-           (tuareg-skip-to-end-of-phrase)
+           (utop-choose-call "skip-to-end-of-phrase")
            (setq end (point))
            (buffer-substring-no-properties start end))))
     (with-current-buffer utop-buffer-name
@@ -618,10 +636,10 @@ If ADD-TO-HISTORY is t then the input will be added to history."
   (utop-prepare-for-eval)
   (let ((end))
     (save-excursion
-      (let ((pair (tuareg-discover-phrase)))
+      (let ((pair (utop-choose-call "discover-phrase")))
 	(setq end (nth 2 pair))
 	(utop-eval (nth 0 pair) (nth 1 pair))))
-    (if tuareg-skip-after-eval-phrase
+    (if (utop-choose-symbol "skip-after-eval-phrase")
 	(goto-char end))))
 
 (defun utop-eval-buffer ()
@@ -630,27 +648,28 @@ If ADD-TO-HISTORY is t then the input will be added to history."
   (utop-prepare-for-eval)
   (utop-eval (point-min) (point-max)))
 
-(defun utop-tuareg-setup ()
-  "Override tuareg interactive functions by utop ones.
+(defun utop-setup-ocaml-buffer ()
+  "Override tuareg/typerex interactive functions by utop ones.
 
-You can call this function after loading the tuareg mode to let
-it use utop instead of its builtin support for interactive
+You can call this function after loading the tuareg/typerex mode
+to let it use utop instead of its builtin support for interactive
 toplevel.
 
 To automatically do that just add these lines to your .emacs:
 
-  (autoload 'utop-tuareg-setup \"utop\" \"Toplevel for OCaml\" t)
-  (add-hook 'tuareg-mode-hook 'utop-tuareg-setup)"
+  (autoload 'utop-setup-ocaml-buffer \"utop\" \"Toplevel for OCaml\" t)
+  (add-hook 'tuareg-mode-hook 'utop-setup-ocaml-buffer)
+  (add-hook 'typerex-mode-hook 'utop-setup-ocaml-buffer)"
   (interactive)
   ;; Redefine tuareg functions
-  (defun tuareg-eval-phrase () (interactive) (utop-eval-phrase))
-  (defun tuareg-eval-region (start end) (interactive "r") (utop-eval-region start end))
-  (defun tuareg-eval-buffer () (interactive) (utop-eval-buffer))
-  (defun tuareg-interrupt-caml () (interactive) (utop-interrupt))
-  (defun tuareg-kill-caml () (interactive) (utop-kill))
-  (defun tuareg-run-caml () (interactive) (utop))
+  (utop-choose-defun "eval-phrase" () (interactive) (utop-eval-phrase))
+  (utop-choose-defun "eval-region" (start end) (interactive "r") (utop-eval-region start end))
+  (utop-choose-defun "eval-buffer" () (interactive) (utop-eval-buffer))
+  (utop-choose-defun "interrupt-caml" () (interactive) (utop-interrupt))
+  (utop-choose-defun "kill-caml" () (interactive) (utop-kill))
+  (utop-choose-defun "run-caml" () (interactive) (utop))
   ;; Redefine this variable so menu will work
-  (setq tuareg-interactive-buffer-name utop-buffer-name)
+  (set (utop-choose "interactive-buffer-name") utop-buffer-name)
   nil)
 
 ;; +-----------------------------------------------------------------+

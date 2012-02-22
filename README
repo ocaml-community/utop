@@ -61,13 +61,15 @@ url: https://forge.ocamlcore.org/projects/utop/
 
   Then you can run utop by executing the command "utop" in emacs.
 
-* Integration with the tuareg mode:
+* Integration with the tuareg/typerex mode:
 
-  You can replace the default toplevel used by the tuareg mode by
-  utop, for that add the following lines to your ~/.emacs file:
+  You can replace the default toplevel used by the tuareg or typerex
+  mode by utop, for that add the following lines to your ~/.emacs
+  file:
 
-    (autoload 'utop-tuareg-setup "utop" "Toplevel for OCaml" t)
-    (add-hook 'tuareg-mode-hook 'utop-tuareg-setup)
+    (autoload 'utop-setup-ocaml-buffer "utop" "Toplevel for OCaml" t)
+    (add-hook 'tuareg-mode-hook 'utop-setup-ocaml-buffer)
+    (add-hook 'typerex-mode-hook 'utop-setup-ocaml-buffer)
 
 * Development:
 
