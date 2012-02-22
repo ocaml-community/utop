@@ -65,7 +65,6 @@ let parse_toplevel_phrase str eos_is_error =
         UTop.Error (locs, msg)
 
 let () =
-  UTop.set_camlp4 true;
   UTop.parse_toplevel_phrase := parse_toplevel_phrase;
   (* Force camlp4 to display its welcome message. *)
   try

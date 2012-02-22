@@ -60,9 +60,9 @@ type value_or_field = Value | Field
 let parse_longident tokens =
   let rec loop acc tokens =
     match tokens with
-      | (Symbol, _, _, ".") :: (Uident, _, _, id) :: tokens ->
+      | (Symbol ".", _) :: (Uident id, _) :: tokens ->
           loop (id :: acc) tokens
-      | (Symbol, _, _, ".") :: (Lident, _, _, id) :: tokens ->
+      | (Symbol ".", _) :: (Lident id, _) :: tokens ->
           (Field,
            match acc with
              | [] -> None
@@ -74,18 +74,18 @@ let parse_longident tokens =
              | l -> Some (longident_of_list l))
   in
   match tokens with
-    | ((Comment false | Doc false | String false | Quotation false), _, _, _) :: _ ->
+    | ((Comment (_, false) | String false | Quotation (_, false)), _) :: _ ->
         (* An unterminated command, string, or quotation. *)
         None
-    | ((Uident | Lident), start, _, id) :: tokens ->
+    | ((Uident id | Lident id), { idx1 = start }) :: tokens ->
         (* An identifier. *)
         let kind, path = loop [] tokens in
         Some (kind, path, start, id)
-    | (Blanks, _, stop, _) :: tokens ->
+    | (Blanks, { idx2 = stop }) :: tokens ->
         (* Some blanks at the end. *)
         let kind, path = loop [] tokens in
         Some (kind, path, stop, "")
-    | (_, _, stop, _) :: _ ->
+    | (_, { idx2 = stop }) :: _ ->
         (* Otherwise complete after the last token. *)
         let kind, path = loop [] tokens in
         Some (kind, path, stop, "")
@@ -98,7 +98,7 @@ let parse_method tokens =
      longidentifier. *)
   let rec loop_uidents acc tokens =
     match tokens with
-      | (Symbol, _, _, ".") :: (Uident, _, _, id) :: tokens ->
+      | (Symbol ".", _) :: (Uident id, _) :: tokens ->
           loop_uidents (id :: acc) tokens
       | _ ->
           longident_of_list acc
@@ -106,21 +106,21 @@ let parse_method tokens =
   (* Collect [m1#m2# ... #mp] *)
   let rec loop_methods acc tokens =
     match tokens with
-      | (Lident, _, _, meth) :: (Symbol, _, _, "#") :: tokens ->
+      | (Lident meth, _) :: (Symbol "#", _) :: tokens ->
           loop_methods (meth :: acc) tokens
-      | (Lident, _, _, id) :: tokens ->
+      | (Lident id, _) :: tokens ->
           Some (loop_uidents [id] tokens, acc)
       | _ ->
           None
   in
   match tokens with
-    | (Lident, start, _, meth) :: (Symbol, _, _, "#") :: tokens -> begin
+    | (Lident meth, { idx1 = start }) :: (Symbol "#", _) :: tokens -> begin
         match loop_methods [] tokens with
           | None -> None
           | Some (path, meths) -> Some (path, meths, start, meth)
       end
-    | (Symbol, _, stop, "#") :: tokens
-    | (Blanks, _, stop, _) :: (Symbol, _, _, "#") :: tokens -> begin
+    | (Symbol "#", { idx2 = stop }) :: tokens
+    | (Blanks, { idx2 = stop }) :: (Symbol "#", _) :: tokens -> begin
         match loop_methods [] tokens with
           | None -> None
           | Some (path, meths) -> Some (path, meths, stop, "")
@@ -140,21 +140,21 @@ let parse_label tokens =
   (* Collect [M1.M2. ... .Mn] *)
   let rec loop_uidents acc_uidents acc_methods tokens =
     match tokens with
-      | (Lident, _, _, "new") :: _ ->
+      | (Lident "new", _) :: _ ->
           Some (New, longident_of_list acc_uidents, acc_methods)
-      | ((Lident | Uident), _, _, id) :: _ when String_set.mem id !UTop.keywords ->
+      | ((Lident id | Uident id), _) :: _ when String_set.mem id !UTop.keywords ->
           Some (Fun, longident_of_list acc_uidents, acc_methods)
-      | (Symbol, _, _, ".") :: (Uident, _, _, id) :: tokens ->
+      | (Symbol ".", _) :: (Uident id, _) :: tokens ->
           loop_uidents (id :: acc_uidents) acc_methods tokens
-      | (Symbol, _, _, ("~" | "?" | ":" | "." | "#" | "!" | "`")) :: tokens ->
+      | (Symbol ("~" | "?" | ":" | "." | "#" | "!" | "`"), _) :: tokens ->
           search tokens
-      | (Symbol, _, _, ")") :: tokens ->
+      | (Symbol ")", _) :: tokens ->
           skip tokens "(" []
-      | (Symbol, _, _, "}") :: tokens ->
+      | (Symbol "}", _) :: tokens ->
           skip tokens "{" []
-      | (Symbol, _, _, "]") :: tokens ->
+      | (Symbol "]", _) :: tokens ->
           skip tokens "[" []
-      | (Symbol, _, _, _) :: _ ->
+      | (Symbol _, _) :: _ ->
           Some (Fun, longident_of_list acc_uidents, acc_methods)
       | [] ->
           Some (Fun, longident_of_list acc_uidents, acc_methods)
@@ -162,21 +162,21 @@ let parse_label tokens =
           search tokens
   and loop_methods acc tokens =
     match tokens with
-      | ((Lident | Uident), _, _, id) :: _ when String_set.mem id !UTop.keywords ->
+      | ((Lident id | Uident id), _) :: _ when String_set.mem id !UTop.keywords ->
           None
-      | (Symbol, _, _, ("~" | "?" | ":" | "." | "#" | "!" | "`")) :: tokens ->
+      | (Symbol ("~" | "?" | ":" | "." | "#" | "!" | "`"), _) :: tokens ->
           search tokens
-      | (Symbol, _, _, ")") :: tokens ->
+      | (Symbol ")", _) :: tokens ->
           skip tokens "(" []
-      | (Symbol, _, _, "}") :: tokens ->
+      | (Symbol "}", _) :: tokens ->
           skip tokens "{" []
-      | (Symbol, _, _, "]") :: tokens ->
+      | (Symbol "]", _) :: tokens ->
           skip tokens "[" []
-      | (Symbol, _, _, _) :: _ ->
+      | (Symbol _, _) :: _ ->
           None
-      | (Lident, _, _, id) :: (Symbol, _, _, "#") :: tokens ->
+      | (Lident id, _) :: (Symbol "#", _) :: tokens ->
           loop_methods (id :: acc) tokens
-      | (Lident, _, _, id) :: tokens ->
+      | (Lident id, _) :: tokens ->
           loop_uidents [id] acc tokens
       | [] ->
           None
@@ -184,21 +184,21 @@ let parse_label tokens =
           search tokens
   and search tokens =
     match tokens with
-      | ((Lident | Uident), _, _, id) :: _ when String_set.mem id !UTop.keywords ->
+      | ((Lident id | Uident id), _) :: _ when String_set.mem id !UTop.keywords ->
           None
-      | (Symbol, _, _, ("~" | "?" | ":" | "." | "#" | "!" | "`")) :: tokens ->
+      | (Symbol ("~" | "?" | ":" | "." | "#" | "!" | "`"), _) :: tokens ->
           search tokens
-      | (Symbol, _, _, ")") :: tokens ->
+      | (Symbol ")", _) :: tokens ->
           skip tokens "(" []
-      | (Symbol, _, _, "}") :: tokens ->
+      | (Symbol "}", _) :: tokens ->
           skip tokens "{" []
-      | (Symbol, _, _, "]") :: tokens ->
+      | (Symbol "]", _) :: tokens ->
           skip tokens "[" []
-      | (Symbol, _, _, _) :: _ ->
+      | (Symbol _, _) :: _ ->
           None
-      | (Lident, _, _, id) :: (Symbol, _, _, "#") :: tokens ->
+      | (Lident id, _) :: (Symbol "#", _) :: tokens ->
           loop_methods [id] tokens
-      | (Lident, _, _, id) :: tokens ->
+      | (Lident id, _) :: tokens ->
           loop_uidents [id] [] tokens
       | _ :: tokens ->
           search tokens
@@ -206,16 +206,16 @@ let parse_label tokens =
           None
   and skip tokens top stack =
     match tokens with
-      | (Symbol, _, _, symbol) :: tokens when symbol = top -> begin
+      | (Symbol symbol, _) :: tokens when symbol = top -> begin
           match stack with
             | [] -> search tokens
             | top :: stack -> skip tokens top stack
         end
-      | (Symbol, _, _, ")") :: tokens ->
+      | (Symbol ")", _) :: tokens ->
           skip tokens "(" (top :: stack)
-      | (Symbol, _, _, "}") :: tokens ->
+      | (Symbol "}", _) :: tokens ->
           skip tokens "{" (top :: stack)
-      | (Symbol, _, _, "]") :: tokens ->
+      | (Symbol "]", _) :: tokens ->
           skip tokens "[" (top :: stack)
       | _ :: tokens ->
           skip tokens top stack
@@ -223,22 +223,22 @@ let parse_label tokens =
           None
   in
   match tokens with
-    | (Lident, start, _, label) :: (Symbol, _, _, "~") :: tokens -> begin
+    | (Lident label, { idx1 = start }) :: (Symbol "~", _) :: tokens -> begin
         match search tokens with
           | None -> None
           | Some (kind, id, meths) -> Some (kind, id, meths, Required, start, label)
       end
-    | (Symbol, _, stop, "~") :: tokens -> begin
+    | (Symbol "~", { idx2 = stop }) :: tokens -> begin
         match search tokens with
           | None -> None
           | Some (kind, id, meths) -> Some (kind, id, meths, Required, stop, "")
       end
-    | (Lident, start, _, label) :: (Symbol, _, _, "?") :: tokens -> begin
+    | (Lident label, { idx1 = start }) :: (Symbol "?", _) :: tokens -> begin
         match search tokens with
           | None -> None
           | Some (kind, id, meths) -> Some (kind, id, meths, Optional, start, label)
       end
-    | (Symbol, _, stop, "?") :: tokens -> begin
+    | (Symbol "?", { idx2 = stop }) :: tokens -> begin
         match search tokens with
           | None -> None
           | Some (kind, id, meths) -> Some (kind, id, meths, Optional, stop, "")
@@ -250,13 +250,13 @@ let parse_label tokens =
    | Directive listing                                               |
    +-----------------------------------------------------------------+ *)
 
-let list_directives () =
+let list_directives phrase_terminator =
   String_map.bindings
     (Hashtbl.fold
        (fun dir kind map ->
           let suffix =
             match kind with
-              | Toploop.Directive_none _ -> ";;"
+              | Toploop.Directive_none _ -> phrase_terminator
               | Toploop.Directive_string _ -> " \""
               | Toploop.Directive_bool _  | Toploop.Directive_int _ | Toploop.Directive_ident _ -> " "
           in
@@ -634,50 +634,79 @@ let labels_of_newclass longident =
         labels_of_type String_map.empty type_expr
 
 (* +-----------------------------------------------------------------+
-   | Filtering                                                       |
+   | Tokens processing                                               |
    +-----------------------------------------------------------------+ *)
 
 (* Filter blanks and comments except for the last token. *)
 let rec filter tokens =
   match tokens with
     | [] -> []
-    | [((Blanks | Comment true | Doc true), start, stop, src)] -> [(Blanks, start, stop, src)]
-    | ((Blanks | Comment true | Doc true), _, _, _) :: rest -> filter rest
+    | [((Blanks | Comment (_, true)), loc)] -> [(Blanks, loc)]
+    | ((Blanks | Comment (_, true)), _) :: rest -> filter rest
     | x :: rest -> x :: filter rest
+
+(* Reverse and filter blanks and comments except for the last
+   token. *)
+let rec rev_filter acc tokens =
+  match tokens with
+    | [] -> acc
+    | [((Blanks | Comment (_, true)), loc)] -> (Blanks, loc) :: acc
+    | ((Blanks | Comment (_, true)), _) :: rest -> rev_filter acc rest
+    | x :: rest -> rev_filter (x :: acc) rest
+
+(* Find the current context. *)
+let rec find_context tokens = function
+  | [] ->
+      Some (rev_filter [] tokens)
+  | [(Quotation (items, false), _)] ->
+      find_context_in_quotation items
+  | _ :: rest ->
+      find_context tokens rest
+
+and find_context_in_quotation = function
+  | [] ->
+      None
+  | [(Quot_anti { a_closing = None; a_contents = tokens }, _)] ->
+      find_context tokens tokens
+  | _ :: rest ->
+      find_context_in_quotation rest
 
 (* +-----------------------------------------------------------------+
    | Completion                                                      |
    +-----------------------------------------------------------------+ *)
 
-let complete str =
-  let tokens = UTop_lexer.lex_string ~camlp4:(UTop.get_camlp4 ()) str in
+let complete ~syntax ~phrase_terminator ~input =
+  let tokens = UTop_lexer.lex_string syntax input in
   (* Filter blanks and comments. *)
   let tokens = filter tokens in
   match tokens with
 
     (* Completion on directive names. *)
-    | [(Symbol, _, stop, "#")]
-    | [(Symbol, _, _, "#"); (Blanks, _, stop, _)] ->
-        (stop, list_directives ())
-    | [(Symbol, _, _, "#"); ((Lident | Uident), start, _, src)] ->
-        (start, lookup_assoc src (list_directives ()))
+    | [(Symbol "#", { idx2 = stop })]
+    | [(Symbol "#", _); (Blanks, { idx2 = stop })] ->
+        (stop, list_directives phrase_terminator)
+    | [(Symbol "#", _); ((Lident src | Uident src), { idx1 = start })] ->
+        (start, lookup_assoc src (list_directives phrase_terminator))
 
     (* Complete with ";;" when possible. *)
-    | [(Symbol, _, _, "#"); ((Lident | Uident), _, _, _); (String true, _, stop, _)]
-    | [(Symbol, _, _, "#"); ((Lident | Uident), _, _, _); (String true, _, _, _); (Blanks, _, stop, _)] ->
-        (stop, [(";;", "")])
-    | [(Symbol, _, _, "#"); ((Lident | Uident), _, _, _); (String true, _, _, _); (Symbol, start, _, ";")] ->
-        (start, [(";;", "")])
+    | [(Symbol "#", _); ((Lident _ | Uident _), _); (String true, { idx2 = stop })]
+    | [(Symbol "#", _); ((Lident _ | Uident _), _); (String true, _); (Blanks, { idx2 = stop })] ->
+        (stop, [(phrase_terminator, "")])
+    | [(Symbol "#", _); ((Lident _ | Uident _), _); (String true, _); (Symbol sym, { idx1 = start })] ->
+        if Zed_utf8.starts_with phrase_terminator sym then
+          (start, [(phrase_terminator, "")])
+        else
+          (0, [])
 
     (* Completion on #require. *)
-    | [(Symbol, _, _, "#"); (Lident, _, _, "require"); (String false, start, stop, str)] ->
-        let pkg = String.sub str 1 (String.length str - 1) in
+    | [(Symbol "#", _); (Lident "require", _); (String false, loc)] ->
+        let pkg = String.sub input (loc.ofs1 + 1) (String.length input - loc.ofs1 - 1) in
         let pkgs = lookup pkg (Fl_package_base.list_packages ()) in
-        (start + 1, List.map (fun pkg -> (pkg, "\";;")) (List.sort compare pkgs))
+        (loc.idx1 + 1, List.map (fun pkg -> (pkg, "\"" ^ phrase_terminator)) (List.sort compare pkgs))
 
     (* Completion on #load. *)
-    | [(Symbol, _, _, "#"); (Lident, _, _, "load"); (String false, start, stop, str)] ->
-        let file = String.sub str 1 (String.length str - 1) in
+    | [(Symbol "#", _); (Lident "load", _); (String false, loc)] ->
+        let file = String.sub input (loc.ofs1 + 1) (String.length input - loc.ofs1 - 1) in
         let filter name = Filename.check_suffix name ".cma" || Filename.check_suffix name ".cmo" in
         let map =
           if Filename.is_relative file then
@@ -692,12 +721,12 @@ let complete str =
         let list = String_map.bindings map in
         let name = basename file in
         let result = lookup_assoc name list in
-        (stop - Zed_utf8.length name,
-         List.map (function (w, Directory) -> (w, "") | (w, File) -> (w, "\";;")) result)
+        (loc.idx2 - Zed_utf8.length name,
+         List.map (function (w, Directory) -> (w, "") | (w, File) -> (w, "\"" ^ phrase_terminator)) result)
 
     (* Completion on #use. *)
-    | [(Symbol, _, _, "#"); (Lident, _, _, "use"); (String false, start, stop, str)] ->
-        let file = String.sub str 1 (String.length str - 1) in
+    | [(Symbol "#", _); (Lident "use", _); (String false, loc)] ->
+        let file = String.sub input (loc.ofs1 + 1) (String.length input - loc.ofs1 - 1) in
         let filter name =
           match try Some (String.rindex name '.') with Not_found -> None with
             | None ->
@@ -719,28 +748,28 @@ let complete str =
         let list = String_map.bindings map in
         let name = basename file in
         let result = lookup_assoc name list in
-        (stop - Zed_utf8.length name,
-         List.map (function (w, Directory) -> (w, "") | (w, File) -> (w, "\";;")) result)
+        (loc.idx2 - Zed_utf8.length name,
+         List.map (function (w, Directory) -> (w, "") | (w, File) -> (w, "\"" ^ phrase_terminator)) result)
 
     (* Completion on #directory and #cd. *)
-    | [(Symbol, _, _, "#"); (Lident, _, _, ("cd" | "directory")); (String false, start, stop, str)] ->
-        let file = String.sub str 1 (String.length str - 1) in
+    | [(Symbol "#", _); (Lident ("cd" | "directory"), _); (String false, loc)] ->
+        let file = String.sub input (loc.ofs1 + 1) (String.length input - loc.ofs1 - 1) in
         let list = list_directories (Filename.dirname file) in
         let name = basename file in
         let result = lookup name list in
-        (stop - Zed_utf8.length name, List.map (function dir -> (dir, "")) result)
+        (loc.idx2 - Zed_utf8.length name, List.map (function dir -> (dir, "")) result)
 
     (* Generic completion on directives. *)
-    | [(Symbol, _, _, "#"); ((Lident | Uident), _, _, dir); (Blanks, _, stop, _)] ->
+    | [(Symbol "#", _); ((Lident dir | Uident dir), _); (Blanks, { idx2 = stop })] ->
         (stop,
          match try Some (Hashtbl.find Toploop.directive_table dir) with Not_found -> None with
-           | Some (Toploop.Directive_none _) -> [(";;", "")]
+           | Some (Toploop.Directive_none _) -> [(phrase_terminator, "")]
            | Some (Toploop.Directive_string _) -> [(" \"", "")]
-           | Some (Toploop.Directive_bool _) -> [("true", ";;"); ("false", ";;")]
+           | Some (Toploop.Directive_bool _) -> [("true", phrase_terminator); ("false", phrase_terminator)]
            | Some (Toploop.Directive_int _) -> []
            | Some (Toploop.Directive_ident _) -> List.map (fun w -> (w, "")) (String_set.elements (Lazy.force !global_names))
            | None -> [])
-    | (Symbol, _, _, "#") :: ((Lident | Uident), _, _, dir) :: tokens -> begin
+    | (Symbol "#", _) :: ((Lident dir | Uident dir), _) :: tokens -> begin
         match try Some (Hashtbl.find Toploop.directive_table dir) with Not_found -> None with
           | Some (Toploop.Directive_none _) ->
               (0, [])
@@ -748,8 +777,8 @@ let complete str =
               (0, [])
           | Some (Toploop.Directive_bool _) -> begin
               match tokens with
-                | [(Lident, start, _, id)] ->
-                     (start, lookup_assoc id [("true", ";;"); ("false", ";;")])
+                | [(Lident id, { idx1 = start })] ->
+                    (start, lookup_assoc id [("true", phrase_terminator); ("false", phrase_terminator)])
                 | _ ->
                     (0, [])
             end
@@ -769,32 +798,35 @@ let complete str =
       end
 
     (* Completion on identifiers. *)
-    | [] ->
-        (0, List.map (fun w -> (w, "")) (String_set.elements (String_set.union !UTop.keywords (Lazy.force !global_names))))
     | _ ->
-        let tokens = List.rev tokens in
-        match parse_method tokens with
-          | Some (longident, meths, start, meth) ->
-              (start, List.map (fun w -> (w, "")) (lookup meth (methods_of_object longident meths)))
+        match find_context tokens tokens with
           | None ->
-              match parse_label tokens with
-                | Some (Fun, longident, meths, Optional, start, label) ->
-                    (start, List.map (fun (w, kind) -> (w, ":")) (lookup_assoc label (List.filter (function (w, Optional) -> true | (w, Required) -> false) (labels_of_function longident meths))))
-                | Some (Fun, longident, meths, Required, start, label) ->
-                    (start, List.map (fun (w, kind) -> (w, ":")) (lookup_assoc label (labels_of_function longident meths)))
-                | Some (New, longident, meths, Optional, start, label) ->
-                    (start, List.map (fun (w, kind) -> (w, ":")) (lookup_assoc label (List.filter (function (w, Optional) -> true | (w, Required) -> false) (labels_of_newclass longident))))
-                | Some (New, longident, meths, Required, start, label) ->
-                    (start, List.map (fun (w, kind) -> (w, ":")) (lookup_assoc label (labels_of_newclass longident)))
+              (0, [])
+          | Some [] ->
+              (0, List.map (fun w -> (w, "")) (String_set.elements (String_set.union !UTop.keywords (Lazy.force !global_names))))
+          | Some tokens ->
+              match parse_method tokens with
+                | Some (longident, meths, start, meth) ->
+                    (start, List.map (fun w -> (w, "")) (lookup meth (methods_of_object longident meths)))
                 | None ->
-                    match parse_longident tokens with
+                    match parse_label tokens with
+                      | Some (Fun, longident, meths, Optional, start, label) ->
+                          (start, List.map (fun (w, kind) -> (w, ":")) (lookup_assoc label (List.filter (function (w, Optional) -> true | (w, Required) -> false) (labels_of_function longident meths))))
+                      | Some (Fun, longident, meths, Required, start, label) ->
+                          (start, List.map (fun (w, kind) -> (w, ":")) (lookup_assoc label (labels_of_function longident meths)))
+                      | Some (New, longident, meths, Optional, start, label) ->
+                          (start, List.map (fun (w, kind) -> (w, ":")) (lookup_assoc label (List.filter (function (w, Optional) -> true | (w, Required) -> false) (labels_of_newclass longident))))
+                      | Some (New, longident, meths, Required, start, label) ->
+                          (start, List.map (fun (w, kind) -> (w, ":")) (lookup_assoc label (labels_of_newclass longident)))
                       | None ->
-                          (0, [])
-                      | Some (Value, None, start, id) ->
-                          (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (String_set.union !UTop.keywords (Lazy.force !global_names)))))
-                      | Some (Value, Some longident, start, id) ->
-                          (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (names_of_module longident))))
-                      | Some (Field, None, start, id) ->
-                          (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (Lazy.force !global_fields))))
-                      | Some (Field, Some longident, start, id) ->
-                          (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (fields_of_module longident))))
+                          match parse_longident tokens with
+                            | None ->
+                                (0, [])
+                            | Some (Value, None, start, id) ->
+                                (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (String_set.union !UTop.keywords (Lazy.force !global_names)))))
+                            | Some (Value, Some longident, start, id) ->
+                                (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (names_of_module longident))))
+                            | Some (Field, None, start, id) ->
+                                (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (Lazy.force !global_fields))))
+                            | Some (Field, Some longident, start, id) ->
+                                (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (fields_of_module longident))))

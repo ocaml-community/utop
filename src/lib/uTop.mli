@@ -29,16 +29,25 @@ type ui = Console | Emacs
 val get_ui : unit -> ui
   (** Returns the user interface in use. *)
 
-val camlp4 : bool signal
-  (** [true] if the lexer should recognize camlp4 quotations. This
-      variable is automatically set to [true] when you type [#camlp4o]
-      or [#camlp4r]. *)
+(** Syntax. *)
+type syntax =
+  | Normal
+      (** No camlp4. *)
+  | Camlp4o
+      (** Camlp4, original syntax. *)
+  | Camlp4r
+      (** Camlp4, revised syntax. *)
 
-val get_camlp4 : unit -> bool
-  (** Returns the current value of {!camlp4}. *)
+val syntax : syntax signal
+  (** The syntax in use. If it is {!Camlp4o} or {!Camlp4r} quotations
+      are recognized. It is modified when you type [#camlp4o] or
+      [#camlp4r]. *)
 
-val set_camlp4 : bool -> unit
-  (** Modifies {!camlp4}. *)
+val get_syntax : unit -> syntax
+  (** Returns the current value of {!syntax}. *)
+
+val set_syntax : syntax -> unit
+  (** Modifies {!syntax}. *)
 
 val phrase_terminator : string signal
   (** The phrase terminator. It is ";;" by default and ";" when you

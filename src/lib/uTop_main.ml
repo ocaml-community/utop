@@ -122,13 +122,13 @@ class read_phrase ~term = object(self)
     let styled, position = super#stylise last in
 
     (* Syntax highlighting *)
-    let stylise start stop token_style =
-      for i = start to stop - 1 do
+    let stylise loc token_style =
+      for i = loc.idx1 to loc.idx2 - 1 do
         let ch, style = styled.(i) in
         styled.(i) <- (ch, LTerm_style.merge token_style style)
       done
     in
-    UTop_styles.stylise stylise (UTop_lexer.lex_string ~camlp4:(UTop.get_camlp4 ()) (LTerm_text.to_string styled));
+    UTop_styles.stylise stylise (UTop_lexer.lex_string (UTop.get_syntax ()) (LTerm_text.to_string styled));
 
     if not last then
       (* Parenthesis matching. *)
@@ -151,7 +151,12 @@ class read_phrase ~term = object(self)
     (styled, position)
 
   method completion =
-    let pos, words = UTop_complete.complete (Zed_rope.to_string self#input_prev) in
+    let pos, words =
+      UTop_complete.complete
+        ~syntax:(UTop.get_syntax ())
+        ~phrase_terminator:(UTop.get_phrase_terminator ())
+        ~input:(Zed_rope.to_string self#input_prev)
+    in
     self#set_completion pos words
 
   initializer
@@ -207,13 +212,13 @@ let print_out_phrase term printer pp out_phrase =
   Format.pp_print_flush pp ();
   let string = fix_string (Buffer.contents buffer) in
   let styled = LTerm_text.of_string string in
-  let stylise start stop token_style =
-    for i = start to stop - 1 do
+  let stylise loc token_style =
+    for i = loc.idx1 to loc.idx2 - 1 do
       let ch, style = styled.(i) in
       styled.(i) <- (ch, LTerm_style.merge token_style style)
     done
   in
-  UTop_styles.stylise stylise (UTop_lexer.lex_string string);
+  UTop_styles.stylise stylise (UTop_lexer.lex_string (UTop.get_syntax ()) string);
   Lwt_main.run (LTerm.fprints term styled)
 
 (* +-----------------------------------------------------------------+
@@ -579,7 +584,12 @@ module Emacs(M : sig end) = struct
             loop ()
       | Some ("complete", _) ->
           let input = read_data () in
-          let start, words = UTop_complete.complete input in
+          let start, words =
+            UTop_complete.complete
+              ~syntax:(UTop.get_syntax ())
+              ~phrase_terminator:(UTop.get_phrase_terminator ())
+              ~input
+          in
           let words = List.map fst words in
           let prefix = LTerm_read_line.common_prefix words in
           let index = String.length input - start in

@@ -9,9 +9,10 @@
 
 (** OCaml completion. *)
 
-val complete : string -> int * (string * string) list
-  (** [complete str] returns the start of the completed word in [str]
-      and the list of possible completions with their suffixes. *)
+val complete : syntax : UTop.syntax -> phrase_terminator : string -> input : string -> int * (string * string) list
+  (** [complete ~syntax ~phrase_terminator ~input] returns the start
+      of the completed word in [input] and the list of possible
+      completions with their suffixes. *)
 
 val reset : unit -> unit
   (** Reset global cache. It must be called before each interactive

@@ -59,7 +59,12 @@ let make_variable ?eq x =
   let signal, set = S.create ?eq x in
   (signal, (fun () -> S.value signal), set)
 
-let camlp4, get_camlp4, set_camlp4 = make_variable true
+type syntax =
+  | Normal
+  | Camlp4o
+  | Camlp4r
+
+let syntax, get_syntax, set_syntax = make_variable Normal
 let phrase_terminator, get_phrase_terminator, set_phrase_terminator = make_variable ";;"
 let auto_run_lwt, get_auto_run_lwt, set_auto_run_lwt = make_variable true
 
@@ -455,6 +460,7 @@ let () =
     "camlp4o"
     (Toploop.Directive_none
        (fun () ->
+          set_syntax Camlp4o;
           set_phrase_terminator ";;";
           try
             Topfind.syntax "camlp4o";
@@ -467,6 +473,7 @@ let () =
     "camlp4r"
     (Toploop.Directive_none
        (fun () ->
+          set_syntax Camlp4r;
           set_phrase_terminator ";";
           try
             Topfind.syntax "camlp4r";
