@@ -55,7 +55,16 @@ let parse_toplevel_phrase_camlp4 str eos_is_error =
           | exn ->
               ([], exn)
       in
-      UTop.Error (locs, UTop.get_message print_camlp4_error exn)
+      let msg = UTop.get_message print_camlp4_error exn in
+      (* Camlp4 sometimes generate several empty lines at the end... *)
+      let idx = ref (String.length msg - 1) in
+      while !idx > 0 && msg.[!idx] = '\n' do
+        decr idx
+      done;
+      if !idx + 1 < String.length msg then
+        UTop.Error (locs, String.sub msg 0 (!idx + 1))
+      else
+        UTop.Error (locs, msg)
 
 let parse_toplevel_phrase str eos_is_error =
   match parse_toplevel_phrase_camlp4 str eos_is_error with
