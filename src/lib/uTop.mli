@@ -41,13 +41,21 @@ type syntax =
 val syntax : syntax signal
   (** The syntax in use. If it is {!Camlp4o} or {!Camlp4r} quotations
       are recognized. It is modified when you type [#camlp4o] or
-      [#camlp4r]. *)
+      [#camlp4r]. At the beginning it is {!Normal}. *)
 
 val get_syntax : unit -> syntax
   (** Returns the current value of {!syntax}. *)
 
 val set_syntax : syntax -> unit
-  (** Modifies {!syntax}. *)
+  (** Changes the syntax used in utop. If the syntax is the same as
+      the current one, it does nothing. Otherwise it loads camlp4 and
+      setup several configuration variables.
+
+      Notes:
+      - the syntax can only be changed once. Once you set it to
+        {!Camlp4o} or {!Camlp4r} you cannot change it again.
+      - Typing [#camlp4o] is the same as calling [set_syntax Camlp4o].
+      - Typing [#camlp4r] is the same as calling [set_syntax Camlp4r]. *)
 
 val phrase_terminator : string signal
   (** The phrase terminator. It is ";;" by default and ";" when you

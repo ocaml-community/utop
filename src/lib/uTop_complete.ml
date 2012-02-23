@@ -514,6 +514,23 @@ let reset () =
   local_fields_by_path := Path_map.empty;
   local_fields_by_longident := Longident_map.empty
 
+let replace x y set =
+  if String_set.mem x set then
+    String_set.add y (String_set.remove x set)
+  else
+    set
+
+let global_names syntax =
+  let set = Lazy.force !global_names in
+  match syntax with
+    | UTop.Normal | UTop.Camlp4o ->
+        set
+    | UTop.Camlp4r ->
+        replace "true" "True" (replace "false" "False" set)
+
+let global_fields () =
+  Lazy.force !global_fields
+
 (* +-----------------------------------------------------------------+
    | Listing methods                                                 |
    +-----------------------------------------------------------------+ *)
@@ -676,6 +693,13 @@ and find_context_in_quotation = function
    +-----------------------------------------------------------------+ *)
 
 let complete ~syntax ~phrase_terminator ~input =
+  let true_name, false_name =
+    match syntax with
+      | UTop.Normal | UTop.Camlp4o ->
+          ("true", "false")
+      | UTop.Camlp4r ->
+          ("True", "False")
+  in
   let tokens = UTop_lexer.lex_string syntax input in
   (* Filter blanks and comments. *)
   let tokens = filter tokens in
@@ -765,9 +789,9 @@ let complete ~syntax ~phrase_terminator ~input =
          match try Some (Hashtbl.find Toploop.directive_table dir) with Not_found -> None with
            | Some (Toploop.Directive_none _) -> [(phrase_terminator, "")]
            | Some (Toploop.Directive_string _) -> [(" \"", "")]
-           | Some (Toploop.Directive_bool _) -> [("true", phrase_terminator); ("false", phrase_terminator)]
+           | Some (Toploop.Directive_bool _) -> [(true_name, phrase_terminator); (false_name, phrase_terminator)]
            | Some (Toploop.Directive_int _) -> []
-           | Some (Toploop.Directive_ident _) -> List.map (fun w -> (w, "")) (String_set.elements (Lazy.force !global_names))
+           | Some (Toploop.Directive_ident _) -> List.map (fun w -> (w, "")) (String_set.elements (global_names syntax))
            | None -> [])
     | (Symbol "#", _) :: ((Lident dir | Uident dir), _) :: tokens -> begin
         match try Some (Hashtbl.find Toploop.directive_table dir) with Not_found -> None with
@@ -778,7 +802,7 @@ let complete ~syntax ~phrase_terminator ~input =
           | Some (Toploop.Directive_bool _) -> begin
               match tokens with
                 | [(Lident id, { idx1 = start })] ->
-                    (start, lookup_assoc id [("true", phrase_terminator); ("false", phrase_terminator)])
+                    (start, lookup_assoc id [(true_name, phrase_terminator); (false_name, phrase_terminator)])
                 | _ ->
                     (0, [])
             end
@@ -787,7 +811,7 @@ let complete ~syntax ~phrase_terminator ~input =
           | Some (Toploop.Directive_ident _) -> begin
               match parse_longident (List.rev tokens) with
                 | Some (Value, None, start, id) ->
-                    (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (Lazy.force !global_names))))
+                    (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (global_names syntax))))
                 | Some (Value, Some longident, start, id) ->
                     (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (names_of_module longident))))
                 | _ ->
@@ -803,7 +827,7 @@ let complete ~syntax ~phrase_terminator ~input =
           | None ->
               (0, [])
           | Some [] ->
-              (0, List.map (fun w -> (w, "")) (String_set.elements (String_set.union !UTop.keywords (Lazy.force !global_names))))
+              (0, List.map (fun w -> (w, "")) (String_set.elements (String_set.union !UTop.keywords (global_names syntax))))
           | Some tokens ->
               match parse_method tokens with
                 | Some (longident, meths, start, meth) ->
@@ -823,10 +847,10 @@ let complete ~syntax ~phrase_terminator ~input =
                             | None ->
                                 (0, [])
                             | Some (Value, None, start, id) ->
-                                (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (String_set.union !UTop.keywords (Lazy.force !global_names)))))
+                                (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (String_set.union !UTop.keywords (global_names syntax)))))
                             | Some (Value, Some longident, start, id) ->
                                 (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (names_of_module longident))))
                             | Some (Field, None, start, id) ->
-                                (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (Lazy.force !global_fields))))
+                                (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (global_fields ()))))
                             | Some (Field, Some longident, start, id) ->
                                 (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (fields_of_module longident))))

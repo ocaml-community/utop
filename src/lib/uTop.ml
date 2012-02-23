@@ -454,32 +454,46 @@ let handle_findlib_error = function
   | exn ->
       raise exn
 
+let set_syntax syntax =
+  match get_syntax (), syntax with
+    | Normal, Normal
+    | Camlp4o, Camlp4o
+    | Camlp4r, Camlp4r ->
+        ()
+    | (Camlp4o | Camlp4r), _ ->
+        Lwt_main.run (print_error "Camlp4 already loaded, you cannot change the syntax now.\n")
+    | Normal, Camlp4o -> begin
+        set_syntax Camlp4o;
+        set_phrase_terminator ";;";
+        try
+          Topfind.syntax "camlp4o";
+          Topfind.load_deeply ["utop.camlp4"]
+        with exn ->
+          handle_findlib_error exn
+      end
+    | Normal, Camlp4r -> begin
+        set_syntax Camlp4r;
+        set_phrase_terminator ";";
+        add_keyword "value";
+        try
+          Topfind.syntax "camlp4r";
+          Topfind.load_deeply ["utop.camlp4"]
+        with exn ->
+          handle_findlib_error exn
+      end
+
 let () =
   Hashtbl.add
     Toploop.directive_table
     "camlp4o"
     (Toploop.Directive_none
-       (fun () ->
-          set_syntax Camlp4o;
-          set_phrase_terminator ";;";
-          try
-            Topfind.syntax "camlp4o";
-            Topfind.load_deeply ["utop.camlp4"]
-          with exn ->
-            handle_findlib_error exn));
+       (fun () -> set_syntax Camlp4o));
 
   Hashtbl.add
     Toploop.directive_table
     "camlp4r"
     (Toploop.Directive_none
-       (fun () ->
-          set_syntax Camlp4r;
-          set_phrase_terminator ";";
-          try
-            Topfind.syntax "camlp4r";
-            Topfind.load_deeply ["utop.camlp4"]
-          with exn ->
-            handle_findlib_error exn))
+       (fun () -> set_syntax Camlp4r))
 
 (* +-----------------------------------------------------------------+
    | Initialization                                                  |
