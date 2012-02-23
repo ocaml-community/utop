@@ -15,12 +15,35 @@ module Ast2pt = Camlp4.Struct.Camlp4Ast2OCamlAst.Make(Ast)
 
 external cast_toplevel_phrase : Camlp4_import.Parsetree.toplevel_phrase -> Parsetree.toplevel_phrase = "%identity"
 
-let convert_camlp4_toplevel_phrase ast =
-  cast_toplevel_phrase (Ast2pt.phrase ast)
-
 let print_camlp4_error pp exn =
   Format.fprintf pp "@[<0>%a@]" Camlp4.ErrorHandler.print exn;
   Format.pp_print_flush pp ()
+
+let get_camlp4_error_message exn =
+  let loc, exn =
+    match exn with
+      | Loc.Exc_located (loc, exn) ->
+          ((Loc.start_off loc, Loc.stop_off loc), exn)
+      | exn ->
+          ((0, 0), exn)
+  in
+  let msg = UTop.get_message print_camlp4_error exn in
+  (* Camlp4 sometimes generate several empty lines at the end... *)
+  let idx = ref (String.length msg - 1) in
+  while !idx > 0 && msg.[!idx] = '\n' do
+    decr idx
+  done;
+  if !idx + 1 < String.length msg then
+    (loc, String.sub msg 0 (!idx + 1))
+  else
+    (loc, msg)
+
+let convert_camlp4_toplevel_phrase ast =
+  try
+    UTop.Value (cast_toplevel_phrase (Ast2pt.phrase ast))
+  with exn ->
+    let loc, msg = get_camlp4_error_message exn in
+    UTop.Error ([loc], msg)
 
 let parse_toplevel_phrase_camlp4 str eos_is_error =
   (* Execute delayed actions now. *)
@@ -48,28 +71,13 @@ let parse_toplevel_phrase_camlp4 str eos_is_error =
     if !eof && not eos_is_error then
       raise UTop.Need_more
     else
-      let locs, exn =
-        match exn with
-          | Loc.Exc_located (loc, exn) ->
-              ([(Loc.start_off loc, Loc.stop_off loc)], exn)
-          | exn ->
-              ([], exn)
-      in
-      let msg = UTop.get_message print_camlp4_error exn in
-      (* Camlp4 sometimes generate several empty lines at the end... *)
-      let idx = ref (String.length msg - 1) in
-      while !idx > 0 && msg.[!idx] = '\n' do
-        decr idx
-      done;
-      if !idx + 1 < String.length msg then
-        UTop.Error (locs, String.sub msg 0 (!idx + 1))
-      else
-        UTop.Error (locs, msg)
+      let loc, msg = get_camlp4_error_message exn in
+      UTop.Error ([loc], msg)
 
 let parse_toplevel_phrase str eos_is_error =
   match parse_toplevel_phrase_camlp4 str eos_is_error with
     | UTop.Value ast ->
-        UTop.Value (convert_camlp4_toplevel_phrase ast)
+        convert_camlp4_toplevel_phrase ast
     | UTop.Error (locs, msg) ->
         UTop.Error (locs, msg)
 
