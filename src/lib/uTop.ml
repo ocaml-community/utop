@@ -112,6 +112,65 @@ let get_ocaml_error_message exn =
   with _ ->
     ((0, 0), str)
 
+let collect_formatters buf pps f =
+  (* First flush all formatters. *)
+  List.iter (fun pp -> Format.pp_print_flush pp ()) pps;
+  (* Save all formatter functions. *)
+  let save = List.map (fun pp -> Format.pp_get_all_formatter_output_functions pp ()) pps in
+  let restore () =
+    List.iter2
+      (fun pp (out, flush, newline, spaces) ->
+         Format.pp_print_flush pp ();
+         Format.pp_set_all_formatter_output_functions pp ~out ~flush ~newline ~spaces)
+      pps save
+  in
+  (* Output functions. *)
+  let out str ofs len = Buffer.add_substring buf str ofs len in
+  let flush = ignore in
+  let newline () = Buffer.add_char buf '\n' in
+  let spaces n = for i = 1 to n do Buffer.add_char buf ' ' done in
+  (* Replace formatter functions. *)
+  let cols = (S.value size).cols in
+  List.iter
+    (fun pp ->
+       Format.pp_set_margin pp cols;
+       Format.pp_set_all_formatter_output_functions pp ~out ~flush ~newline ~spaces)
+    pps;
+  try
+    let x = f () in
+    restore ();
+    x
+  with exn ->
+    restore ();
+    raise exn
+
+let discard_formatters pps f =
+  (* First flush all formatters. *)
+  List.iter (fun pp -> Format.pp_print_flush pp ()) pps;
+  (* Save all formatter functions. *)
+  let save = List.map (fun pp -> Format.pp_get_all_formatter_output_functions pp ()) pps in
+  let restore () =
+    List.iter2
+      (fun pp (out, flush, newline, spaces) ->
+         Format.pp_print_flush pp ();
+         Format.pp_set_all_formatter_output_functions pp ~out ~flush ~newline ~spaces)
+      pps save
+  in
+  (* Output functions. *)
+  let out str ofs len = () in
+  let flush = ignore in
+  let newline = ignore in
+  let spaces = ignore in
+  (* Replace formatter functions. *)
+  List.iter (fun pp -> Format.pp_set_all_formatter_output_functions pp ~out ~flush ~newline ~spaces) pps;
+  try
+    let x = f () in
+    restore ();
+    x
+  with exn ->
+    restore ();
+    raise exn
+
 (* +-----------------------------------------------------------------+
    | Parsing                                                         |
    +-----------------------------------------------------------------+ *)
@@ -232,7 +291,7 @@ let check_phrase phrase =
         } in
         let check_phrase = Parsetree.Ptop_def [top_def] in
         try
-          let _ = Toploop.execute_phrase false null check_phrase in
+          let _ = discard_formatters [Format.err_formatter] (fun () -> Toploop.execute_phrase false null check_phrase) in
           (* The phrase is safe. *)
           Toploop.toplevel_env := env;
           Btype.backtrack snap;

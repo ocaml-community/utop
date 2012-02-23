@@ -73,21 +73,28 @@ let convert_locs str locs = List.map (fun (a, b) -> (index_of_offset str a, inde
    +-----------------------------------------------------------------+ *)
 
 let parse_and_check input eos_is_error =
-  match !UTop.parse_toplevel_phrase input eos_is_error with
-    | UTop.Error (locs, msg) ->
-        UTop.Error (convert_locs input locs, "Error: " ^ msg ^ "\n")
-    | UTop.Value phrase ->
-        match UTop.check_phrase phrase with
-          | None ->
-              UTop.Value phrase
-          | Some (locs, msg) ->
-              UTop.Error (convert_locs input locs, msg)
+  let buf = Buffer.create 32 in
+  let result =
+    UTop.collect_formatters buf [Format.err_formatter]
+      (fun () ->
+         match !UTop.parse_toplevel_phrase input eos_is_error with
+           | UTop.Error (locs, msg) ->
+               UTop.Error (convert_locs input locs, "Error: " ^ msg ^ "\n")
+           | UTop.Value phrase ->
+               match UTop.check_phrase phrase with
+                 | None ->
+                     UTop.Value phrase
+                 | Some (locs, msg) ->
+                     UTop.Error (convert_locs input locs, msg))
+  in
+  (result, Buffer.contents buf)
 
 (* Read a phrase. If the result is a value, it is guaranteed to by a
-   valid phrase (i.e. typable and compilable). *)
+   valid phrase (i.e. typable and compilable). It also returns
+   warnings printed parsing. *)
 class read_phrase ~term = object(self)
-  inherit [Parsetree.toplevel_phrase UTop.result] LTerm_read_line.engine ~history:(LTerm_history.contents UTop.history) () as super
-  inherit [Parsetree.toplevel_phrase UTop.result] LTerm_read_line.term term as super_term
+  inherit [Parsetree.toplevel_phrase UTop.result * string] LTerm_read_line.engine ~history:(LTerm_history.contents UTop.history) () as super
+  inherit [Parsetree.toplevel_phrase UTop.result * string] LTerm_read_line.term term as super_term
 
   val mutable return_value = None
 
@@ -135,7 +142,7 @@ class read_phrase ~term = object(self)
       LTerm_text.stylise_parenthesis styled position styles.style_paren
     else begin
       match return_value with
-        | Some (UTop.Error (locs, _)) ->
+        | Some (UTop.Error (locs, _), _) ->
             (* Highlight error locations. *)
             List.iter
               (fun (start, stop) ->
@@ -301,7 +308,10 @@ let rec loop term =
   let phrase_opt =
     Lwt_main.run (
       try_lwt
-        match_lwt read_phrase term with
+        lwt result, warnings = read_phrase term in
+        (* Print warnings before errors. *)
+        lwt () = Lwt_io.print warnings in
+        match result with
           | UTop.Value phrase ->
               return (Some phrase)
           | UTop.Error (_, msg) ->
@@ -527,9 +537,11 @@ module Emacs(M : sig end) = struct
 
   let process_input add_to_history eos_is_error =
     let input = read_data () in
-    match parse_and_check input eos_is_error with
+    let result, warnings = parse_and_check input eos_is_error in
+    match result with
       | UTop.Value phrase -> begin
           send "accept" "";
+          List.iter (send "stderr") (split_at ~trim:true '\n' warnings);
           if add_to_history then LTerm_history.add UTop.history input;
           (* Add Lwt_main.run to toplevel evals. *)
           let phrase = if UTop.get_auto_run_lwt () then insert_lwt_main_run phrase else phrase in
@@ -550,6 +562,7 @@ module Emacs(M : sig end) = struct
         end
       | UTop.Error (locs, msg) ->
           send "accept" (String.concat "," (List.map (fun (a, b) -> Printf.sprintf "%d,%d" a b) locs));
+          List.iter (send "stderr") (split_at ~trim:true '\n' warnings);
           if add_to_history then LTerm_history.add UTop.history input;
           List.iter (send "stderr") (split_at ~trim:true '\n' msg)
 

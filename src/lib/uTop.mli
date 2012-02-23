@@ -216,6 +216,14 @@ val check_phrase : Parsetree.toplevel_phrase -> (location list * string) option
       If the result is [None] it is guaranteed that
       [Toploop.execute_phrase] won't raise any exception. *)
 
+val collect_formatters : Buffer.t -> Format.formatter list -> (unit -> 'a) -> 'a
+  (** [collect_formatters buf pps f] executes [f] and redirect
+      everything it prints on [pps] to [buf]. *)
+
+val discard_formatters : Format.formatter list -> (unit -> 'a) -> 'a
+  (** [discard_formatters pps f] executes [f], dropping everything it
+      prints on [pps]. *)
+
 (**/**)
 
 (* These variables are not used and deprecated: *)
