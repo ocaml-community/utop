@@ -1,6 +1,7 @@
 ===== 1.1+dev =====
 
   * improve emacs mode
+    - add a menu
   * improve tuareg integration
   * add typerex integration
   * better handling of error messages
