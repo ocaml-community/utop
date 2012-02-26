@@ -1,3 +1,11 @@
+===== 1.1+dev =====
+
+  * improve emacs mode
+  * improve tuareg integration
+  * add typerex integration
+  * better handling of error messages
+  * better handling of multiline input in the terminal
+
 ===== 1.1 (2010-08-06) =====
 
   * add completion on labels
