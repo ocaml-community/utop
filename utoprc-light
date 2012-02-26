@@ -18,9 +18,3 @@ quotation.foreground:     x-purple
 error.foreground:         red
 directive.foreground:     x-mediumorchid4
 parenthesis.background:   light-blue
-
-! GTK resources
-
-font:                     Monospace
-foreground:               black
-background:               white
