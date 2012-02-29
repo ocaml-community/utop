@@ -310,7 +310,7 @@ to add the newline character if it is not accepted).")
       (process-send-string utop-process "save-history:\n"))))
 
 ;; +-----------------------------------------------------------------+
-;; | Receiving input from the utop sub-process                     |
+;; | Receiving input from the utop sub-process                       |
 ;; +-----------------------------------------------------------------+
 
 (defun utop-insert-output (output &optional face)
@@ -819,16 +819,20 @@ defaults to 0."
 ;; | The mode                                                        |
 ;; +-----------------------------------------------------------------+
 
-(defun utop-get-arguments ()
-  "Returns the arguments of the utop command to run."
-  ;; Read the command to run
-  (when utop-edit-command
-    (setq utop-command (read-shell-command "utop command line: " utop-command)))
+(defun utop-arguments ()
+  "Get argument list from the given command line of utop"
   ;; Split the command line
   (let ((arguments (split-string-and-unquote utop-command)))
     ;; Ensure it contains at least one argument
     (when (not arguments) (error "The utop command line is empty"))
     arguments))
+
+(defun utop-query-arguments ()
+  "Returns the arguments of the utop command to run."
+  ;; Read the command to run
+  (when utop-edit-command
+    (setq utop-command (read-shell-command "utop command line: " utop-command))
+    (utop-arguments)))
 
 (defun utop-start (arguments)
   "Start utop."
@@ -858,12 +862,12 @@ defaults to 0."
 
 (defun utop-restart ()
   "Restart utop."
-  (let ((arguments (utop-get-arguments)))
+  (let ((arguments (utop-query-arguments)))
     (goto-char (point-max))
     (utop-insert "\nRestarting...\n\n")
     (utop-start arguments)))
 
-(defun utop-mode (arguments)
+(define-derived-mode utop-mode fundamental-mode "utop"
   "Set the buffer mode to utop."
 
   ;; Local variables
@@ -880,13 +884,6 @@ defaults to 0."
   (make-local-variable 'utop-pending-position)
   (make-local-variable 'utop-pending-entry)
 
-  ;; Set the major mode
-  (setq major-mode 'utop-mode)
-  (setq mode-name "utop")
-
-  ;; Use the utop keymap
-  (use-local-map utop-mode-map)
-
   ;; Set the hook to call before changing the buffer
   (add-hook 'before-change-functions 'utop-before-change nil t)
 
@@ -897,14 +894,7 @@ defaults to 0."
   (add-hook 'kill-buffer-query-functions (lambda () (utop-save-history) t) nil t)
 
   ;; Start utop
-  (utop-start arguments)
-
-  ;; Call hooks
-  (run-mode-hooks 'utop-mode-hook)
-
-  ;; Add the menu
-  (easy-menu-add utop-menu))
-
+  (utop-start (utop-arguments)))
 ;; +-----------------------------------------------------------------+
 ;; | Starting utop                                                   |
 ;; +-----------------------------------------------------------------+
@@ -936,13 +926,13 @@ Special keys for utop:
      (t
       ;; The buffer does not exist, read the command line before
       ;; creating it so if the user quit it won't be created
-      (let ((arguments (utop-get-arguments)))
-        ;; Create the buffer
-        (setq buf (get-buffer-create utop-buffer-name))
-        ;; Jump to the buffer
-        (pop-to-buffer buf)
-        ;; Put it in utop mode
-        (with-current-buffer buf (utop-mode arguments)))))
-    buf))
+      (utop-query-arguments)
+      ;; Create the buffer
+      (setq buf (get-buffer-create utop-buffer-name))
+      ;; Jump to the buffer
+      (pop-to-buffer buf)
+      ;; Put it in utop mode
+      (with-current-buffer buf (utop-mode))))
+  buf))
 
 (provide 'utop)
