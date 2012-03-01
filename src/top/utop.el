@@ -770,7 +770,7 @@ defaults to 0."
         ;; Find the longest package name
     (mapc
      (lambda (package)
-       (setq max-name-length 
+       (setq max-name-length
              (max max-name-length (length (car package)))))
      packages)
     ;; Minimal size of the name entry shall be 16 characters
