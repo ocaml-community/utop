@@ -652,6 +652,16 @@ module Emacs(M : sig end) = struct
       | Some ("save-history", code) ->
           Lwt_main.run (save_history ());
           loop_commands history_prev history_next
+      | Some ("require", arg) ->
+        begin
+          let input = read_data () in
+          send "accept" "";
+          try
+            Topfind.load_deeply [input]
+          with Fl_package_base.No_such_package(pkg, reason) ->
+            send "no-such-package" ""
+        end;
+        loop_commands history_prev history_next
       | Some (command, _) ->
           Printf.ksprintf (send "stderr") "unrecognized command %S!" command;
           exit 1

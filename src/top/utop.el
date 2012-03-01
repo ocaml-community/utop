@@ -789,9 +789,17 @@ defaults to 0."
 (defun utop-package-printer (id cols)
   "Print one findlib package entry."
   (let ((width (cadr (elt tabulated-list-format 0))))
-    (insert-text-button (elt cols 0) 'face nil)
+    (insert-text-button (elt cols 0)
+                        'follow-link t
+                        'action 'utop-require-package-button-action)
     (insert-char ?\s (- width (length (elt cols 0))))
     (insert (elt cols 1) "\n")))
+
+(defun utop-require-package-button-action (button)
+  (let ((package (button-label button)))
+    (when (y-or-n-p (format "Load package `%s'? " package))
+      ;; Handle loading of packages
+      nil)))
 
 (defun utop-list-ocaml-packages (&optional buffer)
   "Display a list of all ocaml findlib packages"
