@@ -750,37 +750,59 @@ defaults to 0."
        lines)
       (nreverse packages))))
 
-(defun utop-require ()
-  "Show the list of findlib packages."
+(define-derived-mode utop-list-packages-mode tabulated-list-mode "OCaml package list"
+  "Major mode for listing the findlib OCaml packages."
+  (setq tabulated-list-format [("Name" 32 t)
+			       ("Version"   32 t)])
+  (setq tabulated-list-sort-key (cons "Name" nil))
+  (setq tabulated-list-printer 'utop-package-printer)
+  (add-hook 'tabulated-list-revert-hook 'utop-list-packages--refresh nil t)
+  (tabulated-list-init-header))
+
+(defun utop-list-packages--refresh ()
+  "Refresh the list of findlib packages."
   (interactive)
+  ;; Clear up list of entries
+  (setq tabulated-list-entries nil)
   ;; Get the list of packages
-  (let ((packages (utop-ocamlfind-list-packages)))
-    (save-excursion
-      (with-output-to-temp-buffer "*Findlib packages*"
-        (set-buffer standard-output)
-        (let ((inhibit-read-only t))
-          (insert "Choose a findlib package to load:\n\n")
-          (let ((max-name-length 0))
-            ;; Find the longest package name
-            (mapc
-             (lambda (package)
-               (setq max-name-length (max max-name-length (length (car package)))))
-             packages)
-            (setq max-name-length (1+ (max max-name-length 16)))
-            ;; Insert headers
-            (insert "Package name")
-            (insert-char 32 (- max-name-length 12))
-            (insert "Version\n")
-            ;; Insert buttons
-            (while packages
-              (let* ((package (car packages))
-                     (name (car package))
-                     (version (cdr package)))
-                (insert-text-button name 'face nil)
-                (insert-char 32 (- max-name-length (length name)))
-                (insert version "\n"))
-              (setq packages (cdr packages)))
-            (goto-char (point-min))))))))
+  (let* ((packages (utop-ocamlfind-list-packages))
+         (max-name-length 0))
+        ;; Find the longest package name
+    (mapc
+     (lambda (package)
+       (setq max-name-length 
+             (max max-name-length (length (car package)))))
+     packages)
+    ;; Minimal size of the name entry shall be 16 characters
+    (setq max-name-length (1+ (max max-name-length 16)))
+    ;; Set the header column size to the maximal length
+    (setcdr (elt tabulated-list-format 0) (list max-name-length t))
+    ;; Build a list, accumulating in tabulated-list-entries
+    (while packages
+      (let* ((package (car packages))
+             (name (car package))
+             (version (cdr package)))
+        (push (list package (vector name version))
+              tabulated-list-entries))
+      (setq packages (cdr packages)))))
+
+(defun utop-package-printer (id cols)
+  "Print one findlib package entry."
+  (let ((width (cadr (elt tabulated-list-format 0))))
+    (insert-text-button (elt cols 0) 'face nil)
+    (insert-char ?\s (- width (length (elt cols 0))))
+    (insert (elt cols 1) "\n")))
+
+(defun list-ocaml-packages (&optional query-only buffer)
+  "Display a list of all ocaml findlib packages"
+  (interactive)
+  (unless (bufferp buffer)
+    (setq buffer (get-buffer-create "*Findlib packages*")))
+  (with-current-buffer buffer
+    (utop-list-packages-mode)
+    (utop-list-packages--refresh)
+    (tabulated-list-print t)
+  (display-buffer buffer)))
 
 ;; +-----------------------------------------------------------------+
 ;; | Menu                                                            |
