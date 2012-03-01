@@ -793,7 +793,7 @@ defaults to 0."
     (insert-char ?\s (- width (length (elt cols 0))))
     (insert (elt cols 1) "\n")))
 
-(defun list-ocaml-packages (&optional query-only buffer)
+(defun utop-list-ocaml-packages (&optional buffer)
   "Display a list of all ocaml findlib packages"
   (interactive)
   (unless (bufferp buffer)
