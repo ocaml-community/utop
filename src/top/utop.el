@@ -403,8 +403,8 @@ to add the newline character if it is not accepted).")
       ;; Highlight errors
       (let ((offsets (split-string argument "," t)))
         (while offsets
-          (let ((a (string-to-int (car offsets)))
-                (b (string-to-int (car (cdr offsets)))))
+          (let ((a (string-to-number (car offsets)))
+                (b (string-to-number (car (cdr offsets)))))
             (add-text-properties (+ utop-prompt-max a) (+ utop-prompt-max b) '(face utop-error))
             (setq offsets (cdr (cdr offsets))))))
       ;; Make everything read-only
