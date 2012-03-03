@@ -655,13 +655,13 @@ byte-compiling."
        (t
         ;; The buffer does not exist, read arguments before creating
         ;; it so the user can cancel starting utop
-        (let ((arguments (utop-get-arguments)))
-          ;; Create the buffer
-          (setq buf (get-buffer-create utop-buffer-name))
-          ;; Make it appear
-          (display-buffer buf)
-          ;; Put it in utop mode
-          (with-current-buffer buf (utop-mode))))))))
+        (utop-query-arguments)
+        ;; Create the buffer
+        (setq buf (get-buffer-create utop-buffer-name))
+        ;; Make it appear
+        (display-buffer buf)
+        ;; Put it in utop mode
+        (with-current-buffer buf (utop-mode)))))))
 
 (defun utop-eval (start end)
   "Eval the given region in utop."
