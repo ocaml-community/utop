@@ -211,7 +211,7 @@ to add the newline character if it is not accepted).")
                  (insert name)
                  (insert-char ?\s padding)
                  )) tabulated-list-format)
-            (insert-string "\n"))))
+            (insert "\n"))))
 
   (defun tabulated-list-print (dummy)
     (save-excursion
