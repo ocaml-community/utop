@@ -613,13 +613,19 @@ If ADD-TO-HISTORY is t then the input will be added to history."
 ;; +-----------------------------------------------------------------+
 
 (defun utop-choose (symbol)
+  "Be best at resolving tuareg or typerex dependencies even when
+byte-compiling."
   (cond
    ((eq major-mode 'tuareg-mode)
     (intern (concat "tuareg-" symbol)))
    ((eq major-mode 'typerex-mode)
     (intern (concat "typerex-" symbol)))
    (t
-    (error (concat "unsupported mode: " (symbol-name major-mode) ", utop support only tuareg and typerex modes")))))
+    (if (require 'typerex nil t)
+        (intern (concat "typerex-" symbol))
+      (if (require 'tuareg nil t)
+          (intern (concat "tuareg-" symbol))
+        (error (concat "unsupported mode: " (symbol-name major-mode) ", utop support only tuareg and typerex modes")))))))
 
 (defmacro utop-choose-symbol (symbol)
   (utop-choose symbol))
