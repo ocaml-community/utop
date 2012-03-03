@@ -183,7 +183,9 @@ to add the newline character if it is not accepted).")
 
 (defmacro utop-perform (&rest actions)
   "Execute the given actions while checks are inhibited."
-  (list 'let (list (list 'utop-inhibit-check t) (list 'inhibit-read-only t)) (cons 'progn actions)))
+  `(let ((utop-inhibit-check t)
+         (inhibit-read-only t))
+     (progn ,@actions)))
 
 (defun utop-insert (&rest args)
   "Insert text with checks inhibited."
