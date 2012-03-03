@@ -851,7 +851,8 @@ defaults to 0."
              (version (cdr package)))
         (push (list package (vector name version))
               tabulated-list-entries))
-      (setq packages (cdr packages)))))
+      (setq packages (cdr packages))))
+  (setq tabulated-list-entries (nreverse tabulated-list-entries)))
 
 (defun utop-package-printer (id cols)
   "Print one findlib package entry."
