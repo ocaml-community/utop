@@ -242,13 +242,13 @@ to add the newline character if it is not accepted).")
   "Send current input to utop"
   (let ((lines (split-string (buffer-substring-no-properties utop-prompt-max (point-max)) "\n")))
     ;; Send all lines to utop
-    (process-send-string utop-process cmd)
+    (utop-send-string cmd)
     (while lines
       ;; Send the line
-      (process-send-string utop-process (concat "data:" (car lines) "\n"))
+      (utop-send-string (concat "data:" (car lines) "\n"))
       ;; Remove it and continue
       (setq lines (cdr lines)))
-    (process-send-string utop-process "end:\n")))
+    (utop-send-string "end:\n")))
 
 ;; +-----------------------------------------------------------------+
 ;; | Edition control                                                 |
@@ -316,7 +316,7 @@ to add the newline character if it is not accepted).")
   (interactive)
   (with-current-buffer utop-buffer-name
     (unless (eq utop-state 'done)
-      (process-send-string utop-process "save-history:\n"))))
+      (utop-send-string "save-history:\n"))))
 
 ;; +-----------------------------------------------------------------+
 ;; | Receiving input from the utop sub-process                       |
@@ -548,13 +548,13 @@ If ADD-TO-HISTORY is t then the input will be added to history."
         ;; We are now waiting for completion
         (utop-set-state 'comp)
         ;; Send all lines to utop
-        (process-send-string utop-process "complete:\n")
+        (utop-send-string "complete:\n")
         (while lines
           ;; Send the line
-          (process-send-string utop-process (concat "data:" (car lines) "\n"))
+          (utop-send-string (concat "data:" (car lines) "\n"))
           ;; Remove it and continue
           (setq lines (cdr lines)))
-        (process-send-string utop-process "end:\n")))))
+        (utop-send-string "end:\n")))))
 
 ;; +-----------------------------------------------------------------+
 ;; | Tuareg/Typerex integration                                      |
@@ -717,7 +717,7 @@ defaults to 0."
   (interactive)
   (with-current-buffer utop-buffer-name
     (unless (eq utop-state 'done)
-      (process-send-string utop-process (format "exit:%d\n" (or exit-code 0))))))
+      (utop-send-string (format "exit:%d\n" (or exit-code 0))))))
 
 (defun utop-sentinel (process msg)
   "Callback for process' state change."
