@@ -631,10 +631,10 @@ byte-compiling."
   (utop-choose symbol))
 
 (defmacro utop-choose-call (symbol &rest args)
-  (cons (utop-choose symbol) args))
+  `(,(utop-choose symbol) args))
 
 (defmacro utop-choose-defun (symbol &rest args)
-  (cons 'defun (cons (utop-choose symbol) args)))
+  `(defun ,(utop-choose symbol) ,@args))
 
 (defun utop-prepare-for-eval ()
   "Prepare utop for evaluation."
