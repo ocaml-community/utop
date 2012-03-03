@@ -187,6 +187,13 @@ to add the newline character if it is not accepted).")
          (inhibit-read-only t))
      (progn ,@actions)))
 
+(defun utop-send-string (str)
+  (if (not (bufferp utop-buffer-name))
+      (utop)
+    (when (eq utop-state 'done) (utop-restart)))
+  (with-current-buffer utop-buffer-name
+    (process-send-string utop-process str)))
+
 (defun utop-insert (&rest args)
   "Insert text with checks inhibited."
   (utop-perform (apply 'insert args)))
@@ -801,7 +808,8 @@ defaults to 0."
   (let ((package (button-label button)))
     (when (y-or-n-p (format "Load package `%s'? " package))
       ;; Handle loading of packages
-      nil)))
+      (utop-send-string (format "require:%s\n" package))
+      )))
 
 (defun utop-list-ocaml-packages (&optional buffer)
   "Display a list of all ocaml findlib packages"
