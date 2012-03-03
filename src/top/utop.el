@@ -7,6 +7,9 @@
 
 (require 'easymenu)
 
+;; tabulated-list is a part of Emacs 24
+(require 'tabulated-list nil t)
+
 ;; +-----------------------------------------------------------------+
 ;; | License                                                         |
 ;; +-----------------------------------------------------------------+
@@ -176,6 +179,55 @@ before the end of prompt.")
 (defvar utop-pending-position nil
   "The position of the cursor in the phrase sent to OCaml (where
 to add the newline character if it is not accepted).")
+
+;; +-----------------------------------------------------------------+
+;; | Compability                                                     |
+;; +-----------------------------------------------------------------+
+
+(unless (featurep 'tabulated-list)
+  ;; tabulated-list.el is part of Emacs 24
+  ;; This is a thin layer building compability with previous versions
+  (defvar tabulated-list-format nil)
+  (defvar tabulated-list-sort-key nil)
+  (defvar tabulated-list-printer nil)
+  (defvar tabulated-list-revert-hook nil)
+  (defvar tabulated-list-entries nil)
+  (define-derived-mode tabulated-list-mode special-mode "Mini-tabulated list mode"
+    "Tabulated list"
+    (make-local-variable 'tabulated-list-format)
+    (make-local-variable 'tabulated-list-sort-key)
+    (make-local-variable 'tabulated-list-printer)
+    (set (make-local-variable 'revert-buffer-function) 'tabulated-list-revert)
+
+  (defun tabulated-list-init-header ()
+    (save-excursion
+      (let ((inhibit-read-only t))
+            ;; Find the longest package name
+            (mapc
+             (lambda (entry)
+               (let* ((name (nth 0 entry))
+                      (size (length name))
+                      (padding (- (nth 1 entry) size)))
+                 (insert name)
+                 (insert-char ?\s padding)
+                 )) tabulated-list-format)
+            (insert-string "\n"))))
+
+  (defun tabulated-list-print (dummy)
+    (save-excursion
+      (let ((inhibit-read-only t))
+        (mapc (lambda (entry)
+                (goto-char (point-max))
+                (apply tabulated-list-printer entry))
+              tabulated-list-entries))
+      t))
+
+  (defun tabulated-list-revert (ignore-auto noconfirm)
+    (let ((inhibit-read-only t))
+      (delete-region (point-min) (point-max))
+      (tabulated-list-init-header)
+      (tabulated-list-print t))))
+)
 
 ;; +-----------------------------------------------------------------+
 ;; | Utils                                                           |
