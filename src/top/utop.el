@@ -603,7 +603,7 @@ If ADD-TO-HISTORY is t then the input will be added to history."
           ;; Make it appear
           (display-buffer buf)
           ;; Put it in utop mode
-          (with-current-buffer buf (utop-mode arguments))))))))
+          (with-current-buffer buf (utop-mode))))))))
 
 (defun utop-eval (start end)
   "Eval the given region in utop."
