@@ -136,6 +136,7 @@ This hook is only run if exiting actually kills the buffer."
     (define-key map [(control ?c) (control ?k)] 'utop-kill)
     (define-key map [(control ?c) (control ?g)] 'utop-exit)
     (define-key map [(control ?c) (control ?s)] 'utop)
+    (define-key map [(control ?c) ?m] 'utop-copy-old-input)
     map)
   "The utop local keymap.")
 
@@ -272,6 +273,8 @@ to add the newline character if it is not accepted).")
           ": history")
          ((eq state 'wait)
           ": running")
+         ((eq state 'copy)
+          ": copying")
          ((eq state 'done)
           (let ((status (process-status utop-process)) (code (process-exit-status utop-process)))
             (cond
@@ -314,7 +317,9 @@ to add the newline character if it is not accepted).")
     (signal 'text-read-only '("You cannot edit the buffer when ocaml is not running")))
    ((eq utop-state 'comp)
     (signal 'text-read-only '("You cannot edit the buffer while waiting for completion")))
-   ((eq utop-state 'comp)
+   ((eq utop-state 'copy)
+    (signal 'text-read-only '("You cannot edit the buffer while waiting for copy of last input")))
+   ((eq utop-state 'history)
     (signal 'text-read-only '("You cannot edit the buffer while waiting for history")))))
 
 (defun utop-before-change (start stop)
@@ -330,6 +335,14 @@ to add the newline character if it is not accepted).")
 (defun utop-add-change ()
   (remove-hook 'post-command-hook 'utop-add-change t)
   (add-hook 'before-change-functions 'utop-before-change nil t))
+
+(defun utop-copy-old-input ()
+  (interactive)
+  (with-current-buffer utop-buffer-name
+    (when (eq utop-state 'edit)
+      (utop-set-state 'copy)
+      (setq utop-pending-entry nil)
+      (utop-send-data "history-prev:\n"))))
 
 ;; +-----------------------------------------------------------------+
 ;; | Prompt                                                          |
@@ -482,14 +495,19 @@ to add the newline character if it is not accepted).")
         (setq utop-pending-entry argument))))
      ;; End of history data
      ((string= command "history-end")
-      (goto-char utop-prompt-max)
-      ;; Delete current input
-      (delete-region utop-prompt-max (point-max))
-      ;; Insert entry
-      (insert utop-pending-entry)
-      ;; Resume edition
-      (utop-set-state 'edit))
-     ;; We are at a bound of history
+      (progn
+        (cond
+         ((eq utop-state 'copy)
+           (kill-new utop-pending-entry))
+          (t
+           (goto-char utop-prompt-max)
+           ;; Delete current input
+           (delete-region utop-prompt-max (point-max))
+           ;; Insert entry
+           (insert utop-pending-entry)))
+           ;; Resume edition
+        (utop-set-state 'edit)))
+      ;; We are at a bound of history
      ((string= command "history-bound")
       ;; Just resume edition
       (utop-set-state 'edit))
