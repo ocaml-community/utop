@@ -7,6 +7,7 @@
   * better handling of error messages
   * better handling of multiline input in the terminal
   * add loading findlib package from list menu
+  * add loading packages from file variable utop-package-list
 
 ===== 1.1 (2010-08-06) =====
 
