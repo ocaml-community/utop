@@ -82,7 +82,7 @@ let default_keywords = [
   "when"; "while"; "with"; "try_lwt"; "finally"; "for_lwt"; "lwt";
 ]
 
-let keywords = ref (List.fold_left (fun set kwd -> String_set.add kwd set) String_set.empty default_keywords)
+let keywords = ref (List.fold_right String_set.add default_keywords String_set.empty)
 let add_keyword kwd = keywords := String_set.add kwd !keywords
 
 (* +-----------------------------------------------------------------+
