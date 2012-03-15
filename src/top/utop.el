@@ -203,7 +203,6 @@ to add the newline character if it is not accepted).")
   (defun tabulated-list-init-header ()
     (save-excursion
       (let ((inhibit-read-only t))
-            ;; Find the longest package name
             (mapc
              (lambda (entry)
                (let* ((name (nth 0 entry))
@@ -838,7 +837,7 @@ defaults to 0."
 (define-derived-mode utop-list-packages-mode tabulated-list-mode "OCaml package list"
   "Major mode for listing the findlib OCaml packages."
   (setq tabulated-list-format [("Name" 32 t)
-			       ("Version"   32 t)])
+			       ("Version" 32 t)])
   (setq tabulated-list-sort-key (cons "Name" nil))
   (setq tabulated-list-printer 'utop-package-printer)
   (add-hook 'tabulated-list-revert-hook 'utop-list-packages--refresh nil t)
