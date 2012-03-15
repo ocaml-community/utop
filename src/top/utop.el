@@ -181,6 +181,10 @@ before the end of prompt.")
   "The position of the cursor in the phrase sent to OCaml (where
 to add the newline character if it is not accepted).")
 
+(defvar utop-package-list nil
+  "List of packages to load when visiting OCaml buffer.
+Useful as file variable.")
+
 ;; +-----------------------------------------------------------------+
 ;; | Compability                                                     |
 ;; +-----------------------------------------------------------------+
@@ -754,6 +758,7 @@ To automatically do that just add these lines to your .emacs:
   (utop-choose-defun "run-caml" () (interactive) (utop))
   ;; Redefine this variable so menu will work
   (set (utop-choose "interactive-buffer-name") utop-buffer-name)
+  (make-local-variable 'utop-package-list)
   nil)
 
 ;; +-----------------------------------------------------------------+
@@ -880,12 +885,13 @@ defaults to 0."
     (insert-char ?\s (- width (length (elt cols 0))))
     (insert (elt cols 1) "\n")))
 
+(defun utop-load-package (package)
+  (when (y-or-n-p (format "Load package `%s'? " package))
+    ;; Load it
+    (utop-send-string (format "require:%s\n" package))))
+
 (defun utop-require-package-button-action (button)
-  (let ((package (button-label button)))
-    (when (y-or-n-p (format "Load package `%s'? " package))
-      ;; Handle loading of packages
-      (utop-send-string (format "require:%s\n" package))
-      )))
+  (utop-load-package (button-label button)))
 
 (defun utop-list-ocaml-packages (&optional buffer)
   "Display a list of all ocaml findlib packages"
@@ -897,6 +903,14 @@ defaults to 0."
     (utop-list-packages--refresh)
     (tabulated-list-print t)
   (display-buffer buffer)))
+
+(defun utop-query-load-package-list ()
+  "Load packages defined in utop-package-list buffer local variable."
+  (when (and utop-package-list
+             (y-or-n-p
+              "You've defined utop-package-list variable, but uTop toplevel is not running, would you like me to start the toplevel?"))
+    (with-current-buffer (utop))
+    (mapc 'utop-load-package utop-package-list)))
 
 ;; +-----------------------------------------------------------------+
 ;; | Menu                                                            |

@@ -848,3 +848,7 @@ let main () =
     Printexc.print_backtrace stderr;
     flush stderr;
     exit 2
+
+(* Local variables: *)
+(* utop-package-list: ("camomile" "lwt" "lwt.react" "lambda-term" "zed") *)
+(* End: *)
