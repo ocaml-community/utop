@@ -244,11 +244,19 @@ Useful as file variable.")
      (progn ,@actions)))
 
 (defun utop-send-string (str)
-  (if (not (bufferp utop-buffer-name))
-      (utop)
-    (when (eq utop-state 'done) (utop-restart)))
-  (with-current-buffer utop-buffer-name
-    (process-send-string utop-process str)))
+  "Send a string to the utop process. This function can only be
+called in the utop buffer and while the state is not 'done."
+  (process-send-string utop-process str))
+
+(defun utop-send-command (str)
+  "Send a command to utop. If utop is not running or has exited,
+it is started."
+  (let ((buf (get-buffer utop-buffer-name)))
+    (unless buf
+      (setq buf (save-excursion (utop))))
+    (with-current-buffer buf
+      (when (eq utop-state 'done) (utop-restart))
+      (process-send-string utop-process str))))
 
 (defun utop-insert (&rest args)
   "Insert text with checks inhibited."
@@ -888,7 +896,7 @@ defaults to 0."
 (defun utop-load-package (package)
   (when (y-or-n-p (format "Load package `%s'? " package))
     ;; Load it
-    (utop-send-string (format "require:%s\n" package))))
+    (utop-send-command (format "require:%s\n" package))))
 
 (defun utop-require-package-button-action (button)
   (utop-load-package (button-label button)))
