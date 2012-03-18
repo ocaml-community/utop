@@ -322,7 +322,7 @@ Useful as file variable.")
     (signal 'text-read-only '("You cannot edit the buffer while waiting for completion")))
    ((eq utop-state 'copy)
     (signal 'text-read-only '("You cannot edit the buffer while waiting for copy of last input")))
-   ((eq utop-state 'history)
+   ((eq utop-state 'hist)
     (signal 'text-read-only '("You cannot edit the buffer while waiting for history")))))
 
 (defun utop-before-change (start stop)
