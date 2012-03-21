@@ -9,5 +9,8 @@
 # Use compiler interfaces
 <src/**/*.ml{,i}>: use_compiler_libs
 
+# Use camlp5
+<src/camlp5/**/*.ml{,i}>: use_camlp5
+
 # OASIS_START
 # OASIS_STOP

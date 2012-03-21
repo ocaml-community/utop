@@ -57,6 +57,15 @@ Library "utop-camlp4"
   XMETAType: syntax
   XMETADescription: Camlp4 integration
 
+Library "utop-camlp5"
+  FindlibName: camlp5
+  FindlibParent: utop
+  Path: src/camlp5
+  Modules: UTop_camlp5
+  BuildDepends: utop
+  XMETAType: syntax
+  XMETADescription: Camlp5 integration
+
 Executable utop
   Install: true
   Path: src/top

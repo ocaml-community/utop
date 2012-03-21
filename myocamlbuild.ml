@@ -47,6 +47,11 @@ let () =
              flag ["ocaml"; "ocamldep"; "use_compiler_libs"] & S paths;
              flag ["ocaml"; "doc"; "use_compiler_libs"] & S paths;
 
+             let paths = [A "-I"; A "+camlp5"] in
+             flag ["ocaml"; "compile"; "use_camlp5"] & S paths;
+             flag ["ocaml"; "ocamldep"; "use_camlp5"] & S paths;
+             flag ["ocaml"; "doc"; "use_camlp5"] & S paths;
+
              (* Expunge compiler modules *)
              rule "toplevel expunge"
                ~dep:"%.top"
