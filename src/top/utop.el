@@ -600,7 +600,7 @@ If ADD-TO-HISTORY is t then the input will be added to history."
         ;; If the point is before the prompt, insert the newline
         ;; character at the end
         (when (< utop-pending-position 0)
-          (setq utop-pending-position (- (point) utop-prompt-max)))))
+          (setq utop-pending-position (- (point-max) utop-prompt-max)))))
       ;; We are now waiting for ocaml
       (utop-set-state 'wait)
       (utop-send-data
