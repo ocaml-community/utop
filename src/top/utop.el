@@ -63,6 +63,12 @@ If nil, `utop-command' will be used without modification."
   :type 'boolean
   :group 'utop)
 
+(defcustom utop-follow-output t
+  "Whether to follow OCaml's output while it is executing a
+phrase."
+  :type 'boolean
+  :group 'utop)
+
 (defcustom utop-prompt 'utop-default-prompt
   "The function which create the prompt for utop."
   :type 'function
@@ -412,7 +418,10 @@ it is started."
       (setq utop-prompt-min (+ utop-prompt-min (length line)))
       (setq utop-prompt-max (+ utop-prompt-max (length line)))
       ;; Make everything before the end prompt read-only
-      (add-text-properties (point-min) utop-prompt-max utop-non-editable-properties))))
+      (add-text-properties (point-min) utop-prompt-max utop-non-editable-properties)))
+  ;; If OCaml is executing a phrase, follow its output
+  (when (and utop-follow-output (eq utop-state 'wait))
+    (utop-goto-point-max-all-windows)))
 
 (defun utop-insert-prompt (prompt)
   "Insert the given prompt."
