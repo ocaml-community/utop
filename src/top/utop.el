@@ -63,12 +63,6 @@ If nil, `utop-command' will be used without modification."
   :type 'boolean
   :group 'utop)
 
-(defcustom utop-follow-output t
-  "Whether to follow OCaml's output while it is executing a
-phrase."
-  :type 'boolean
-  :group 'utop)
-
 (defcustom utop-prompt 'utop-default-prompt
   "The function which create the prompt for utop."
   :type 'function
@@ -406,22 +400,24 @@ it is started."
 
 (defun utop-insert-output (output &optional face)
   "Insert the given output before the prompt."
-  (save-excursion
-    (let ((line (concat output "\n")))
-      ;; Apply the given face if provided
-      (when face (add-text-properties 0 (length line) (list 'face face) line))
-      ;; Goto before the prompt
-      (goto-char utop-prompt-min)
-      ;; Insert the output
-      (insert line)
-      ;; Advance the prompt
-      (setq utop-prompt-min (+ utop-prompt-min (length line)))
-      (setq utop-prompt-max (+ utop-prompt-max (length line)))
-      ;; Make everything before the end prompt read-only
-      (add-text-properties (point-min) utop-prompt-max utop-non-editable-properties)))
-  ;; If OCaml is executing a phrase, follow its output
-  (when (and utop-follow-output (eq utop-state 'wait))
-    (utop-goto-point-max-all-windows)))
+  (let ((point-at-max (eq (point) (point-max))))
+    (save-excursion
+      (let ((line (concat output "\n")))
+        ;; Apply the given face if provided
+        (when face (add-text-properties 0 (length line) (list 'face face) line))
+        ;; Goto before the prompt
+        (goto-char utop-prompt-min)
+        ;; Insert the output
+        (insert line)
+        ;; Advance the prompt
+        (setq utop-prompt-min (+ utop-prompt-min (length line)))
+        (setq utop-prompt-max (+ utop-prompt-max (length line)))
+        ;; Make everything before the end prompt read-only
+        (add-text-properties (point-min) utop-prompt-max utop-non-editable-properties)))
+    ;; If we are at the end of the buffer and OCaml is executing a
+    ;; phrase, follow its output
+    (when (and point-at-max (eq utop-state 'wait))
+      (utop-goto-point-max-all-windows))))
 
 (defun utop-insert-prompt (prompt)
   "Insert the given prompt."
