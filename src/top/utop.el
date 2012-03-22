@@ -400,7 +400,7 @@ it is started."
 
 (defun utop-insert-output (output &optional face)
   "Insert the given output before the prompt."
-  (let ((point-at-max (eq (point) (point-max))))
+  (let ((current-max (point-max)))
     (save-excursion
       (let ((line (concat output "\n")))
         ;; Apply the given face if provided
@@ -414,10 +414,17 @@ it is started."
         (setq utop-prompt-max (+ utop-prompt-max (length line)))
         ;; Make everything before the end prompt read-only
         (add-text-properties (point-min) utop-prompt-max utop-non-editable-properties)))
-    ;; If we are at the end of the buffer and OCaml is executing a
-    ;; phrase, follow its output
-    (when (and point-at-max (eq utop-state 'wait))
-      (utop-goto-point-max-all-windows))))
+    ;; If OCaml is executing a phrase, follow its output
+    (when (eq utop-state 'wait)
+      (let ((buffer (get-buffer utop-buffer-name)))
+        (walk-windows
+         (lambda (window)
+           (when (eq (window-buffer window) buffer)
+             (select-window window)
+             ;; Only move the point if we were at the end of the
+             ;; buffer
+             (when (eq (point) current-max)
+               (goto-char (point-max))))))))))
 
 (defun utop-insert-prompt (prompt)
   "Insert the given prompt."
