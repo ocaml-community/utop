@@ -8,13 +8,10 @@
  *)
 
 (* OASIS_START *)
-
-let () =
-  let command = Printf.sprintf "oasis setup-dev -run %s %s" Sys.executable_name (String.concat " " (Array.to_list Sys.argv)) in
-  Printf.eprintf "I: Running command '%s'\n%!" command;
-  exit (Sys.command command)
-;;
-
+(* DO NOT EDIT (digest: 7f47a529f70709161149c201ccd90f0b) *)
+#use "topfind";;
+#require "oasis.dynrun";;
+open OASISDynRun;;
 (* OASIS_STOP *)
 
 let search_compiler_libs () =
