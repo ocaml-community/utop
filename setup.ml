@@ -15,7 +15,7 @@ open OASISDynRun;;
 (* OASIS_STOP *)
 
 let search_compiler_libs () =
-  OASISContext.printf `Info "Searching for OCaml compiler libraries";
+  prerr_endline "I: Searching for OCaml compiler libraries";
   let stdlib = BaseEnv.var_get "standard_library" in
   let ( / ) = Filename.concat in
   try
@@ -27,7 +27,7 @@ let search_compiler_libs () =
       stdlib / ".." / "compiler-lib";
     ]
   with Not_found ->
-    OASISContext.printf `Error "Cannot find compiler libraries! See the README for details.";
+    prerr_endline "E: Cannot find compiler libraries! See the README for details.";
     exit 1
 
 let compiler_libs =
