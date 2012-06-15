@@ -338,27 +338,81 @@ let add_modules_from_directory acc dir =
     acc
     (Sys.readdir (if dir = "" then Filename.current_dir_name else dir))
 
+#if ocaml_version >= (4, 0, 0)
+let field_name (id, _, _) = Ident.name id
+let constructor_name (id, _, _) = Ident.name id
+#else
+let field_name (name, _, _) = name
+let constructor_name (name, _) = name
+#endif
+
 let add_fields_of_type decl acc =
   match decl.type_kind with
     | Type_variant constructors ->
         acc
-    | Type_record(fields, _) ->
-        List.fold_left (fun acc (name, _, _) -> add name acc) acc fields
+    | Type_record (fields, _) ->
+        List.fold_left (fun acc field -> add (field_name field) acc) acc fields
     | Type_abstract ->
         acc
 
 let add_names_of_type decl acc =
   match decl.type_kind with
     | Type_variant constructors ->
-#if ocaml_version >= (3, 13, 0)
-        List.fold_left (fun acc (name, _, _) -> add name acc) acc constructors
-#else
-        List.fold_left (fun acc (name, _) -> add name acc) acc constructors
-#endif
-    | Type_record(fields, _) ->
-        List.fold_left (fun acc (name, _, _) -> add name acc) acc fields
+        List.fold_left (fun acc cstr -> add (constructor_name cstr) acc) acc constructors
+    | Type_record (fields, _) ->
+        List.fold_left (fun acc field -> add (field_name field) acc) acc fields
     | Type_abstract ->
         acc
+
+#if ocaml_version >= (4, 0, 0)
+
+let rec names_of_module_type = function
+  | Mty_signature decls ->
+      List.fold_left
+        (fun acc decl -> match decl with
+           | Sig_value (id, _)
+           | Sig_exception (id, _)
+           | Sig_module (id, _, _)
+           | Sig_modtype (id, _)
+           | Sig_class (id, _, _)
+           | Sig_class_type (id, _, _) ->
+               add (Ident.name id) acc
+           | Sig_type (id, decl, _) ->
+               add_names_of_type decl (add (Ident.name id) acc))
+        String_set.empty decls
+  | Mty_ident path -> begin
+      match lookup_env Env.find_modtype path !Toploop.toplevel_env with
+        | Some Modtype_abstract -> String_set.empty
+        | Some Modtype_manifest module_type -> names_of_module_type module_type
+        | None -> String_set.empty
+    end
+  | _ ->
+      String_set.empty
+
+let rec fields_of_module_type = function
+  | Mty_signature decls ->
+      List.fold_left
+        (fun acc decl -> match decl with
+           | Sig_value (id, _)
+           | Sig_exception (id, _)
+           | Sig_module (id, _, _)
+           | Sig_modtype (id, _)
+           | Sig_class (id, _, _)
+           | Sig_class_type (id, _, _) ->
+               acc
+           | Sig_type (id, decl, _) ->
+               add_fields_of_type decl acc)
+        String_set.empty decls
+  | Mty_ident path -> begin
+      match lookup_env Env.find_modtype path !Toploop.toplevel_env with
+        | Some Modtype_abstract -> String_set.empty
+        | Some Modtype_manifest module_type -> fields_of_module_type module_type
+        | None -> String_set.empty
+    end
+  | _ ->
+      String_set.empty
+
+#else
 
 let rec names_of_module_type = function
   | Tmty_signature decls ->
@@ -405,6 +459,8 @@ let rec fields_of_module_type = function
     end
   | _ ->
       String_set.empty
+
+#endif
 
 let names_of_module longident =
   try

@@ -253,6 +253,15 @@ let rec last head tail =
     | head :: tail ->
         last head tail
 
+#if ocaml_version >= (4, 0, 0)
+let with_loc loc str = {
+  Location.txt = str;
+  Location.loc = loc;
+}
+#else
+let with_loc loc str = str
+#endif
+
 (* Check that the given phrase can be evaluated without typing/compile
    errors. *)
 let check_phrase phrase =
@@ -283,11 +292,11 @@ let check_phrase phrase =
         } in
         let funct = {
           Parsetree.pmod_loc = loc;
-          Parsetree.pmod_desc = Parsetree.Pmod_functor ("_", empty_sig, wrapped_items);
+          Parsetree.pmod_desc = Parsetree.Pmod_functor (with_loc loc "_", empty_sig, wrapped_items);
         } in
         let top_def = {
           Parsetree.pstr_loc = loc;
-          Parsetree.pstr_desc = Parsetree.Pstr_module ("_", funct);
+          Parsetree.pstr_desc = Parsetree.Pstr_module (with_loc loc "_", funct);
         } in
         let check_phrase = Parsetree.Ptop_def [top_def] in
         try

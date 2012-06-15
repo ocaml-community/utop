@@ -217,6 +217,15 @@ let print_out_phrase term string =
    | Lwt_main.run auto-insertion                                     |
    +-----------------------------------------------------------------+ *)
 
+#if ocaml_version >= (4, 0, 0)
+let with_loc loc str = {
+  Location.txt = str;
+  Location.loc = loc;
+}
+#else
+let with_loc loc str = str
+#endif
+
 let longident_lwt_main_run = Longident.Ldot (Longident.Lident "Lwt_main", "run")
 
 let is_eval = function
@@ -231,6 +240,14 @@ let rec is_lwt_t typ =
         Ident.persistent id && Ident.name id = "Lwt"
     | _ ->
         false
+
+#if ocaml_version >= (4, 0, 0)
+let str_items_of_typed_structure tstr = tstr.Typedtree.str_items
+let str_desc_of_typed_str_item tstr = tstr.Typedtree.str_desc
+#else
+let str_items_of_typed_structure tstr = tstr
+let str_desc_of_typed_str_item tstr = tstr
+#endif
 
 let insert_lwt_main_run phrase =
   match phrase with
@@ -248,10 +265,11 @@ let insert_lwt_main_run phrase =
         in
         if lwt_main_run_is_the_real_one && List.exists is_eval pstr then
           let tstr, _, _ = Typemod.type_structure env pstr Location.none in
+          let tstr = str_items_of_typed_structure tstr in
           Parsetree.Ptop_def
             (List.map2
                (fun pstr_item tstr_item ->
-                  match pstr_item, tstr_item with
+                  match pstr_item, str_desc_of_typed_str_item tstr_item with
                     | { Parsetree.pstr_desc = Parsetree.Pstr_eval e; Parsetree.pstr_loc = loc },
                       Typedtree.Tstr_eval { Typedtree.exp_type = typ } when is_lwt_t typ ->
                         {
@@ -259,7 +277,8 @@ let insert_lwt_main_run phrase =
                             Parsetree.Pstr_eval {
                               Parsetree.pexp_desc =
                                 Parsetree.Pexp_apply
-                                  ({ Parsetree.pexp_desc = Parsetree.Pexp_ident longident_lwt_main_run; Parsetree.pexp_loc = loc },
+                                  ({ Parsetree.pexp_desc = Parsetree.Pexp_ident (with_loc loc longident_lwt_main_run);
+                                     Parsetree.pexp_loc = loc },
                                    [("", e)]);
                               Parsetree.pexp_loc = loc;
                             };
