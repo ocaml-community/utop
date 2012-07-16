@@ -650,23 +650,26 @@ If ADD-TO-HISTORY is t then the input will be added to history."
         (utop-send-string "end:\n")))))
 
 ;; +-----------------------------------------------------------------+
-;; | Tuareg/Typerex integration                                      |
+;; | Caml/Tuareg/Typerex integration                                 |
 ;; +-----------------------------------------------------------------+
 
 (defun utop-choose (symbol)
-  "Be best at resolving tuareg or typerex dependencies even when
-byte-compiling."
+  "Be best at resolving caml, tuareg or typerex dependencies even
+when byte-compiling."
   (cond
    ((eq major-mode 'tuareg-mode)
     (intern (concat "tuareg-" symbol)))
    ((eq major-mode 'typerex-mode)
     (intern (concat "typerex-" symbol)))
-   (t
-    (if (require 'typerex nil t)
-        (intern (concat "typerex-" symbol))
-      (if (require 'tuareg nil t)
-          (intern (concat "tuareg-" symbol))
-        (error (concat "unsupported mode: " (symbol-name major-mode) ", utop support only tuareg and typerex modes")))))))
+   ((eq major-mode 'caml-mode)
+    (intern (concat "caml-" symbol)))
+   ((require 'tuareg nil t)
+    (intern (concat "tuareg-" symbol)))
+   ((require 'typerex nil t)
+    (intern (concat "typerex-" symbol)))
+   ((require 'caml nil t)
+    (intern (concat "caml-" symbol)))
+   (error (concat "unsupported mode: " (symbol-name major-mode) ", utop support only caml, tuareg and typerex modes"))))
 
 (defmacro utop-choose-symbol (symbol)
   (utop-choose symbol))
@@ -707,7 +710,8 @@ byte-compiling."
 (defun utop-eval (start end)
   "Eval the given region in utop."
   ;; From tuareg
-  (set (utop-choose "interactive-last-phrase-pos-in-source") start)
+  (unless (eq major-mode 'caml-mode)
+    (set (utop-choose "interactive-last-phrase-pos-in-source") start))
   ;; Select the text of the region
   (let ((text
          (save-excursion
@@ -757,19 +761,20 @@ byte-compiling."
   (utop-eval (point-min) (point-max)))
 
 (defun utop-setup-ocaml-buffer ()
-  "Override tuareg/typerex interactive functions by utop ones.
+  "Override caml/tuareg/typerex interactive functions by utop ones.
 
-You can call this function after loading the tuareg/typerex mode
-to let it use utop instead of its builtin support for interactive
-toplevel.
+You can call this function after loading the caml/tuareg/typerex
+mode to let it use utop instead of its builtin support for
+interactive toplevel.
 
 To automatically do that just add these lines to your .emacs:
 
   (autoload 'utop-setup-ocaml-buffer \"utop\" \"Toplevel for OCaml\" t)
+  (add-hook 'caml-mode-hook 'utop-setup-ocaml-buffer)
   (add-hook 'tuareg-mode-hook 'utop-setup-ocaml-buffer)
   (add-hook 'typerex-mode-hook 'utop-setup-ocaml-buffer)"
   (interactive)
-  ;; Redefine tuareg functions
+  ;; Redefine caml/tuareg/typerex functions
   (utop-choose-defun "eval-phrase" () (interactive) (utop-eval-phrase))
   (utop-choose-defun "eval-region" (start end) (interactive "r") (utop-eval-region start end))
   (utop-choose-defun "eval-buffer" () (interactive) (utop-eval-buffer))
