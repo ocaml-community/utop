@@ -71,6 +71,10 @@ url: https://forge.ocamlcore.org/projects/utop/
     (add-hook 'tuareg-mode-hook 'utop-setup-ocaml-buffer)
     (add-hook 'typerex-mode-hook 'utop-setup-ocaml-buffer)
 
+  You can also complete text in a tuareg or typerex buffer using the
+  environment of the toplevel. For that bind the function
+  "utop-edit-complete" to the key you want.
+
 * Development:
 
   The last development version of utop can always be found in the

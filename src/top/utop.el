@@ -168,6 +168,9 @@ before the end of prompt.")
 - wait: ocaml is evaluating a phrase
 - done: ocaml has died.")
 
+(defvar utop-complete-buffer nil
+  "The buffer that requested completion.")
+
 (defvar utop-initial-command nil
   "Initial phrase to evaluate.")
 
@@ -537,7 +540,7 @@ it is started."
      ;; Complete with a word
      ((string= command "completion-word")
       (utop-set-state 'edit)
-      (insert argument)
+      (with-current-buffer utop-complete-buffer (insert argument))
       ;; Hide completion
       (minibuffer-hide-completions))
      ;; Start of completion
@@ -549,8 +552,9 @@ it is started."
      ;; End of completion
      ((string= command "completion-stop")
       (utop-set-state 'edit)
-      (with-output-to-temp-buffer "*Completions*"
-        (display-completion-list (nreverse utop-completion)))
+      (with-current-buffer utop-complete-buffer
+        (with-output-to-temp-buffer "*Completions*"
+          (display-completion-list (nreverse utop-completion))))
       (setq utop-completion nil)))))
 
 (defun utop-process-output (process output)
@@ -629,25 +633,31 @@ If ADD-TO-HISTORY is t then the input will be added to history."
 ;; | Completion                                                      |
 ;; +-----------------------------------------------------------------+
 
+(defun utop-complete-input (input)
+  "Send input to complete to utop."
+  ;; Split it
+  (let ((lines (split-string input "\n")))
+    ;; We are now waiting for completion
+    (utop-set-state 'comp)
+    ;; Send all lines to utop
+    (utop-send-string "complete:\n")
+    (while lines
+      ;; Send the line
+      (utop-send-string (concat "data:" (car lines) "\n"))
+      ;; Remove it and continue
+      (setq lines (cdr lines)))
+    (utop-send-string "end:\n")))
+
 (defun utop-complete ()
   "Complete current input."
   (interactive)
   ;; Complete only if the cursor is after the prompt
   (when (and (eq utop-state 'edit) (>= (point) utop-prompt-max))
-    ;; Extract the input before the cursor
-    (let ((input (buffer-substring-no-properties utop-prompt-max (point))))
-      ;; Split it
-      (let ((lines (split-string input "\n")))
-        ;; We are now waiting for completion
-        (utop-set-state 'comp)
-        ;; Send all lines to utop
-        (utop-send-string "complete:\n")
-        (while lines
-          ;; Send the line
-          (utop-send-string (concat "data:" (car lines) "\n"))
-          ;; Remove it and continue
-          (setq lines (cdr lines)))
-        (utop-send-string "end:\n")))))
+    ;; Use this buffer
+    (setq utop-complete-buffer (current-buffer))
+    ;; Send the input before the cursor
+    (utop-complete-input
+     (buffer-substring-no-properties utop-prompt-max (point)))))
 
 ;; +-----------------------------------------------------------------+
 ;; | Caml/Tuareg/Typerex integration                                 |
@@ -759,6 +769,33 @@ when byte-compiling."
   (interactive)
   (utop-prepare-for-eval)
   (utop-eval (point-min) (point-max)))
+
+(defun utop-edit-complete ()
+  "Completion in a caml/tuareg/typerex."
+  (interactive)
+  ;; Find the start of the current phrase
+  (save-excursion
+    (let* ((end (point))
+           (start (nth 0 (utop-choose-call "discover-phrase")))
+           (input (buffer-substring-no-properties start end))
+           (edit-buffer (current-buffer)))
+      ;; Start utop if needed
+      (let ((utop-buffer (get-buffer utop-buffer-name)))
+        (unless utop-buffer
+          ;; The buffer does not exist, read arguments before creating
+          ;; it so the user can cancel starting utop
+          (utop-query-arguments)
+          ;; Create the buffer
+          (setq utop-buffer (get-buffer-create utop-buffer-name))
+          ;; Put it in utop mode
+          (with-current-buffer utop-buffer (utop-mode)))
+        (with-current-buffer utop-buffer
+          ;; Complete only if we are in edition mode
+          (when (eq utop-state 'edit)
+            ;; Use this buffer for completion
+            (setq utop-complete-buffer edit-buffer)
+            ;; Send the phrase to complete
+            (utop-complete-input input)))))))
 
 (defun utop-setup-ocaml-buffer ()
   "Override caml/tuareg/typerex interactive functions by utop ones.
@@ -1034,6 +1071,7 @@ defaults to 0."
   (make-local-variable 'utop-command-number)
   (make-local-variable 'utop-inhibit-check)
   (make-local-variable 'utop-state)
+  (make-local-variable 'utop-complete-buffer)
   (make-local-variable 'utop-initial-command)
   (make-local-variable 'utop-phrase-terminator)
   (make-local-variable 'utop-pending-position)
