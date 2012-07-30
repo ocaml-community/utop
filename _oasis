@@ -2,7 +2,7 @@
 # | Package parameters                                                |
 # +-------------------------------------------------------------------+
 
-OASISFormat: 0.1
+OASISFormat: 0.3
 OCamlVersion: >= 3.12
 Name: utop
 Version: 1.1
@@ -11,7 +11,7 @@ License: BSD3
 Authors: Jérémie Dimino
 Homepage: http://utop.forge.ocamlcore.org/
 BuildTools: ocamlbuild
-Plugins: DevFiles (0.2), META (0.2)
+Plugins: DevFiles (0.3), META (0.3)
 FilesAB: src/lib/uTop_version.ml.ab
 Synopsis: Universal toplevel for OCaml
 Description:
@@ -44,7 +44,7 @@ Library utop
     UTop_token,
     UTop_complete,
     UTop_styles
-  BuildDepends: findlib, lambda-term (>= 1.1), lwt.syntax, threads
+  BuildDepends: findlib, lambda-term (>= 1.2), lwt.syntax, threads
   XMETADescription: utop configuration
   XMETARequires: findlib, lambda-term
 
@@ -71,7 +71,7 @@ Executable utop
 
 Document "utop-api"
   Title: API reference for utop
-  Type: ocamlbuild (0.2)
+  Type: ocamlbuild (0.3)
   Install: true
   InstallDir: $htmldir/api
   DataFiles: style.css
@@ -84,7 +84,7 @@ Document "utop-api"
 # +-------------------------------------------------------------------+
 
 Document "utop-man"
-  Type: custom (0.2)
+  Type: custom (0.3)
   Title: Man page for utop
   Install: true
   BuildTools: gzip
@@ -94,7 +94,7 @@ Document "utop-man"
   InstallDir: $mandir/man1
 
 Document "utoprc-man"
-  Type: custom (0.2)
+  Type: custom (0.3)
   Title: Man page for utoprc
   Install: true
   BuildTools: gzip
@@ -108,7 +108,7 @@ Document "utoprc-man"
 # +-------------------------------------------------------------------+
 
 Document "utoprcs"
-  Type: custom (0.2)
+  Type: custom (0.3)
   Title: utoprc examples
   XCustom: true
   Install: true
