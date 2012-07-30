@@ -1,13 +1,26 @@
-===== 1.1+dev =====
+===== 1.2 (2012-07-30) =====
 
-  * improve emacs mode
-    - add a menu
-  * improve tuareg integration
-  * add typerex integration
-  * better handling of error messages
-  * better handling of multiline input in the terminal
-  * add loading findlib package from list menu
-  * add loading packages from file variable utop-package-list
+  * ocaml 4.00 compatibility
+  * prevent findlib from being initialized twice
+  * better highlighting of errors
+  * automatically insert Lwt_main.run for
+    toplevel expressions of type 'a Lwt.t
+  * better camlp4 support
+    ** parse quotations and antiquotations to
+       handle completion inside them
+    ** better support revised syntax
+  * emacs mode improvements
+    ** various fixes
+    ** highlight errors
+    ** add a menu
+    ** add interactive list of findlib packages
+    ** better tuareg integration
+    ** typerex integration
+    ** allow to complete using the toplevel environment
+       in a tuareg buffer
+    ** allow to change the utop command
+    ** use the same history as the terminal mode
+    ** follow output of ocaml
 
 ===== 1.1 (2010-08-06) =====
 
