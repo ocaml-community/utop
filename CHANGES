@@ -1,3 +1,8 @@
+===== 1.2.1 (2012-07-31) =====
+
+  * fix: do not expunge Toploop
+  * install a non-expunged version of utop: utop-full
+
 ===== 1.2 (2012-07-30) =====
 
   * ocaml 4.00 compatibility
