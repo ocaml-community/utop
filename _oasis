@@ -65,6 +65,14 @@ Executable utop
   BuildDepends: utop, findlib, lambda-term, lwt.syntax, threads
   DataFiles: utop.el ($datadir/emacs/site-lisp)
 
+Executable "utop-full"
+  Install: true
+  Path: src/top
+  CompiledObject: byte
+  MainIs: uTop_top_full.ml
+  BuildDepends: utop, findlib, lambda-term, lwt.syntax, threads
+  DataFiles: utop.el ($datadir/emacs/site-lisp)
+
 # +-------------------------------------------------------------------+
 # | Doc                                                               |
 # +-------------------------------------------------------------------+
@@ -91,6 +99,16 @@ Document "utop-man"
   XCustom: $gzip -c man/utop.1 > man/utop.1.gz
   XCustomClean: $rm man/utop.1.gz
   DataFiles: man/utop.1.gz
+  InstallDir: $mandir/man1
+
+Document "utop-full-man"
+  Type: custom (0.3)
+  Title: Man page for utop
+  Install: true
+  BuildTools: gzip
+  XCustom: $gzip -c man/utop-full.1 > man/utop-full.1.gz
+  XCustomClean: $rm man/utop-full.1.gz
+  DataFiles: man/utop-full.1.gz
   InstallDir: $mandir/man1
 
 Document "utoprc-man"

@@ -54,9 +54,9 @@ let () =
 
              (* Expunge compiler modules *)
              rule "toplevel expunge"
-               ~dep:"%.top"
-               ~prod:"%.byte"
-               (fun env _ ->
+               ~dep:"src/top/uTop_top.top"
+               ~prod:"src/top/uTop_top.byte"
+               (fun _ _ ->
                   (* Build the list of explicit dependencies. *)
                   let packages =
                     Tags.fold
@@ -65,7 +65,7 @@ let () =
                            String.after tag 4 :: packages
                          else
                            packages)
-                      (tags_of_pathname (env "%.byte"))
+                      (tags_of_pathname "src/top/uTop_top.byte")
                       []
                   in
                   (* Build the list of dependencies. *)
@@ -93,8 +93,13 @@ let () =
                   let modules = StringSet.add "Toploop" modules in
                   let modules = StringSet.add "Topmain" modules in
                   Cmd (S [A (stdlib / "expunge");
-                          A (env "%.top");
-                          A (env "%.byte");
-                          A "UTop"; A "UTop_private"; S(List.map (fun x -> A x) (StringSet.elements modules))]))
+                          A "src/top/uTop_top.top";
+                          A "src/top/uTop_top.byte";
+                          A "UTop"; A "UTop_private"; S(List.map (fun x -> A x) (StringSet.elements modules))]));
+
+             rule "full toplevel (not expunged)"
+               ~dep:"src/top/uTop_top.top"
+               ~prod:"src/top/uTop_top_full.byte"
+               (fun _ _ -> cp "src/top/uTop_top.top" "src/top/uTop_top_full.byte")
          | _ ->
              ())
