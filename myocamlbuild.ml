@@ -89,6 +89,9 @@ let () =
                            (Array.to_list (Pathname.readdir directory)))
                       directories StringSet.empty
                   in
+                  (* These are not in the stdlib path since 4.00 *)
+                  let modules = StringSet.add "Toploop" modules in
+                  let modules = StringSet.add "Topmain" modules in
                   Cmd (S [A (stdlib / "expunge");
                           A (env "%.top");
                           A (env "%.byte");
