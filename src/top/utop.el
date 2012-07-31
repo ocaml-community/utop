@@ -1002,8 +1002,8 @@ defaults to 0."
   "Perform actions defined by local variables"
   (when utop-ocaml-preprocessor
     (with-current-buffer (utop))
-    (utop-eval-string (format "#%s" utop-ocaml-preprocessor)))
-    (message (format "uTop: %s preprocessor loaded" utop-ocaml-preprocessor))
+    (utop-eval-string (format "#%s" utop-ocaml-preprocessor))
+    (message (format "uTop: %s OCaml preprocessor loaded" utop-ocaml-preprocessor)))
   (utop-query-load-package-list))
 
 ;; +-----------------------------------------------------------------+
