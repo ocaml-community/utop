@@ -79,6 +79,11 @@ This hook is only run if exiting actually kills the buffer."
   :type 'hook
   :group 'utop)
 
+(defcustom utop-load-packages-without-asking nil
+  "Load packages from file local variables without asking"
+  :type 'boolean
+  :group 'utop)
+
 (defface utop-prompt
   '((((background dark)) (:foreground "Cyan1"))
     (((background light)) (:foreground "blue")))
@@ -821,6 +826,8 @@ To automatically do that just add these lines to your .emacs:
   ;; Redefine this variable so menu will work
   (set (utop-choose "interactive-buffer-name") utop-buffer-name)
   (make-local-variable 'utop-package-list)
+  (make-local-variable 'utop-camlp)
+  (add-hook 'hack-local-variables-hook 'utop-query-load-package-list)
   nil)
 
 ;; +-----------------------------------------------------------------+
@@ -948,7 +955,8 @@ defaults to 0."
     (insert (elt cols 1) "\n")))
 
 (defun utop-load-package (package)
-  (when (y-or-n-p (format "Load package `%s'? " package))
+  (when (or utop-load-packages-without-asking
+            (y-or-n-p (format "Load package `%s'? " package)))
     ;; Load it
     (utop-send-command (format "require:%s\n" package))))
 
@@ -972,7 +980,8 @@ defaults to 0."
              (y-or-n-p
               "You've defined utop-package-list variable, but uTop toplevel is not running, would you like me to start the toplevel?"))
     (with-current-buffer (utop))
-    (mapc 'utop-load-package utop-package-list)))
+    (mapc 'utop-load-package utop-package-list)
+    (message "OCaml packages loaded by file local variables")))
 
 ;; +-----------------------------------------------------------------+
 ;; | Menu                                                            |

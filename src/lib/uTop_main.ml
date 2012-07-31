@@ -869,5 +869,5 @@ let main () =
     exit 2
 
 (* Local variables: *)
-(* utop-package-list: ("camomile" "lwt" "lwt.react" "lambda-term" "zed") *)
+(* utop-package-list: ("camlp4" "camomile" "lwt" "lwt.react" "lwt.syntax" "lambda-term" "zed") *)
 (* End: *)
