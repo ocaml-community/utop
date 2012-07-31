@@ -722,6 +722,20 @@ when byte-compiling."
         ;; Put it in utop mode
         (with-current-buffer buf (utop-mode)))))))
 
+(defun utop-eval-string (string)
+  (with-current-buffer utop-buffer-name
+    (cond
+     ((eq utop-state 'edit)
+      ;; Insert it at the end of the utop buffer
+      (goto-char (point-max))
+      (insert string)
+        ;; Send input to utop now, telling it to automatically add the
+      ;; phrase terminator
+      (utop-eval-input nil t nil))
+     ((eq utop-state 'wait)
+      ;; utop is starting, save the initial command to send
+      (setq utop-initial-command string)))))
+
 (defun utop-eval (start end)
   "Eval the given region in utop."
   ;; From tuareg
@@ -738,18 +752,7 @@ when byte-compiling."
            (utop-choose-call "skip-to-end-of-phrase")
            (setq end (point))
            (buffer-substring-no-properties start end))))
-    (with-current-buffer utop-buffer-name
-      (cond
-       ((eq utop-state 'edit)
-        ;; Insert it at the end of the utop buffer
-        (goto-char (point-max))
-        (insert text)
-        ;; Send input to utop now, telling it to automatically add the
-        ;; phrase terminator
-        (utop-eval-input nil t nil))
-       ((eq utop-state 'wait)
-        ;; utop is starting, save the initial command to send
-        (setq utop-initial-command text))))))
+    (utop-eval-string text)))
 
 (defun utop-eval-region (start end)
   "Eval the current region in utop."
