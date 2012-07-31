@@ -193,6 +193,10 @@ to add the newline character if it is not accepted).")
   "List of packages to load when visiting OCaml buffer.
 Useful as file variable.")
 
+(defvar utop-ocaml-preprocessor nil
+  "Name of preprocesor. Currently supported camlp4o, camlp4r.
+Useful as file variable.")
+
 ;; +-----------------------------------------------------------------+
 ;; | Compability                                                     |
 ;; +-----------------------------------------------------------------+
@@ -826,11 +830,19 @@ To automatically do that just add these lines to your .emacs:
   (utop-choose-defun "interrupt-caml" () (interactive) (utop-interrupt))
   (utop-choose-defun "kill-caml" () (interactive) (utop-kill))
   (utop-choose-defun "run-caml" () (interactive) (utop))
+
   ;; Redefine this variable so menu will work
   (set (utop-choose "interactive-buffer-name") utop-buffer-name)
+
+  ;; Package list for this file
   (make-local-variable 'utop-package-list)
-  (make-local-variable 'utop-camlp)
-  (add-hook 'hack-local-variables-hook 'utop-query-load-package-list)
+
+  ;; Preprocessor to use
+  (make-local-variable 'utop-ocaml-preprocessor)
+
+  ;; Load local file variables
+  (add-hook 'hack-local-variables-hook 'utop-hack-local-variables)
+
   nil)
 
 ;; +-----------------------------------------------------------------+
@@ -984,7 +996,15 @@ defaults to 0."
               "You've defined utop-package-list variable, but uTop toplevel is not running, would you like me to start the toplevel?"))
     (with-current-buffer (utop))
     (mapc 'utop-load-package utop-package-list)
-    (message "OCaml packages loaded by file local variables")))
+    (message "uTop: OCaml packages loaded by file local variables")))
+
+(defun utop-hack-local-variables ()
+  "Perform actions defined by local variables"
+  (when utop-ocaml-preprocessor
+    (with-current-buffer (utop))
+    (utop-eval-string (format "#%s" utop-ocaml-preprocessor)))
+    (message (format "uTop: %s preprocessor loaded" utop-ocaml-preprocessor))
+  (utop-query-load-package-list))
 
 ;; +-----------------------------------------------------------------+
 ;; | Menu                                                            |
