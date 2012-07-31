@@ -14,6 +14,8 @@
     ** highlight errors
     ** add a menu
     ** add interactive list of findlib packages
+    ** packages can be pre-loaded via the file variable
+       "utop-package-list"
     ** better tuareg integration
     ** typerex integration
     ** allow to complete using the toplevel environment
