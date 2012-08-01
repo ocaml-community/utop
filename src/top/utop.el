@@ -130,7 +130,7 @@ This hook is only run if exiting actually kills the buffer."
   (let ((map (make-sparse-keymap)))
     (define-key map [return] 'utop-eval-input-or-newline)
     (define-key map [(control ?m)] 'utop-eval-input-or-newline)
-    (define-key map [(control ?j)] 'utop-eval-input-or-newline)
+    (define-key map [(control ?j)] 'utop-eval-input-auto-end)
     (define-key map [home] 'utop-bol)
     (define-key map [(control ?a)] 'utop-bol)
     (define-key map [(meta ?p)] 'utop-history-goto-prev)
