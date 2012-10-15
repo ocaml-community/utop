@@ -227,6 +227,8 @@ let with_loc loc str = str
 #endif
 
 let longident_lwt_main_run = Longident.Ldot (Longident.Lident "Lwt_main", "run")
+let longident_async_main_run = Longident.parse "Async.Std.Thread_safe.block_on_async_exn"
+let longident_unit = Longident.Lident "()"
 
 let is_eval = function
   | { Parsetree.pstr_desc = Parsetree.Pstr_eval _ } -> true
@@ -238,6 +240,16 @@ let rec is_lwt_t typ =
         is_lwt_t typ
     | Types.Tconstr (Path.Pdot (Path.Pident id, "t", -1), _, _) ->
         Ident.persistent id && Ident.name id = "Lwt"
+    | _ ->
+        false
+
+let rec is_async_t typ =
+  match typ.Types.desc with
+    | Types.Tlink typ ->
+        is_async_t typ
+    | Types.Tconstr (path, _, _) ->
+        let n = Path.name path in
+        (n = "Async_core.Deferred.t") || (n = "Async.Std.Deferred.t")
     | _ ->
         false
 
@@ -280,6 +292,56 @@ let insert_lwt_main_run phrase =
                                   ({ Parsetree.pexp_desc = Parsetree.Pexp_ident (with_loc loc longident_lwt_main_run);
                                      Parsetree.pexp_loc = loc },
                                    [("", e)]);
+                              Parsetree.pexp_loc = loc;
+                            };
+                          Parsetree.pstr_loc = loc;
+                        }
+                    | _ ->
+                        pstr_item)
+               pstr tstr)
+        else
+          phrase
+    | Parsetree.Ptop_dir _ ->
+        phrase
+
+let insert_async_main_run phrase =
+  let wrap_unit loc e =
+    let open Parsetree in
+    let i = with_loc loc longident_unit in
+    let p = { ppat_desc = Ppat_construct (i, None, false); ppat_loc=loc } in
+    { pexp_desc=Pexp_function ("", None, [p,e]); pexp_loc=loc } in
+  match phrase with
+    | Parsetree.Ptop_def pstr ->
+        let env = !Toploop.toplevel_env in
+        let async_main_run_is_the_real_one =
+          try
+            let path, _ = Env.lookup_value longident_async_main_run env in
+            let rec is_persistent = function
+             | Path.Pident id -> Ident.persistent id
+             | Path.Pdot(t, _, _) -> is_persistent t
+             | Path.Papply(_, p) -> is_persistent p
+            in
+            is_persistent path
+          with Not_found ->
+            false
+        in
+        if async_main_run_is_the_real_one && List.exists is_eval pstr then
+          let tstr, _, _ = Typemod.type_structure env pstr Location.none in
+          let tstr = str_items_of_typed_structure tstr in
+          Parsetree.Ptop_def
+            (List.map2
+               (fun pstr_item tstr_item ->
+                  match pstr_item, str_desc_of_typed_str_item tstr_item with
+                    | { Parsetree.pstr_desc = Parsetree.Pstr_eval e; Parsetree.pstr_loc = loc },
+                      Typedtree.Tstr_eval { Typedtree.exp_type = typ } when is_async_t typ ->
+                        {
+                          Parsetree.pstr_desc =
+                            Parsetree.Pstr_eval {
+                              Parsetree.pexp_desc =
+                                Parsetree.Pexp_apply
+                                  ({ Parsetree.pexp_desc = Parsetree.Pexp_ident (with_loc loc longident_async_main_run);
+                                     Parsetree.pexp_loc = loc },
+                                   [("", (wrap_unit loc e))]);
                               Parsetree.pexp_loc = loc;
                             };
                           Parsetree.pstr_loc = loc;
@@ -345,6 +407,8 @@ let rec loop term =
     | Some phrase ->
         (* Add Lwt_main.run to toplevel evals. *)
         let phrase = if UTop.get_auto_run_lwt () then insert_lwt_main_run phrase else phrase in
+        (* Add Async execution to toplevel evals. *)
+        let phrase = if UTop.get_auto_run_async () then insert_async_main_run phrase else phrase in
         (* Set the margin of standard formatters. *)
         let cols = (LTerm.size term).cols in
         update_margin Format.std_formatter cols;
@@ -564,6 +628,7 @@ module Emacs(M : sig end) = struct
           if add_to_history then LTerm_history.add UTop.history input;
           (* Add Lwt_main.run to toplevel evals. *)
           let phrase = if UTop.get_auto_run_lwt () then insert_lwt_main_run phrase else phrase in
+          let phrase = if UTop.get_auto_run_async () then insert_async_main_run phrase else phrase in
           try
             ignore (Toploop.execute_phrase true Format.std_formatter phrase)
           with exn ->

@@ -88,6 +88,28 @@ val get_auto_run_lwt : unit -> bool
 val set_auto_run_lwt : bool -> unit
   (** Modifies {!auto_run_lwt}. *)
 
+val auto_run_async : bool signal
+  (** If [true] (the default) toplevel Async expressions are
+      automatically run with in a separate thread with 
+      [Thread_safe.block_on_async_exn]. i.e. if you type:
+
+      {[
+        after (Time.Span.of_s 1.0)
+      ]}
+
+      this will be replaced by:
+
+      {[
+        Thread_safe.block_on_async_exn (fun () -> after (Time.Span.of_s 1.0))
+      ]}
+  *)
+
+val get_auto_run_async : unit -> bool
+  (** Returns the value of {!auto_run_async}. *)
+
+val set_auto_run_async : bool -> unit
+  (** Modifies {!auto_run_async}. *)
+
 (** {6 History} *)
 
 val history : LTerm_history.t
