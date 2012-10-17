@@ -12,6 +12,7 @@ Authors: Jérémie Dimino
 Homepage: http://utop.forge.ocamlcore.org/
 BuildTools: ocamlbuild
 Plugins: DevFiles (0.3), META (0.3)
+XDevFilesEnableMakefile: false
 FilesAB: src/lib/uTop_version.ml.ab
 Synopsis: Universal toplevel for OCaml
 Description:
