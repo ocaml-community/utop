@@ -1,0 +1,38 @@
+#!/bin/bash
+#
+# dist
+# ----
+# Copyright : (c) 2012, Jeremie Dimino <jeremie@dimino.org>
+# Licence   : BSD3
+#
+# Script to build the release
+
+set -e
+
+# Extract project parameters from _oasis
+NAME=`oasis query Name 2> /dev/null`
+VERSION=`oasis query Version 2> /dev/null`
+PREFIX=$NAME-$VERSION
+ARCHIVE=$(pwd)/$PREFIX.tar.gz
+
+# Temporary directory
+DIR=$(mktemp -t -d dist.XXXXXXXXXX)
+trap "rm -rf $DIR" EXIT
+
+# Copy files into the temporary directory
+git archive --format=tar --prefix $NAME-$VERSION/ HEAD | tar xf - -C $DIR
+
+cd $DIR/$PREFIX
+
+# Generate files
+oasis setup
+
+# Set release mode in the Makefile
+sed -i 's/^SETUP := setup-dev.exe.*/SETUP := setup.exe/' Makefile
+
+# Remove this script
+rm -f dist
+
+# Create the archive
+cd ..
+tar czf $ARCHIVE $PREFIX

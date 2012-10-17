@@ -137,6 +137,6 @@ Document "utoprcs"
 # +-------------------------------------------------------------------+
 
 SourceRepository head
-  Type: darcs
-  Location: http://darcs.ocamlcore.org/repos/utop
-  Browser: http://darcs.ocamlcore.org/cgi-bin/darcsweb.cgi?r=utop;a=summary
+  Type: git
+  Location: https://github.com/diml/utop.git
+  Browser: https://github.com/diml/utop

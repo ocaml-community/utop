@@ -1,0 +1,8 @@
+_build/
+/utop-*.tar.gz
+/setup.data
+/setup.log
+/setup.exe
+/setup-dev.exe
+/man/*.gz
+/src/lib/uTop_version.ml
