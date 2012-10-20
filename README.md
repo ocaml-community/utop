@@ -33,7 +33,7 @@ already installed, for previous versions:
 Installation
 ------------
 
-To build and install Lambda-Term:
+To build and install utop:
 
     $ ./configure
     $ make
