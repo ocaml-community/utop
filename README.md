@@ -142,3 +142,6 @@ For example:
 Note that if you are not using ocamlfind, you will need to do that
 yourself. You have to call `Topfind.don't_load` with the list of all
 packages linked with the toplevel.
+
+A full example using ocamlbuild is provided in the
+[examples/custom-utop]() directory.
