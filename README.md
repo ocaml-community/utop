@@ -102,3 +102,43 @@ mode by utop, for that add the following lines to your `~/.emacs` file:
 You can also complete text in a tuareg or typerex buffer using the
 environment of the toplevel. For that bind the function
 `utop-edit-complete` to the key you want.
+
+Creating a custom utop-enabled toplevel
+---------------------------------------
+
+If you want to create a custom toplevel with utop instead of the
+classic one you need to link it with utop and its dependencies and
+call `UTop_main.main` in the last linked unit. You also need to pass
+the `-thread` switch when linking the toplevel.
+
+The easiest way to do that is by using ocamlfind:
+
+    $ ocamlfind ocamlmktop -o myutop -thread -linkpkg -package utop myutop_main.cmo
+
+Where `myutop_main.ml` contains:
+
+```ocaml
+let () = UTop_main.main ()
+```
+
+You can also use the `ocamlc` sub-command instead of `ocamlmktop`, in
+this case you need to pass these thee extra arguments:
+
+* `-linkall` to be sure all units are linked into the produced toplevel
+* `-package compiler-libs.toplevel`
+* `-predicates create_toploop`
+
+With the last option ocamlfind will generate a small ocaml unit,
+linked just before `myutop_main.cmo`, which will register at startup
+packages already linked in the toplevel so they are not loaded again
+by the `#require` directive. It does the same with the `ocamlmktop`
+sub-command.
+
+For example:
+
+    $ camlfind ocamlc -o myutop -thread -linkpkg -linkall -predicates create_toploop \
+        -package compiler-libs.toplevel,utop myutop.cmo
+
+Note that if you are not using ocamlfind, you will need to do that
+yourself. You have to call `Topfind.don't_load` with the list of all
+packages linked with the toplevel.
