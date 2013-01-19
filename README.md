@@ -7,6 +7,17 @@ sensitive completion, colors, and more.
 
 It integrates with the tuareg and typerex modes in Emacs.
 
+Installation via opam
+---------------------
+
+The easiest and recommended way of installing utop is via
+[opam](http://opam.ocamlpro.com/):
+
+    $ opam install utop
+
+If you want to build it manually, you should install all the
+dependencies listed in the next section.
+
 Dependencies
 ------------
 
@@ -30,8 +41,8 @@ already installed, for previous versions:
 * if you installed ocaml by hand, you can run the script
   `utils/install-compiler-libs.sh`.
 
-Installation
-------------
+Installation from sources
+-------------------------
 
 To build and install utop:
 
