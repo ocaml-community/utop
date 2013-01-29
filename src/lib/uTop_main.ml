@@ -834,6 +834,9 @@ let args = Arg.align [
   "-nolabels", Arg.Set Clflags.classic, " Ignore non-optional labels in types";
   "-nostdlib", Arg.Set Clflags.no_std_include, " Do not add default directory to the list of include directories";
   "-principal", Arg.Set Clflags.principal, " Check principality of type inference";
+#if ocaml_version >= (4, 01, 0)
+  "-short-paths", Arg.Clear Clflags.real_paths, " Shorten paths in types";
+#endif
   "-rectypes", Arg.Set Clflags.recursive_types, " Allow arbitrary recursive types";
   "-stdin", Arg.Unit read_script_from_stdin, " Read script from standard input";
   "-strict-sequence", Arg.Set Clflags.strict_sequence, " Left-hand part of a sequence must have type unit";
