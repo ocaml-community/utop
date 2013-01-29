@@ -835,7 +835,8 @@ let args = Arg.align [
   "-nostdlib", Arg.Set Clflags.no_std_include, " Do not add default directory to the list of include directories";
   "-principal", Arg.Set Clflags.principal, " Check principality of type inference";
 #if ocaml_version >= (4, 01, 0)
-  "-short-paths", Arg.Clear Clflags.real_paths, " Shorten paths in types";
+  "-short-paths", Arg.Clear Clflags.real_paths, " Shorten paths in types (the default)";
+  "-no-short-paths", Arg.Set Clflags.real_paths, " Do not shorten paths in types";
 #endif
   "-rectypes", Arg.Set Clflags.recursive_types, " Allow arbitrary recursive types";
   "-stdin", Arg.Unit read_script_from_stdin, " Read script from standard input";
@@ -862,6 +863,10 @@ let args = Arg.align [
   "-warn-help", Arg.Unit Warnings.help_warnings, " Show description of warning numbers";
   "-emacs", Arg.Set emacs_mode, " Run in emacs mode";
 ]
+
+#if ocaml_version >= (4, 01, 0)
+let () = Clflags.real_paths := false
+#endif
 
 let app_name = Filename.basename Sys.executable_name
 let usage = Printf.sprintf "Usage: %s <options> <object-files> [script-file [arguments]]\noptions are:" app_name
