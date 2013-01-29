@@ -1,3 +1,10 @@
+1.3 (2013-01-29)
+------------------
+
+* allow to automatically wait for ascync deferred values
+* added the `-short-paths` options for OCaml >= 4.01.0
+  (and make it the default)
+
 1.2.1 (2012-07-31)
 ------------------
 
