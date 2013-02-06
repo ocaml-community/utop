@@ -946,7 +946,10 @@ let args = Arg.align [
     \     Default setting is %S" Warnings.defaults_warn_error;
   "-warn-help", Arg.Unit Warnings.help_warnings, " Show description of warning numbers";
   "-emacs", Arg.Set emacs_mode, " Run in emacs mode";
-  "-hide-reserved", Arg.Bool UTop.set_hide_reserved, " Hide identifiers starting with a '_'";
+  "-hide-reserved", Arg.Unit (fun () -> UTop.set_hide_reserved true),
+  " Hide identifiers starting with a '_' (the default)";
+  "-show-reserved", Arg.Unit (fun () -> UTop.set_hide_reserved false),
+  " Show identifiers starting with a '_'";
 ]
 
 #if ocaml_version >= (4, 01, 0)

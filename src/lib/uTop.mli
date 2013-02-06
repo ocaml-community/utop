@@ -38,7 +38,7 @@ val hide_reserved : bool signal
       ]}
 
       This is for hidding variables created by code generators for internal use. It can
-      also be set by the command line option [-hide-reserved].
+      also be set/unset by the command line options [-hide-reserved] and [-show-reserved].
   *)
 
 val get_hide_reserved : unit -> bool
