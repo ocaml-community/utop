@@ -29,6 +29,24 @@ type ui = Console | Emacs
 val get_ui : unit -> ui
   (** Returns the user interface in use. *)
 
+val hide_reserved : bool signal
+  (** If [true] (the default) identifiers starting with a '_' will be hidden from the
+      output. i.e. the following phrase won't produces any output:
+
+      {[
+        let _x = 1
+      ]}
+
+      This is for hidding variables created by code generators for internal use. It can
+      also be set by the command line option [-hide-reserved].
+  *)
+
+val get_hide_reserved : unit -> bool
+  (** Returns the value of {!hide_reserved}. *)
+
+val set_hide_reserved : bool -> unit
+  (** Modifies {!hide_reserved}. *)
+
 (** Syntax. *)
 type syntax =
   | Normal
@@ -90,7 +108,7 @@ val set_auto_run_lwt : bool -> unit
 
 val auto_run_async : bool signal
   (** If [true] (the default) toplevel Async expressions are
-      automatically run with in a separate thread with 
+      automatically run with in a separate thread with
       [Thread_safe.block_on_async_exn]. i.e. if you type:
 
       {[

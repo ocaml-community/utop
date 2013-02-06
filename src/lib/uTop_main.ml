@@ -201,7 +201,7 @@ let fix_string str =
     loop ofs
   end
 
-let print_out_phrase term string =
+let render_out_phrase term string =
   let string = fix_string string in
   let styled = LTerm_text.of_string string in
   let stylise loc token_style =
@@ -212,6 +212,90 @@ let print_out_phrase term string =
   in
   UTop_styles.stylise stylise (UTop_lexer.lex_string (UTop.get_syntax ()) string);
   Lwt_main.run (LTerm.fprints term styled)
+
+let orig_print_out_signature = !Toploop.print_out_signature
+let orig_print_out_phrase = !Toploop.print_out_phrase
+
+let rec map_items unwrap wrap items =
+  match items with
+  | [] ->
+    []
+  | item :: items ->
+    let sig_item, _ = unwrap item in
+    let name, rec_status =
+      match sig_item with
+      | Outcometree.Osig_class (_, name, _, _, rs)
+      | Outcometree.Osig_class_type (_, name, _, _, rs)
+      | Outcometree.Osig_module (name, _, rs)
+      | Outcometree.Osig_type ((name, _, _, _, _), rs) ->
+        (name, rs)
+      | Outcometree.Osig_exception (name, _)
+      | Outcometree.Osig_modtype (name, _)
+      | Outcometree.Osig_value (name, _, _) ->
+        (name, Outcometree.Orec_not)
+    in
+    let keep = name = "" || name.[0] <> '_' in
+    if keep then
+      item :: map_items unwrap wrap items
+    else
+      (* Replace the [Orec_next] at the head of items by [Orec_first] *)
+      let items =
+        match items with
+        | [] ->
+          []
+        | item :: items' ->
+          let sig_item, extra = unwrap item in
+          match sig_item with
+          | Outcometree.Osig_class (a, name, b, c, rs) ->
+            if rs = Outcometree.Orec_next then
+              wrap (Outcometree.Osig_class (a, name, b, c, Outcometree.Orec_first)) extra :: items'
+            else
+              items
+          | Outcometree.Osig_class_type (a, name, b, c, rs) ->
+            if rs = Outcometree.Orec_next then
+              wrap (Outcometree.Osig_class_type (a, name, b, c, Outcometree.Orec_first)) extra :: items'
+            else
+              items
+          | Outcometree.Osig_module (name, a, rs) ->
+            if rs = Outcometree.Orec_next then
+              wrap (Outcometree.Osig_module (name, a, Outcometree.Orec_first)) extra :: items'
+            else
+              items
+          | Outcometree.Osig_type ((name, a, b, c, d), rs) ->
+            if rs = Outcometree.Orec_next then
+              wrap (Outcometree.Osig_type ((name, a, b, c, d), Outcometree.Orec_first)) extra :: items'
+            else
+              items
+          | Outcometree.Osig_exception _
+          | Outcometree.Osig_modtype _
+          | Outcometree.Osig_value _ ->
+            items
+      in
+      map_items unwrap wrap items
+
+let print_out_signature pp items =
+  if UTop.get_hide_reserved () then
+    orig_print_out_signature pp (map_items (fun x -> (x, ())) (fun x () -> x) items)
+  else
+    orig_print_out_signature pp items
+
+let print_out_phrase pp phrase =
+  if UTop.get_hide_reserved () then
+    let phrase =
+      match phrase with
+      | Outcometree.Ophr_eval _
+      | Outcometree.Ophr_exception _ ->
+        phrase
+      | Outcometree.Ophr_signature items ->
+        Outcometree.Ophr_signature (map_items (fun x -> x) (fun x y -> (x, y)) items)
+    in
+    orig_print_out_phrase pp phrase
+  else
+    orig_print_out_phrase pp phrase
+
+let () =
+  Toploop.print_out_signature := print_out_signature;
+  Toploop.print_out_phrase := print_out_phrase
 
 (* +-----------------------------------------------------------------+
    | Toplevel expression rewriting                                   |
@@ -459,7 +543,7 @@ let rec loop term =
            match phrase with
              | Parsetree.Ptop_def _ ->
                  (* The string is an output phrase, colorize it. *)
-                 print_out_phrase term string
+                 render_out_phrase term string
              | Parsetree.Ptop_dir _ ->
                  (* The string is an error message. *)
                  Lwt_main.run (print_error term string)
@@ -862,6 +946,7 @@ let args = Arg.align [
     \     Default setting is %S" Warnings.defaults_warn_error;
   "-warn-help", Arg.Unit Warnings.help_warnings, " Show description of warning numbers";
   "-emacs", Arg.Set emacs_mode, " Run in emacs mode";
+  "-hide-reserved", Arg.Bool UTop.set_hide_reserved, " Hide identifiers starting with a '_'";
 ]
 
 #if ocaml_version >= (4, 01, 0)
