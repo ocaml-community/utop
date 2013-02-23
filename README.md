@@ -114,6 +114,18 @@ You can also complete text in a tuareg or typerex buffer using the
 environment of the toplevel. For that bind the function
 `utop-edit-complete` to the key you want.
 
+Common error
+------------
+
+If you get this error when running utop in a terminal or in emacs this
+means that the environment variable `CAML_LD_LIBRARY_PATH` is not set
+correctly:
+
+    Fatal error: cannot load shared library dlllwt-unix_stubs
+    Reason: dlopen(dlllwt-unix_stubs.so, 138): image not found
+
+It shall point to the directory `stublibs` inside your ocaml installation.
+
 Creating a custom utop-enabled toplevel
 ---------------------------------------
 
