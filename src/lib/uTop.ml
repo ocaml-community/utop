@@ -566,6 +566,53 @@ let () =
        (fun () -> set_syntax Camlp4r))
 
 (* +-----------------------------------------------------------------+
+   | Findlib "require" wrapper                                       |
+   +-----------------------------------------------------------------+ *)
+
+let split_words str =
+  let len = String.length str in
+  let is_sep = function
+    | ' ' | '\t' | '\r' | '\n' | ',' -> true
+    | _ -> false
+  in
+  let rec skip i =
+    if i = len then
+      []
+    else
+      if is_sep str.[i] then
+        skip (i + 1)
+      else
+        extract i (i + 1)
+  and extract i j =
+    if j = len then
+      [String.sub str i (j - i)]
+    else
+      if is_sep str.[j] then
+        String.sub str i (j - i) :: skip (i + 1)
+      else
+        extract i (j + 1)
+  in
+  skip 0
+
+let require packages =
+  try
+    let eff_packages = Findlib.package_deep_ancestors !Topfind.predicates packages in
+    if get_syntax () = Normal && List.mem "camlp4" eff_packages then begin
+      set_syntax Camlp4o;
+      Topfind.load_deeply packages
+    end else
+      Topfind.load eff_packages
+  with exn ->
+    handle_findlib_error exn
+
+let () =
+  Hashtbl.add
+    Toploop.directive_table
+    "require"
+    (Toploop.Directive_string
+       (fun str -> require (split_words str)))
+
+(* +-----------------------------------------------------------------+
    | Initialization                                                  |
    +-----------------------------------------------------------------+ *)
 
