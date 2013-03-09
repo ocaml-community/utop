@@ -50,17 +50,17 @@ let parse_toplevel_phrase_camlp4 str eos_is_error =
   Register.iter_and_take_callbacks (fun (_, f) -> f ());
   let eof = ref false in
   try
-    let token_stream = Gram.filter (Gram.lex_string (Loc.mk UTop.input_name) str) in
-    let token_stream =
+    let len = String.length str in
+    let char_stream =
       Stream.from
-        (fun _ ->
-           match Stream.next token_stream with
-             | (EOI, _) as x ->
-                 eof := true;
-                 Some x
-             | x ->
-                 Some x)
+        (fun i ->
+          if i >= len then begin
+            eof := true;
+            None
+          end else
+            Some str.[i])
     in
+    let token_stream = Gram.filter (Gram.lex (Loc.mk UTop.input_name) char_stream) in
     match Gram.parse_tokens_after_filter Syntax.top_phrase token_stream with
       | Some ast ->
           let ast = AstFilters.fold_topphrase_filters (fun t filter -> filter t) ast in
