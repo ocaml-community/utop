@@ -1,5 +1,15 @@
+1.4 (2013-03-09)
+----------------
+
+* hide identifiers starting with `_`. This can be disabled with
+  `UTop.set_hide_reserved false`.
+* automatically load camlp4 parsing (with original syntax) when
+  trying to load a syntax extension
+* fix a small bug when using camlp4, causing an exception to be raised
+  when pressing `Enter` in the middle of a comment
+
 1.3 (2013-01-29)
-------------------
+----------------
 
 * allow to automatically wait for ascync deferred values
 * added the `-short-paths` options for OCaml >= 4.01.0
