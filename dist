@@ -15,24 +15,22 @@ VERSION=`oasis query Version 2> /dev/null`
 PREFIX=$NAME-$VERSION
 ARCHIVE=$(pwd)/$PREFIX.tar.gz
 
-# Temporary directory
-DIR=$(mktemp -t -d dist.XXXXXXXXXX)
-trap "rm -rf $DIR" EXIT
-
-# Copy files into the temporary directory
-git archive --format=tar --prefix $NAME-$VERSION/ HEAD | tar xf - -C $DIR
-
-cd $DIR/$PREFIX
+# Create a branch for the release
+git checkout -b release-$VERSION
 
 # Generate files
 oasis setup
 
 # Set release mode in the Makefile
-sed -i 's/^SETUP := setup-dev.exe.*/SETUP := setup.exe/' Makefile
+sed 's/^SETUP := setup-dev.exe.*/SETUP := setup.exe/' Makefile > Makefile.new
+mv Makefile.new Makefile
 
 # Remove this script
 rm -f dist
 
-# Create the archive
-cd ..
-tar czf $ARCHIVE $PREFIX
+# Commit
+git add --all --force
+git commit -m "prepare release"
+git tag $VERSION
+
+git checkout master
