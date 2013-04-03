@@ -807,7 +807,7 @@ module Emacs(M : sig end) = struct
                 | None ->
                   let success = process_checked_phrase phrase in
                   if success then
-                    loop phrases
+                    loop more_phrases
                   else
                     ()
               end
@@ -854,7 +854,7 @@ module Emacs(M : sig end) = struct
             loop_commands history_prev history_next
           else
             loop ()
-      | Some ("input-multi", arg) ->
+      | Some ("input-multi", _) ->
           let continue =
             try
               process_input_multi ();
