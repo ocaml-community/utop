@@ -151,6 +151,9 @@ This hook is only run if exiting actually kills the buffer."
 (defvar utop-prompt-max 0
   "The point at the end of the current prompt.")
 
+(defvar utop-input-prompt-max 0
+  "The point at the end of the last input prompt.")
+
 (defvar utop-output ""
   "The output of the utop sub-process not yet processed.")
 
@@ -319,6 +322,7 @@ it is started."
 (defun utop-send-data (cmd)
   "Send current input to utop"
   (let ((lines (split-string (buffer-substring-no-properties utop-prompt-max (point-max)) "\n")))
+    (setq utop-input-prompt-max utop-prompt-max)
     ;; Send all lines to utop
     (utop-send-string cmd)
     (while lines
@@ -550,8 +554,8 @@ it is started."
         (while offsets
           (let ((a (string-to-number (car offsets)))
                 (b (string-to-number (cadr offsets))))
-            (add-text-properties (min (point-max) (+ utop-prompt-max a))
-                                 (min (point-max) (+ utop-prompt-max b))
+            (add-text-properties (min (point-max) (+ utop-input-prompt-max a))
+                                 (min (point-max) (+ utop-input-prompt-max b))
                                  '(face utop-error))
             (setq offsets (cdr (cdr offsets))))))
       ;; Make everything read-only
@@ -1112,6 +1116,7 @@ defaults to 0."
   ;; Reset variables
   (setq utop-prompt-min (point-max))
   (setq utop-prompt-max (point-max))
+  (setq utop-input-prompt-max (point-max))
   (setq utop-output "")
   (setq utop-command-number 0)
   (setq utop-completion nil)
@@ -1147,6 +1152,7 @@ defaults to 0."
   (make-local-variable 'utop-process)
   (make-local-variable 'utop-prompt-min)
   (make-local-variable 'utop-prompt-max)
+  (make-local-variable 'utop-input-prompt-max)
   (make-local-variable 'utop-last-prompt)
   (make-local-variable 'utop-output)
   (make-local-variable 'utop-command-number)
