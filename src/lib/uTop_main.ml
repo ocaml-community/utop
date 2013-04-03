@@ -72,12 +72,12 @@ let convert_locs str locs = List.map (fun (a, b) -> (index_of_offset str a, inde
    | The read-line class                                             |
    +-----------------------------------------------------------------+ *)
 
-let parse_and_check input eos_is_error =
+let parse_and_check parse input eos_is_error =
   let buf = Buffer.create 32 in
   let result =
     UTop.collect_formatters buf [Format.err_formatter]
       (fun () ->
-         match !UTop.parse_toplevel_phrase input eos_is_error with
+         match parse input eos_is_error with
            | UTop.Error (locs, msg) ->
                UTop.Error (convert_locs input locs, "Error: " ^ msg ^ "\n")
            | UTop.Value phrase ->
@@ -113,7 +113,7 @@ class read_phrase ~term = object(self)
         (* Toploop does that: *)
         Location.reset ();
         try
-          let result = parse_and_check input false in
+          let result = parse_and_check !UTop.parse_toplevel_phrase input false in
           return_value <- Some result;
           LTerm_history.add UTop.history input;
           return result
@@ -733,7 +733,7 @@ module Emacs(M : sig end) = struct
 
   let process_input add_to_history eos_is_error =
     let input = read_data () in
-    let result, warnings = parse_and_check input eos_is_error in
+    let result, warnings = parse_and_check !UTop.parse_toplevel_phrase input eos_is_error in
     match result with
       | UTop.Value phrase -> begin
           send "accept" "";
