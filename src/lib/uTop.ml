@@ -381,7 +381,7 @@ let make_prompt ui profile count size key_sequence (recording, macro_count, macr
             B_fg (rgb 0xe3 0xaa 0x73);
             S "utop";
             B_fg (color lgreen green);
-            S " $ ";
+            S " # ";
           ]
         in
         Array.append (
