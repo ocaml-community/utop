@@ -8,7 +8,8 @@ Name: utop
 Version: 1.4
 LicenseFile: LICENSE
 License: BSD3
-Authors: Jérémie Dimino
+Authors: Jeremie Dimino
+Maintainers: Jeremie Dimino <jeremie@dimino.org>
 Homepage: http://utop.forge.ocamlcore.org/
 BuildTools: ocamlbuild
 Plugins: DevFiles (0.3), META (0.3)
