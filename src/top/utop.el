@@ -151,6 +151,9 @@ This hook is only run if exiting actually kills the buffer."
 (defvar utop-prompt-max 0
   "The point at the end of the current prompt.")
 
+(defvar utop-input-prompt-max 0
+  "The point at the end of the last input prompt.")
+
 (defvar utop-output ""
   "The output of the utop sub-process not yet processed.")
 
@@ -178,6 +181,9 @@ before the end of prompt.")
 
 (defvar utop-initial-command nil
   "Initial phrase to evaluate.")
+
+(defvar utop-initial-mode nil
+  "Mode to evaluate utop-initial-command in (nil or :multi).")
 
 (defvar utop-phrase-terminator ";;"
   "The OCaml phrase terminator.")
@@ -319,6 +325,7 @@ it is started."
 (defun utop-send-data (cmd)
   "Send current input to utop"
   (let ((lines (split-string (buffer-substring-no-properties utop-prompt-max (point-max)) "\n")))
+    (setq utop-input-prompt-max utop-prompt-max)
     ;; Send all lines to utop
     (utop-send-string cmd)
     (while lines
@@ -537,7 +544,8 @@ it is started."
           (goto-char (point-max))
           (insert utop-initial-command)
           (setq utop-initial-command nil)
-          (utop-eval-input nil t nil))))
+          (utop-eval-input nil t nil utop-initial-mode)
+          (setq utop-initial-mode nil))))
      ;; Input has been accepted
      ((string= command "accept")
       ;; Add a newline character at the end of the buffer
@@ -550,7 +558,9 @@ it is started."
         (while offsets
           (let ((a (string-to-number (car offsets)))
                 (b (string-to-number (cadr offsets))))
-            (add-text-properties (+ utop-prompt-max a) (+ utop-prompt-max b) '(face utop-error))
+            (add-text-properties (min (point-max) (+ utop-input-prompt-max a))
+                                 (min (point-max) (+ utop-input-prompt-max b))
+                                 '(face utop-error))
             (setq offsets (cdr (cdr offsets))))))
       ;; Make everything read-only
       (add-text-properties (point-min) (point-max) utop-non-editable-properties)
@@ -633,7 +643,7 @@ it is started."
 ;; | Sending data to the utop sub-process                            |
 ;; +-----------------------------------------------------------------+
 
-(defun utop-eval-input (&optional allow-incomplete auto-end add-to-history)
+(defun utop-eval-input (&optional allow-incomplete auto-end add-to-history input-multi)
   "Send the current input to the utop process and let ocaml
 evaluate it.
 
@@ -666,6 +676,8 @@ If ADD-TO-HISTORY is t then the input will be added to history."
       (utop-set-state 'wait)
       (utop-send-data
        (cond
+        ((eq input-multi :multi)
+         "input-multi:\n")
         ((and allow-incomplete (not auto-end) add-to-history)
          "input:allow-incomplete,add-to-history\n")
         (add-to-history
@@ -771,21 +783,22 @@ when byte-compiling."
         ;; Put it in utop mode
         (with-current-buffer buf (utop-mode)))))))
 
-(defun utop-eval-string (string)
+(defun utop-eval-string (string &optional mode)
   (with-current-buffer utop-buffer-name
     (cond
      ((eq utop-state 'edit)
       ;; Insert it at the end of the utop buffer
       (goto-char (point-max))
       (insert string)
-        ;; Send input to utop now, telling it to automatically add the
+      ;; Send input to utop now, telling it to automatically add the
       ;; phrase terminator
-      (utop-eval-input nil t nil))
+      (utop-eval-input nil t nil mode))
      ((eq utop-state 'wait)
       ;; utop is starting, save the initial command to send
-      (setq utop-initial-command string)))))
+      (setq utop-initial-command string)
+      (setq utop-initial-mode mode)))))
 
-(defun utop-eval (start end)
+(defun utop-eval (start end &optional mode)
   "Eval the given region in utop."
   ;; From tuareg
   (unless (eq major-mode 'caml-mode)
@@ -801,13 +814,13 @@ when byte-compiling."
            (utop-choose-call "skip-to-end-of-phrase")
            (setq end (point))
            (buffer-substring-no-properties start end))))
-    (utop-eval-string text)))
+    (utop-eval-string text mode)))
 
 (defun utop-eval-region (start end)
   "Eval the current region in utop."
   (interactive "r")
   (utop-prepare-for-eval)
-  (utop-eval start end))
+  (utop-eval start end :multi))
 
 (defun utop-eval-phrase ()
   "Eval the surrounding Caml phrase (or block) in utop."
@@ -825,7 +838,7 @@ when byte-compiling."
   "Send the buffer to utop."
   (interactive)
   (utop-prepare-for-eval)
-  (utop-eval (point-min) (point-max)))
+  (utop-eval (point-min) (point-max) :multi))
 
 (defun utop-edit-complete ()
   "Completion in a caml/tuareg/typerex."
@@ -1108,6 +1121,7 @@ defaults to 0."
   ;; Reset variables
   (setq utop-prompt-min (point-max))
   (setq utop-prompt-max (point-max))
+  (setq utop-input-prompt-max (point-max))
   (setq utop-output "")
   (setq utop-command-number 0)
   (setq utop-completion nil)
@@ -1143,6 +1157,7 @@ defaults to 0."
   (make-local-variable 'utop-process)
   (make-local-variable 'utop-prompt-min)
   (make-local-variable 'utop-prompt-max)
+  (make-local-variable 'utop-input-prompt-max)
   (make-local-variable 'utop-last-prompt)
   (make-local-variable 'utop-output)
   (make-local-variable 'utop-command-number)
@@ -1150,6 +1165,7 @@ defaults to 0."
   (make-local-variable 'utop-state)
   (make-local-variable 'utop-complete-buffer)
   (make-local-variable 'utop-initial-command)
+  (make-local-variable 'utop-initial-mode)
   (make-local-variable 'utop-phrase-terminator)
   (make-local-variable 'utop-pending-position)
   (make-local-variable 'utop-pending-entry)

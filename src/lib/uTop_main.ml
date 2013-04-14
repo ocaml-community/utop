@@ -72,6 +72,19 @@ let convert_locs str locs = List.map (fun (a, b) -> (index_of_offset str a, inde
    | The read-line class                                             |
    +-----------------------------------------------------------------+ *)
 
+let parse_input_multi input =
+  let buf = Buffer.create 32 in
+  let result =
+    UTop.collect_formatters buf [Format.err_formatter]
+      (fun () ->
+         match !UTop.parse_use_file input false with
+           | UTop.Error (locs, msg) ->
+               UTop.Error (convert_locs input locs, "Error: " ^ msg ^ "\n")
+           | UTop.Value phrases ->
+               (UTop.Value phrases))
+  in
+  (result, Buffer.contents buf)
+
 let parse_and_check input eos_is_error =
   let buf = Buffer.create 32 in
   let result =
@@ -731,36 +744,78 @@ module Emacs(M : sig end) = struct
     in
     loop true
 
+  let process_checked_phrase phrase =
+    (* Rewrite toplevel expressions. *)
+    let phrase = rewrite phrase in
+    try
+      ignore (Toploop.execute_phrase true Format.std_formatter phrase);
+      true
+    with exn ->
+      (* The only possible errors are directive errors. *)
+      let msg = UTop.get_message Errors.report_error exn in
+      (* Skip the dumb location. *)
+      let msg =
+        try
+          let idx = String.index msg '\n' + 1 in
+          String.sub msg idx (String.length msg - idx)
+        with Not_found ->
+          msg
+      in
+      List.iter (send "stderr") (split_at ~trim:true '\n' msg);
+      false
+
   let process_input add_to_history eos_is_error =
     let input = read_data () in
     let result, warnings = parse_and_check input eos_is_error in
     match result with
-      | UTop.Value phrase -> begin
+      | UTop.Value phrase ->
           send "accept" "";
           List.iter (send "stderr") (split_at ~trim:true '\n' warnings);
           if add_to_history then LTerm_history.add UTop.history input;
-          (* Rewrite toplevel expressions. *)
-          let phrase = rewrite phrase in
-          try
-            ignore (Toploop.execute_phrase true Format.std_formatter phrase)
-          with exn ->
-            (* The only possible errors are directive errors. *)
-            let msg = UTop.get_message Errors.report_error exn in
-            (* Skip the dumb location. *)
-            let msg =
-              try
-                let idx = String.index msg '\n' + 1 in
-                String.sub msg idx (String.length msg - idx)
-              with Not_found ->
-                msg
-            in
-            List.iter (send "stderr") (split_at ~trim:true '\n' msg)
-        end
+          ignore (process_checked_phrase phrase)
       | UTop.Error (locs, msg) ->
           send "accept" (String.concat "," (List.map (fun (a, b) -> Printf.sprintf "%d,%d" a b) locs));
           List.iter (send "stderr") (split_at ~trim:true '\n' warnings);
           if add_to_history then LTerm_history.add UTop.history input;
           List.iter (send "stderr") (split_at ~trim:true '\n' msg)
+
+  let send_error locs msg warnings =
+    send "accept" (String.concat "," (List.map (fun (a, b) -> Printf.sprintf "%d,%d" a b) locs));
+    match warnings with
+      | Some warnings -> List.iter (send "stderr") (split_at ~trim:true '\n' warnings)
+      | None -> ();
+    List.iter (send "stderr") (split_at ~trim:true '\n' msg)
+
+  let process_input_multi () =
+    let input = read_data () in
+    let result, warnings = parse_input_multi input in
+    let typecheck phrase =
+      match UTop.check_phrase phrase with 
+        | None -> None
+        | Some (locs, msg) -> Some (convert_locs input locs, msg)  (* FIXME *)
+    in
+    match result with
+      | UTop.Value phrases ->
+          send "accept" "";
+          List.iter (send "stderr") (split_at ~trim:true '\n' warnings);
+          let rec loop = function
+            | (phrase::more_phrases) -> begin
+              match typecheck phrase with
+                | Some (locs, msg) ->
+                  send_error locs msg None
+                | None ->
+                  let success = process_checked_phrase phrase in
+                  if success then
+                    loop more_phrases
+                  else
+                    ()
+              end
+            | [] ->
+              ()
+          in
+          loop phrases
+      | UTop.Error (locs, msg) ->
+        send_error locs msg (Some warnings)
 
   let rec loop () =
     (* Reset completion. *)
@@ -788,6 +843,19 @@ module Emacs(M : sig end) = struct
           let continue =
             try
               process_input add_to_history (not allow_incomplete);
+              false
+            with UTop.Need_more ->
+              send "continue" "";
+              true
+          in
+          if continue then
+            loop_commands history_prev history_next
+          else
+            loop ()
+      | Some ("input-multi", _) ->
+          let continue =
+            try
+              process_input_multi ();
               false
             with UTop.Need_more ->
               send "continue" "";

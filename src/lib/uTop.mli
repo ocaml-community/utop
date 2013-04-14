@@ -208,6 +208,13 @@ type 'a result =
 exception Need_more
   (** Exception raised by a parser when it need more data. *)
 
+(*val parse_use_file : (string -> bool -> ((Camlp4.PreCast.Syntax.Ast.str_item list * Camlp4.PreCast.Syntax.Loc.t option) Camlp4.PreCast.Syntax.Gram.Entry.t) result) ref*)
+val parse_use_file : (string -> bool -> Parsetree.toplevel_phrase list result) ref
+
+val parse_use_file_default : string -> bool -> Parsetree.toplevel_phrase list result 
+  (** The default parser for toplevel regions. It uses the standard
+      ocaml parser. *)
+
 val parse_toplevel_phrase : (string -> bool -> Parsetree.toplevel_phrase result) ref
   (** [parse_toplevel_phrase] is the function used to parse a phrase
       typed in the toplevel.
@@ -225,7 +232,11 @@ val parse_toplevel_phrase : (string -> bool -> Parsetree.toplevel_phrase result)
       Except for {!Need_more}, the function must not raise any
       exception. *)
 
-val parse_toplevel_phrase_default : string -> bool -> Parsetree.toplevel_phrase result
+val parse_toplevel_phrase_default : string -> bool -> Parsetree.toplevel_phrase result 
+  (** The default parser for toplevel phrases. It uses the standard
+      ocaml parser. *)
+
+val parse_default : (Lexing.lexbuf -> 'a) -> string -> bool -> 'a result
   (** The default parser. It uses the standard ocaml parser. *)
 
 val input_name : string
