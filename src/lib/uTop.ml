@@ -240,9 +240,11 @@ let parse_default parse str eos_is_error =
     | exn ->
         Error ([], "Unknown parsing error (please report it to the utop project): " ^ Printexc.to_string exn)
 
-let parse_toplevel_phrase = ref (parse_default Parse.toplevel_phrase)
+let parse_toplevel_phrase_default = parse_default Parse.toplevel_phrase
+let parse_toplevel_phrase = ref parse_toplevel_phrase_default
 
-let parse_use_file = ref (parse_default Parse.use_file)
+let parse_use_file_default = parse_default Parse.use_file
+let parse_use_file = ref parse_use_file_default
 
 (* +-----------------------------------------------------------------+
    | Safety checking                                                 |

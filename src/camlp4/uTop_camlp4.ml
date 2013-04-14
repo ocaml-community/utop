@@ -69,29 +69,36 @@ let parse_camlp4 syntax str eos_is_error =
       let loc, msg = get_camlp4_error_message exn in
       UTop.Error ([loc], msg)
 
-let parse_toplevel_phrase str eos_is_error =
+let parse_toplevel_phrase_camlp4 str eos_is_error =
   match parse_camlp4 Syntax.top_phrase str eos_is_error with
     | UTop.Value None ->
-      raise UTop.Need_more
+        raise UTop.Need_more
     | UTop.Value (Some ast) ->
-        let ast = AstFilters.fold_topphrase_filters (fun t filter -> filter t) ast in
-        convert_camlp4_toplevel_phrase ast
+        UTop.Value (AstFilters.fold_topphrase_filters (fun t filter -> filter t) ast)
     | UTop.Error (locs, msg) ->
         UTop.Error (locs, msg)
 
-let compose f g x = f (g x)
+let parse_toplevel_phrase str eos_is_error =
+  match parse_toplevel_phrase_camlp4 str eos_is_error with
+    | UTop.Value ast ->
+        convert_camlp4_toplevel_phrase ast
+    | UTop.Error (locs, msg) ->
+        UTop.Error (locs, msg)       
 
 let parse_use_file str eos_is_error =
   match parse_camlp4 Syntax.use_file str eos_is_error with
     | UTop.Value ([], _) ->
       raise UTop.Need_more
     | UTop.Value (asts, _) ->
-      let astvals = List.map (compose convert_camlp4_toplevel_phrase (AstFilters.fold_topphrase_filters (fun t filter -> filter t))) asts in
-      (match List.filter (fun x -> match x with (UTop.Value y) -> false | _ -> true) astvals with
-      | [] ->
-        UTop.Value (List.map (fun (UTop.Value y) -> y) astvals)
-      | ((UTop.Error (locs,msg)::xs)) ->
-        UTop.Error (locs,msg))
+      let rec loop phrases = function
+        | [] -> UTop.Value (List.rev phrases)
+        | (ast::more_asts) ->
+          match convert_camlp4_toplevel_phrase
+                  (AstFilters.fold_topphrase_filters (fun t filter -> filter t) ast)
+          with
+          | UTop.Value y -> loop (y::phrases) more_asts
+          | UTop.Error (_,_) as e -> e
+      in loop [] asts
     | UTop.Error (locs, msg) ->
         UTop.Error (locs, msg)
 

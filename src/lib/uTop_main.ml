@@ -744,7 +744,7 @@ module Emacs(M : sig end) = struct
     in
     loop true
 
-  let process_checked_phrase phrase = begin
+  let process_checked_phrase phrase =
     (* Rewrite toplevel expressions. *)
     let phrase = rewrite phrase in
     try
@@ -763,7 +763,6 @@ module Emacs(M : sig end) = struct
       in
       List.iter (send "stderr") (split_at ~trim:true '\n' msg);
       false
-  end
 
   let process_input add_to_history eos_is_error =
     let input = read_data () in
@@ -790,7 +789,7 @@ module Emacs(M : sig end) = struct
   let process_input_multi () =
     let input = read_data () in
     let result, warnings = parse_input_multi input in
-    let typecheck = function phrase ->
+    let typecheck phrase =
       match UTop.check_phrase phrase with 
         | None -> None
         | Some (locs, msg) -> Some (convert_locs input locs, msg)  (* FIXME *)
@@ -815,7 +814,6 @@ module Emacs(M : sig end) = struct
               ()
           in
           loop phrases
-          (* FIXME: send "end" ""? *)
       | UTop.Error (locs, msg) ->
         send_error locs msg (Some warnings)
 
