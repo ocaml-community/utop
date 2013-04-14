@@ -209,12 +209,12 @@ let mkloc loc =
   (loc.Location.loc_start.Lexing.pos_cnum,
    loc.Location.loc_end.Lexing.pos_cnum)
 
-let parse_toplevel_phrase_default str eos_is_error =
+let parse_default parse str eos_is_error =
   let eof = ref false in
   let lexbuf = lexbuf_of_string eof str in
   try
     (* Try to parse the phrase. *)
-    let phrase = Parse.toplevel_phrase lexbuf in
+    let phrase = parse lexbuf in
     Value phrase
   with
     | _ when !eof && not eos_is_error ->
@@ -240,7 +240,11 @@ let parse_toplevel_phrase_default str eos_is_error =
     | exn ->
         Error ([], "Unknown parsing error (please report it to the utop project): " ^ Printexc.to_string exn)
 
+let parse_toplevel_phrase_default = parse_default Parse.toplevel_phrase
 let parse_toplevel_phrase = ref parse_toplevel_phrase_default
+
+let parse_use_file_default = parse_default Parse.use_file
+let parse_use_file = ref parse_use_file_default
 
 (* +-----------------------------------------------------------------+
    | Safety checking                                                 |
