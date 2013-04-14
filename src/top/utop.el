@@ -182,6 +182,9 @@ before the end of prompt.")
 (defvar utop-initial-command nil
   "Initial phrase to evaluate.")
 
+(defvar utop-initial-mode nil
+  "Mode to evaluate utop-initial-command in (nil or :multi).")
+
 (defvar utop-phrase-terminator ";;"
   "The OCaml phrase terminator.")
 
@@ -541,7 +544,8 @@ it is started."
           (goto-char (point-max))
           (insert utop-initial-command)
           (setq utop-initial-command nil)
-          (utop-eval-input nil t nil))))
+          (utop-eval-input nil t nil utop-initial-mode)
+          (setq utop-initial-mode nil))))
      ;; Input has been accepted
      ((string= command "accept")
       ;; Add a newline character at the end of the buffer
@@ -672,7 +676,7 @@ If ADD-TO-HISTORY is t then the input will be added to history."
       (utop-set-state 'wait)
       (utop-send-data
        (cond
-        (input-multi
+        ((eq input-multi :multi)
          "input-multi:\n")
         ((and allow-incomplete (not auto-end) add-to-history)
          "input:allow-incomplete,add-to-history\n")
@@ -791,7 +795,8 @@ when byte-compiling."
       (utop-eval-input nil t nil mode))
      ((eq utop-state 'wait)
       ;; utop is starting, save the initial command to send
-      (setq utop-initial-command string)))))
+      (setq utop-initial-command string)
+      (setq utop-initial-mode mode)))))
 
 (defun utop-eval (start end &optional mode)
   "Eval the given region in utop."
@@ -1160,6 +1165,7 @@ defaults to 0."
   (make-local-variable 'utop-state)
   (make-local-variable 'utop-complete-buffer)
   (make-local-variable 'utop-initial-command)
+  (make-local-variable 'utop-initial-mode)
   (make-local-variable 'utop-phrase-terminator)
   (make-local-variable 'utop-pending-position)
   (make-local-variable 'utop-pending-entry)
