@@ -373,7 +373,7 @@ let () =
 
   (* Rewrite Async.Std.Defered.t expressions to
      Async_core.Thread_safe.block_on_async_exn (fun () -> <expr>). *)
-  let async_rewrite = {
+  Hashtbl.add rewrite_rules (Longident.parse "Async_core.Ivar.Deferred.t") {
     required_values = [longident_async_core_thread_safe_block_on_async_exn];
     rewrite = (fun loc e -> {
       Parsetree.pexp_desc =
@@ -385,10 +385,7 @@ let () =
       Parsetree.pexp_loc = loc;
     });
     enabled = UTop.auto_run_async;
-  } in
-
-  Hashtbl.add rewrite_rules (Longident.parse "Async_core.Deferred.t") async_rewrite;
-  Hashtbl.add rewrite_rules (Longident.parse "Async.Std.Deferred.t") async_rewrite
+  }
 
 (* Returns whether the argument is a toplevel expression. *)
 let is_eval = function
@@ -416,25 +413,20 @@ let rec rule_of_type typ =
   match typ.Types.desc with
     | Types.Tlink typ ->
       rule_of_type typ
-    | Types.Tconstr (path, _, _) ->
-      if is_persistent_path path then
-        try
-          Some (Hashtbl.find rewrite_rules (longident_of_path path))
-        with Not_found ->
-          rule_of_alias path
-      else
-        rule_of_alias path
-    | _ ->
-      None
-
-and rule_of_alias path =
-  match try Some (Env.find_type path !Toploop.toplevel_env) with Not_found -> None with
-    | Some {
+    | Types.Tconstr (path, _, _) -> begin
+      match try Some (Env.find_type path !Toploop.toplevel_env) with Not_found -> None with
+      | Some {
         Types.type_kind = Types.Type_abstract;
         Types.type_private = Asttypes.Public;
         Types.type_manifest = Some typ;
       } ->
-      rule_of_type typ
+        rule_of_type typ
+      | _ ->
+        try
+          Some (Hashtbl.find rewrite_rules (longident_of_path path))
+        with Not_found ->
+          None
+    end
     | _ ->
       None
 
