@@ -179,7 +179,7 @@ class read_phrase ~term = object(self)
     in
     self#set_completion pos words
 
-  method show_box = UTop.get_show_box ()
+  method show_box = S.value self#mode <> LTerm_read_line.Edition || UTop.get_show_box ()
 
   initializer
     (* Set the source signal for the size of the terminal. *)
