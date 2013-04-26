@@ -179,6 +179,8 @@ class read_phrase ~term = object(self)
     in
     self#set_completion pos words
 
+  method show_box = UTop.get_show_box ()
+
   initializer
     (* Set the source signal for the size of the terminal. *)
     UTop_private.set_size self#size;
@@ -790,7 +792,7 @@ module Emacs(M : sig end) = struct
     let input = read_data () in
     let result, warnings = parse_input_multi input in
     let typecheck phrase =
-      match UTop.check_phrase phrase with 
+      match UTop.check_phrase phrase with
         | None -> None
         | Some (locs, msg) -> Some (convert_locs input locs, msg)  (* FIXME *)
     in

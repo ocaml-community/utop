@@ -65,6 +65,7 @@ type syntax =
   | Camlp4r
 
 let hide_reserved, get_hide_reserved, set_hide_reserved = make_variable true
+let show_box, get_show_box, set_show_box = make_variable true
 let syntax, get_syntax, set_syntax = make_variable Normal
 let phrase_terminator, get_phrase_terminator, set_phrase_terminator = make_variable ";;"
 let auto_run_lwt, get_auto_run_lwt, set_auto_run_lwt = make_variable true

@@ -47,6 +47,15 @@ val get_hide_reserved : unit -> bool
 val set_hide_reserved : bool -> unit
   (** Modifies {!hide_reserved}. *)
 
+val show_box : bool signal
+  (** If [true] (the default) the completion bar is displayed. *)
+
+val get_show_box : unit -> bool
+  (** Returns the value of {!show_box}. *)
+
+val set_show_box : bool -> unit
+  (** Modifies {!show_box}. *)
+
 (** Syntax. *)
 type syntax =
   | Normal
@@ -211,7 +220,7 @@ exception Need_more
 (*val parse_use_file : (string -> bool -> ((Camlp4.PreCast.Syntax.Ast.str_item list * Camlp4.PreCast.Syntax.Loc.t option) Camlp4.PreCast.Syntax.Gram.Entry.t) result) ref*)
 val parse_use_file : (string -> bool -> Parsetree.toplevel_phrase list result) ref
 
-val parse_use_file_default : string -> bool -> Parsetree.toplevel_phrase list result 
+val parse_use_file_default : string -> bool -> Parsetree.toplevel_phrase list result
   (** The default parser for toplevel regions. It uses the standard
       ocaml parser. *)
 
@@ -232,7 +241,7 @@ val parse_toplevel_phrase : (string -> bool -> Parsetree.toplevel_phrase result)
       Except for {!Need_more}, the function must not raise any
       exception. *)
 
-val parse_toplevel_phrase_default : string -> bool -> Parsetree.toplevel_phrase result 
+val parse_toplevel_phrase_default : string -> bool -> Parsetree.toplevel_phrase result
   (** The default parser for toplevel phrases. It uses the standard
       ocaml parser. *)
 
