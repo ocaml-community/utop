@@ -1,3 +1,17 @@
+1.5 (2013-04-28)
+----------------
+
+* when evaluating a region/buffer in emacs, evaluate all phrases
+  instead of just the first one. Thanks to Matthias Andreas Benkard
+  for this feature
+* change the default prompt from `#` to `$` to match the standard
+  toplevel
+* add the option `UTop.show_box` to allow one to hide the completion
+  bar
+* enhance the lwt/async hooks for automatically waiting on a
+  thread/deferred. Hooks were not triggered when the type of the
+  expression was a type alias
+
 1.4 (2013-03-09)
 ----------------
 
