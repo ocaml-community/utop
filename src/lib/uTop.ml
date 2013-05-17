@@ -593,7 +593,7 @@ let split_words str =
       [String.sub str i (j - i)]
     else
       if is_sep str.[j] then
-        String.sub str i (j - i) :: skip (i + 1)
+        String.sub str i (j - i) :: skip (j + 1)
       else
         extract i (j + 1)
   in
