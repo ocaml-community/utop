@@ -307,16 +307,22 @@ let check_phrase phrase =
         } in
         let check_phrase = Parsetree.Ptop_def [top_def] in
         try
-          let _ = discard_formatters [Format.err_formatter] (fun () -> Toploop.execute_phrase false null check_phrase) in
+          let _ =
+            discard_formatters [Format.err_formatter] (fun () ->
+#if ocaml_version > (4, 00, 1)
+              Env.reset_cache_toplevel ();
+#endif
+              Toploop.execute_phrase false null check_phrase)
+          in
           (* The phrase is safe. *)
           Toploop.toplevel_env := env;
           Btype.backtrack snap;
           None
         with exn ->
           (* The phrase contains errors. *)
+          let loc, msg = get_ocaml_error_message exn in
           Toploop.toplevel_env := env;
           Btype.backtrack snap;
-          let loc, msg = get_ocaml_error_message exn in
           Some ([loc], msg)
 
 (* +-----------------------------------------------------------------+

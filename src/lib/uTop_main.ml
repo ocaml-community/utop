@@ -538,6 +538,9 @@ let rec loop term =
         let pp = Format.formatter_of_buffer buffer in
         Format.pp_set_margin pp (LTerm.size term).cols;
         (try
+#if ocaml_version > (4, 00, 1)
+           Env.reset_cache_toplevel ();
+#endif
            ignore (Toploop.execute_phrase true pp phrase);
            (* Flush everything. *)
            Format.pp_print_flush Format.std_formatter ();
@@ -742,6 +745,7 @@ module Emacs(M : sig end) = struct
     (* Rewrite toplevel expressions. *)
     let phrase = rewrite phrase in
     try
+      Env.reset_cache_toplevel ();
       ignore (Toploop.execute_phrase true Format.std_formatter phrase);
       true
     with exn ->
