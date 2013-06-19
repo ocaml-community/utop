@@ -98,6 +98,9 @@ To use utop in emacs, add the following line to your ~/.emacs file:
 
 Then you can run utop by executing the command `utop` in emacs.
 
+If you installed utop through opam, customize `utop-command` to
+`opam config exec "utop -emacs"`.
+
 Integration with the tuareg/typerex mode
 ----------------------------------------
 
