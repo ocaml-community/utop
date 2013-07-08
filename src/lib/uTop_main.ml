@@ -226,7 +226,7 @@ let render_out_phrase term string =
     done
   in
   UTop_styles.stylise stylise (UTop_lexer.lex_string (UTop.get_syntax ()) string);
-  Lwt_main.run (LTerm.fprints term styled)
+  LTerm.fprints term styled
 
 let orig_print_out_signature = !Toploop.print_out_signature
 let orig_print_out_phrase = !Toploop.print_out_phrase
@@ -553,7 +553,7 @@ let rec loop term =
            match phrase with
              | Parsetree.Ptop_def _ ->
                  (* The string is an output phrase, colorize it. *)
-                 render_out_phrase term string
+                 Lwt_main.run (render_out_phrase term string)
              | Parsetree.Ptop_dir _ ->
                  (* The string is an error message. *)
                  Lwt_main.run (print_error term string)
@@ -925,6 +925,34 @@ module Emacs(M : sig end) = struct
           Printf.ksprintf (send "stderr") "unrecognized command %S!" command;
           exit 1
 end
+
+(* +-----------------------------------------------------------------+
+   | Extra macros                                                    |
+   +-----------------------------------------------------------------+ *)
+
+let typeof id =
+  let env = !Toploop.toplevel_env in
+  match try Some (Env.lookup_type id env) with Not_found -> None with
+  | Some (path, ty_decl) ->
+    let id = Ident.create (Path.name path) in
+    let osig =
+      Printtyp.wrap_printing_env env
+        (fun () ->
+          Printtyp.tree_of_type_declaration id ty_decl Types.Trec_not)
+    in
+    let buf = Buffer.create 128 in
+    let pp = Format.formatter_of_buffer buf in
+    !Toploop.print_out_signature pp [osig];
+    Format.pp_print_newline pp ();
+    let str = Buffer.contents buf in
+    Lwt_main.run (Lazy.force LTerm.stdout >>= fun term -> render_out_phrase term str)
+  | None ->
+    Lwt_main.run (Lazy.force LTerm.stdout >>= fun term ->
+                  print_error term "Unknown type\n")
+
+let () =
+  Hashtbl.add Toploop.directive_table "typeof"
+    (Toploop.Directive_ident typeof)
 
 (* +-----------------------------------------------------------------+
    | Entry point                                                     |
