@@ -1066,8 +1066,11 @@ let common_init () =
 let load_inputrc () =
   try_lwt
     LTerm_inputrc.load ()
-  with Unix.Unix_error (error, func, arg) ->
-    Lwt_log.error_f "cannot key bindings from %S: %s: %s" LTerm_inputrc.default func (Unix.error_message error)
+  with
+  | Unix.Unix_error (error, func, arg) ->
+    Lwt_log.error_f "cannot load key bindings from %S: %s: %s" LTerm_inputrc.default func (Unix.error_message error)
+  | LTerm_inputrc.Parse_error (fname, line, msg) ->
+    Lwt_log.error_f "error in key bindings file %S, line %d: %s" fname line msg
 
 let main_aux () =
   Arg.parse args file_argument usage;
