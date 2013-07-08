@@ -79,13 +79,32 @@ completions in real-time. You can navigate in it using `Alt+Left` and
 Customization
 -------------
 
+### Colors
+
 To add colors to utop, copy one of the files `utoprc-dark` or
 `utoprc-light` to `~/.utoprc`. `utoprc-dark` is for terminals with
 dark colors (such as white on black) and `utoprc-light` is for
 terminals with light colors (such as black on white).
 
-You can also customize the prompt of utop by setting the reference
+### Prompt
+
+You can customize the prompt of utop by setting the reference
 `UTop.prompt`.
+
+### Key bindings
+
+Key bindings in the terminal can be changed by writing a
+`~/.lambda-term-inputrc` file. For example:
+
+    [read-line]
+    C-left: complete-bar-prev
+    C-right: complete-bar-next
+    C-down: complete-bar
+
+If manual pages are correctly installed you can see a description of
+this file by executing:
+
+    $ man 5 lambda-term-inputrc
 
 Integration with emacs
 ----------------------
