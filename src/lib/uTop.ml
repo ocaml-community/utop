@@ -194,17 +194,21 @@ let input_name = "//toplevel//"
 
 let lexbuf_of_string eof str =
   let pos = ref 0 in
-  Lexing.from_function
-    (fun buf len ->
-       if !pos = String.length str then begin
-         eof := true;
-         0
-       end else begin
-         let len = min len (String.length str - !pos) in
-         String.blit str !pos buf 0 len;
-         pos := !pos + len;
-         len
-       end)
+  let lexbuf =
+    Lexing.from_function
+      (fun buf len ->
+        if !pos = String.length str then begin
+          eof := true;
+          0
+        end else begin
+          let len = min len (String.length str - !pos) in
+          String.blit str !pos buf 0 len;
+          pos := !pos + len;
+          len
+        end)
+  in
+  Location.init lexbuf input_name;
+  lexbuf
 
 let mkloc loc =
   (loc.Location.loc_start.Lexing.pos_cnum,
