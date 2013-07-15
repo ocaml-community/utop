@@ -276,40 +276,51 @@ let with_loc loc str = str
 (* Check that the given phrase can be evaluated without typing/compile
    errors. *)
 let check_phrase phrase =
+  let open Parsetree in
   match phrase with
-    | Parsetree.Ptop_dir _ ->
+    | Ptop_dir _ ->
         None
-    | Parsetree.Ptop_def [] ->
+    | Ptop_def [] ->
         None
-    | Parsetree.Ptop_def (item :: items) ->
+    | Ptop_def (item :: items) ->
         let loc = {
-          Location.loc_start = item.Parsetree.pstr_loc.Location.loc_start;
-          Location.loc_end = (last item items).Parsetree.pstr_loc.Location.loc_end;
+          Location.loc_start = item.pstr_loc.Location.loc_start;
+          Location.loc_end = (last item items).pstr_loc.Location.loc_end;
           Location.loc_ghost = false;
         } in
         (* Backup. *)
         let snap = Btype.snapshot () in
         let env = !Toploop.toplevel_env in
-        (* Construct "module _(_ : sig end) = struct <items> end" in
-           order to test the typing and compilation of [items] without
-           evaluating them. *)
-        let wrapped_items = {
-          Parsetree.pmod_loc = loc;
-          Parsetree.pmod_desc = Parsetree.Pmod_structure (item :: items);
+        (* Construct "let _ () = let module _ = struct <items> end in ()" in order to test
+           the typing and compilation of [items] without evaluating them. *)
+        let structure = {
+          pmod_loc = loc;
+          pmod_desc = Pmod_structure (item :: items);
         } in
-        let empty_sig = {
-          Parsetree.pmty_loc = loc;
-          Parsetree.pmty_desc = Parsetree.Pmty_signature [];
+        let unit = with_loc loc (Longident.Lident "()") in
+        let unit_expr = {
+          pexp_desc = Pexp_construct (unit, None, false);
+          pexp_loc = loc;
         } in
-        let funct = {
-          Parsetree.pmod_loc = loc;
-          Parsetree.pmod_desc = Parsetree.Pmod_functor (with_loc loc "_", empty_sig, wrapped_items);
+        let unit_patt = {
+          ppat_desc = Ppat_construct (unit, None, false);
+          ppat_loc = loc;
+        } in
+        let letmodule = {
+          pexp_desc = Pexp_letmodule (with_loc loc "_", structure, unit_expr);
+          pexp_loc = loc;
+        } in
+        let func = {
+          pexp_desc = Pexp_function ("", None, [(unit_patt, letmodule)]);
+          pexp_loc = loc;
         } in
         let top_def = {
-          Parsetree.pstr_loc = loc;
-          Parsetree.pstr_desc = Parsetree.Pstr_module (with_loc loc "_", funct);
+          pstr_desc = Pstr_value (Asttypes.Nonrecursive,
+                                  [({ ppat_desc = Ppat_var (with_loc loc "_");
+                                      ppat_loc = loc }, func)]);
+          pstr_loc = loc;
         } in
-        let check_phrase = Parsetree.Ptop_def [top_def] in
+        let check_phrase = Ptop_def [top_def] in
         try
           let _ =
             discard_formatters [Format.err_formatter] (fun () ->
