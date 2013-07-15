@@ -310,7 +310,8 @@ module Path_map = Map.Make(struct type t = Path.t let compare = compare end)
 module Longident_map = Map.Make(struct type t = Longident.t let compare = compare end)
 
 (* All names accessible without a path. *)
-let global_names = ref (lazy String_set.empty)
+let global_names = ref None
+let global_names_revised = ref None
 
 (* All names accessible with a path, by path. *)
 let local_names_by_path = ref Path_map.empty
@@ -319,7 +320,7 @@ let local_names_by_path = ref Path_map.empty
 let local_names_by_longident = ref Longident_map.empty
 
 (* All record fields accessible without a path. *)
-let global_fields = ref (lazy String_set.empty)
+let global_fields = ref None
 
 (* All record fields accessible with a path, by path. *)
 let local_fields_by_path = ref Path_map.empty
@@ -327,16 +328,46 @@ let local_fields_by_path = ref Path_map.empty
 (* All record fields accessible with a path, by long identifier. *)
 let local_fields_by_longident = ref Longident_map.empty
 
-(* Returns [acc] plus all modules from [dir]. *)
-let add_modules_from_directory acc dir =
-  Array.fold_left
-    (fun acc fname ->
-       if Filename.check_suffix fname ".cmi" then
-         String_set.add (String.capitalize (Filename.chop_suffix fname ".cmi")) acc
-       else
-         acc)
-    acc
-    (Sys.readdir (if dir = "" then Filename.current_dir_name else dir))
+(* All visible modules according to Config.load_path. *)
+let visible_modules = ref None
+
+let reset () =
+  visible_modules := None;
+  global_names := None;
+  global_names_revised := None;
+  local_names_by_path := Path_map.empty;
+  local_names_by_longident := Longident_map.empty;
+  global_fields := None;
+  local_fields_by_path := Path_map.empty;
+  local_fields_by_longident := Longident_map.empty
+
+let get_cached var f =
+  match !var with
+  | Some x ->
+    x
+  | None ->
+    let x = f () in
+    var := Some x;
+    x
+
+(* List all visible modules. *)
+let visible_modules () =
+  get_cached visible_modules
+    (fun () ->
+      List.fold_left
+        (fun acc dir ->
+          try
+            Array.fold_left
+              (fun acc fname ->
+                if Filename.check_suffix fname ".cmi" then
+                  String_set.add (String.capitalize (Filename.chop_suffix fname ".cmi")) acc
+                else
+                  acc)
+              acc
+              (Sys.readdir (if dir = "" then Filename.current_dir_name else dir))
+          with Sys_error _ ->
+            acc)
+        String_set.empty !Config.load_path)
 
 #if ocaml_version >= (4, 0, 0)
 let field_name (id, _, _) = Ident.name id
@@ -524,7 +555,28 @@ let list_global_names () =
   (* Add names of the environment: *)
   let acc = loop String_set.empty (Env.summary !Toploop.toplevel_env) in
   (* Add accessible modules: *)
-  List.fold_left add_modules_from_directory acc !Config.load_path
+  String_set.union acc (visible_modules ())
+
+let global_names () = get_cached global_names list_global_names
+
+let replace x y set =
+  if String_set.mem x set then
+    String_set.add y (String_set.remove x set)
+  else
+    set
+
+let global_names_revised () =
+  get_cached global_names_revised
+    (fun () ->
+      let set = global_names () in
+      replace "true" "True" (replace "false" "False" set))
+
+let global_names syntax =
+  match syntax with
+    | UTop.Normal | UTop.Camlp4o ->
+        global_names ()
+    | UTop.Camlp4r ->
+        global_names_revised ()
 
 let list_global_fields () =
   let rec loop acc = function
@@ -560,32 +612,9 @@ let list_global_fields () =
   (* Add fields of the environment: *)
   let acc = loop String_set.empty (Env.summary !Toploop.toplevel_env) in
   (* Add accessible modules: *)
-  List.fold_left add_modules_from_directory acc !Config.load_path
+  String_set.union acc (visible_modules ())
 
-let reset () =
-  global_names := Lazy.lazy_from_fun list_global_names;
-  local_names_by_path := Path_map.empty;
-  local_names_by_longident := Longident_map.empty;
-  global_fields := Lazy.lazy_from_fun list_global_fields;
-  local_fields_by_path := Path_map.empty;
-  local_fields_by_longident := Longident_map.empty
-
-let replace x y set =
-  if String_set.mem x set then
-    String_set.add y (String_set.remove x set)
-  else
-    set
-
-let global_names syntax =
-  let set = Lazy.force !global_names in
-  match syntax with
-    | UTop.Normal | UTop.Camlp4o ->
-        set
-    | UTop.Camlp4r ->
-        replace "true" "True" (replace "false" "False" set)
-
-let global_fields () =
-  Lazy.force !global_fields
+let global_fields () = get_cached global_fields list_global_fields
 
 (* +-----------------------------------------------------------------+
    | Listing methods                                                 |
