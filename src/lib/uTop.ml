@@ -424,7 +424,7 @@ let make_prompt ui profile count size key_sequence (recording, macro_count, macr
             ]
         ) second_line
 
-let prompt = ref (
+let default_prompt =
   S.l6 make_prompt
     UTop_private.ui
     profile
@@ -435,7 +435,31 @@ let prompt = ref (
        (Zed_macro.recording LTerm_read_line.macro)
        (Zed_macro.count LTerm_read_line.macro)
        (Zed_macro.counter LTerm_read_line.macro))
-)
+
+let prompt = ref default_prompt
+
+let () =
+  Hashtbl.add Toploop.directive_table "utop_prompt_simple"
+    (Toploop.Directive_none
+       (fun () ->
+         prompt := S.map (Printf.ksprintf LTerm_text.of_string "utop [%d]: ") count));
+
+  Hashtbl.add Toploop.directive_table "utop_prompt_dummy"
+    (Toploop.Directive_none
+       (fun () ->
+         prompt := S.const (LTerm_text.of_string "# ")));
+
+  Hashtbl.add Toploop.directive_table "utop_prompt_fancy_light"
+    (Toploop.Directive_none
+       (fun () ->
+         set_profile Light;
+         prompt := default_prompt));
+
+  Hashtbl.add Toploop.directive_table "utop_prompt_fancy_dark"
+    (Toploop.Directive_none
+       (fun () ->
+         set_profile Dark;
+         prompt := default_prompt))
 
 (* +-----------------------------------------------------------------+
    | Help                                                            |
@@ -448,7 +472,7 @@ let () =
   Hashtbl.add Toploop.directive_table "utop_help"
     (Toploop.Directive_none
        (fun () ->
-          print_endline "If colors look too bright, try: UTop.set_profile UTop.Light
+          print_endline "If you can't see the prompt properly try: #utop_prompt_simple
 
 utop defines the following directives:
 
