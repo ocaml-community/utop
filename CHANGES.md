@@ -1,3 +1,13 @@
+1.6 (2013-08-07)
+----------------
+
+* hide topfind messages by default
+* more predefined prompts available via `#utop_prompt_XXX`
+* fix a bug in `#require` when passing multiple packages
+* display errors in ~/.lambda-term-inputrc nicely
+* doc update
+* fix an issue when using first-class modules
+
 1.5 (2013-04-28)
 ----------------
 
