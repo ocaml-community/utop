@@ -70,6 +70,7 @@ let syntax, get_syntax, set_syntax = make_variable Normal
 let phrase_terminator, get_phrase_terminator, set_phrase_terminator = make_variable ";;"
 let auto_run_lwt, get_auto_run_lwt, set_auto_run_lwt = make_variable true
 let auto_run_async, get_auto_run_async, set_auto_run_async = make_variable true
+let topfind_verbose, get_topfind_verbose, set_topfind_verbose = make_variable false
 
 (* +-----------------------------------------------------------------+
    | Keywords                                                        |
@@ -449,10 +450,12 @@ let () =
        (fun () ->
           print_endline "If colors look too bright, try: UTop.set_profile UTop.Light
 
-You can use the following commands to get more help:
+utop defines the following directives:
 
-#utop_bindings : list all the current key bindings
-#utop_macro : display the currently recorded macro
+#utop_bindings   : list all the current key bindings
+#utop_macro      : display the currently recorded macro
+#topfind_log     : display messages recorded from findlib since the beginning of the session
+#topfind_verbose : enable/disable topfind verbosity
 
 For a complete description of utop, look at the utop(1) manual page."));
 
@@ -592,8 +595,31 @@ let () =
        (fun () -> set_syntax Camlp4r))
 
 (* +-----------------------------------------------------------------+
-   | Findlib "require" wrapper                                       |
+   | Findlib stuff                                                   |
    +-----------------------------------------------------------------+ *)
+
+let topfind_log, set_topfind_log = S.create ~eq:(fun _ _ -> false) []
+
+let () =
+  let real_log = !Topfind.log in
+  Topfind.log := fun str ->
+    set_topfind_log (str :: S.value topfind_log);
+    if S.value topfind_verbose then real_log str
+
+let () =
+  Hashtbl.add
+    Toploop.directive_table
+    "topfind_log"
+    (Toploop.Directive_none
+       (fun () ->
+         List.iter (fun str -> print_string str; print_char '\n')
+           (S.value topfind_log);
+         flush  stdout));
+
+  Hashtbl.add
+    Toploop.directive_table
+    "topfind_verbose"
+    (Toploop.Directive_bool set_topfind_verbose)
 
 let split_words str =
   let len = String.length str in
