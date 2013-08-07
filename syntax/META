@@ -1,0 +1,10 @@
+# OASIS_START
+# DO NOT EDIT (digest: 37a12b0e571bfd767367c5927edcb09a)
+version = "1.6"
+description = "Universal toplevel for OCaml"
+requires = "camlp4 camlp4.quotations.o"
+archive(byte) = "optcomp.cma"
+archive(byte, plugin) = "optcomp.cma"
+exists_if = "optcomp.cma"
+# OASIS_STOP
+
