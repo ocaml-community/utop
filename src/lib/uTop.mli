@@ -48,7 +48,8 @@ val set_hide_reserved : bool -> unit
   (** Modifies {!hide_reserved}. *)
 
 val topfind_verbose : bool signal
-  (** If [false] (the default) messages from findlib are hidden. *)
+  (** If [false] (the default) messages from findlib are hidden. This is only effective
+      with findlib >= 1.4. *)
 
 val get_topfind_verbose : unit -> bool
   (** Returns the value of {!topfind_verbose}. *)
@@ -57,7 +58,8 @@ val set_topfind_verbose : bool -> unit
   (** Modifies {!topfind_verbose}. *)
 
 val topfind_log : string list signal
-  (** List of messages logged by findlib since the beginning of the session. *)
+  (** List of messages logged by findlib since the beginning of the session. This
+      requires findlib >= 1.4. *)
 
 val show_box : bool signal
   (** If [true] (the default) the completion bar is displayed. *)

@@ -600,11 +600,13 @@ let () =
 
 let topfind_log, set_topfind_log = S.create ~eq:(fun _ _ -> false) []
 
+#if findlib_version >= (1, 4)
 let () =
   let real_log = !Topfind.log in
   Topfind.log := fun str ->
     set_topfind_log (str :: S.value topfind_log);
     if S.value topfind_verbose then real_log str
+#endif
 
 let () =
   Hashtbl.add
