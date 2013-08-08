@@ -745,7 +745,9 @@ module Emacs(M : sig end) = struct
     (* Rewrite toplevel expressions. *)
     let phrase = rewrite phrase in
     try
+#if ocaml_version > (4, 00, 1)
       Env.reset_cache_toplevel ();
+#endif
       ignore (Toploop.execute_phrase true Format.std_formatter phrase);
       true
     with exn ->
@@ -930,6 +932,8 @@ end
    | Extra macros                                                    |
    +-----------------------------------------------------------------+ *)
 
+#if ocaml_version > (4, 00, 1)
+
 let typeof id =
   let env = !Toploop.toplevel_env in
   match try Some (Env.lookup_type id env) with Not_found -> None with
@@ -953,6 +957,8 @@ let typeof id =
 let () =
   Hashtbl.add Toploop.directive_table "typeof"
     (Toploop.Directive_ident typeof)
+
+#endif
 
 (* +-----------------------------------------------------------------+
    | Entry point                                                     |
