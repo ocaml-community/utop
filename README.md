@@ -109,16 +109,26 @@ this file by executing:
 Integration with emacs
 ----------------------
 
-To use utop in emacs, add the following line to your ~/.emacs file:
+To use utop in emacs, first you need to make sure emacs can find the
+command `utop` and the file `utop.el`. If you installed utop via opam
+you can copy-paste this code into you `~/.emacs` file:
 
 ```scheme
+;; Setup environment variables using opam
+(dolist (var (car (read-from-string (shell-command-to-string "opam config env --sexp"))))
+  (setenv (car var) (cadr var)))
+
+;; Update the emacs path
+(setq exec-path (split-string (getenv "PATH") path-separator))
+
+;; Update the emacs load path
+(push (concat (getenv "OCAML_TOPLEVEL_PATH") "/../../share/emacs/site-lisp") load-path)
+
+;; Automatically load utop.el
 (autoload 'utop "utop" "Toplevel for OCaml" t)
 ```
 
-Then you can run utop by executing the command `utop` in emacs.
-
-If you installed utop through opam, customize `utop-command` to
-`opam config exec "utop -emacs"`.
+Then you can execute utop inside emacs with: `M-x utop`.
 
 Integration with the tuareg/typerex mode
 ----------------------------------------
