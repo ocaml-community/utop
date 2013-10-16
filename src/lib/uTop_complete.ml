@@ -813,6 +813,20 @@ let complete ~syntax ~phrase_terminator ~input =
         let pkgs = lookup pkg (Fl_package_base.list_packages ()) in
         (loc.idx1 + 1, List.map (fun pkg -> (pkg, "\"" ^ phrase_terminator)) (List.sort compare pkgs))
 
+    | [(Symbol "#", _); (Lident "typeof", _); (String false, loc)] ->
+      let prefix = String.sub input (loc.ofs1 + 1) (String.length input - loc.ofs1 - 1) in
+      begin match Longident.parse prefix with
+      | Longident.Ldot (lident, last_prefix) ->
+        let set = names_of_module lident in
+        let compls = lookup last_prefix (String_set.elements set) in
+        let start = loc.idx1 + 1 + (String.length prefix - String.length last_prefix) in
+        (start, List.map (fun w -> (w, "")) compls)
+      | _ ->
+        let set = global_names syntax in
+        let compls = lookup prefix (String_set.elements set) in
+        (loc.idx1 + 1, List.map (fun w -> (w, "")) compls)
+      end
+
     (* Completion on #load. *)
     | [(Symbol "#", _); (Lident "load", _); (String false, loc)] ->
         let file = String.sub input (loc.ofs1 + 1) (String.length input - loc.ofs1 - 1) in
