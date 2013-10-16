@@ -934,29 +934,72 @@ end
 
 #if ocaml_version > (4, 00, 1)
 
-let typeof id =
+let typeof sid =
+  let id  = Longident.parse sid in
   let env = !Toploop.toplevel_env in
-  match try Some (Env.lookup_type id env) with Not_found -> None with
-  | Some (path, ty_decl) ->
-    let id = Ident.create (Path.name path) in
-    let osig =
-      Printtyp.wrap_printing_env env
-        (fun () ->
-          Printtyp.tree_of_type_declaration id ty_decl Types.Trec_not)
-    in
+  let from_type_desc = function
+    | Types.Tconstr (path, _, _) ->
+      let typ_decl = Env.find_type path env in
+      path, typ_decl
+    | _ -> assert false
+  in
+  let out_sig_item =
+    try
+      let (path, ty_decl) = Env.lookup_type id env in
+      let id = Ident.create (Path.name path) in
+      Some (Printtyp.tree_of_type_declaration id ty_decl Types.Trec_not)
+    with Not_found ->
+    try
+      let (path, val_descr) = Env.lookup_value id env in
+      let id = Ident.create (Path.name path) in
+      Some (Printtyp.tree_of_value_description id val_descr)
+    with Not_found ->
+    try
+      let lbl_desc = Env.lookup_label id env in
+      let (path, ty_decl) = from_type_desc lbl_desc.Types.lbl_res.desc in
+      let id = Ident.create (Path.name path) in
+      Some (Printtyp.tree_of_type_declaration id ty_decl Types.Trec_not)
+    with Not_found ->
+    try
+      let (path, mod_typ) = Env.lookup_module id env in
+      let id = Ident.create (Path.name path) in
+      Some (Printtyp.tree_of_module id mod_typ Types.Trec_not)
+    with Not_found ->
+    try
+      let (path, mty_decl) = Env.lookup_modtype id env in
+      let id = Ident.create (Path.name path) in
+      Some (Printtyp.tree_of_modtype_declaration id mty_decl)
+    with Not_found ->
+    try
+      let cstr_desc = Env.lookup_constructor id env in
+      match cstr_desc.Types.cstr_tag with
+      | Types.Cstr_exception (_path, loc) ->
+        let path, exn_decl = Typedecl.transl_exn_rebind env loc id in
+        let id = Ident.create (Path.name path) in
+        Some (Printtyp.tree_of_exception_declaration id exn_decl)
+      | _ ->
+        let (path, ty_decl) = from_type_desc cstr_desc.Types.cstr_res.desc in
+        let id = Ident.create (Path.name path) in
+        Some (Printtyp.tree_of_type_declaration id ty_decl Types.Trec_not)
+    with Not_found ->
+      None
+  in
+  match out_sig_item with
+  | None ->
+    Lwt_main.run (Lazy.force LTerm.stdout >>= fun term ->
+                  print_error term "Unknown type\n")
+  | Some osig ->
     let buf = Buffer.create 128 in
     let pp = Format.formatter_of_buffer buf in
     !Toploop.print_out_signature pp [osig];
     Format.pp_print_newline pp ();
     let str = Buffer.contents buf in
     Lwt_main.run (Lazy.force LTerm.stdout >>= fun term -> render_out_phrase term str)
-  | None ->
-    Lwt_main.run (Lazy.force LTerm.stdout >>= fun term ->
-                  print_error term "Unknown type\n")
+
 
 let () =
   Hashtbl.add Toploop.directive_table "typeof"
-    (Toploop.Directive_ident typeof)
+    (Toploop.Directive_string typeof)
 
 #endif
 
