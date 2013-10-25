@@ -956,7 +956,7 @@ let typeof sid =
     with Not_found ->
     try
       let lbl_desc = Env.lookup_label id env in
-      let (path, ty_decl) = from_type_desc lbl_desc.Types.lbl_res.desc in
+      let (path, ty_decl) = from_type_desc lbl_desc.Types.lbl_res.Types.desc in
       let id = Ident.create (Path.name path) in
       Some (Printtyp.tree_of_type_declaration id ty_decl Types.Trec_not)
     with Not_found ->
@@ -978,7 +978,7 @@ let typeof sid =
         let id = Ident.create (Path.name path) in
         Some (Printtyp.tree_of_exception_declaration id exn_decl)
       | _ ->
-        let (path, ty_decl) = from_type_desc cstr_desc.Types.cstr_res.desc in
+        let (path, ty_decl) = from_type_desc cstr_desc.Types.cstr_res.Types.desc in
         let id = Ident.create (Path.name path) in
         Some (Printtyp.tree_of_type_declaration id ty_decl Types.Trec_not)
     with Not_found ->
