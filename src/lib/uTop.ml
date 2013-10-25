@@ -231,15 +231,26 @@ let parse_default parse str eos_is_error =
         raise Need_more
     | Lexer.Error (error, loc) ->
         Error ([mkloc loc], get_message Lexer.report_error error)
-    | Syntaxerr.Error (Syntaxerr.Unclosed (opening_loc, opening, closing_loc, closing)) ->
+    | Syntaxerr.Error error -> begin
+      match error with
+      | Syntaxerr.Unclosed (opening_loc, opening, closing_loc, closing) ->
         Error ([mkloc opening_loc; mkloc closing_loc],
                Printf.sprintf "Syntax error: '%s' expected, the highlighted '%s' might be unmatched" closing opening)
-    | Syntaxerr.Error (Syntaxerr.Applicative_path loc) ->
+      | Syntaxerr.Applicative_path loc ->
         Error ([mkloc loc],
                "Syntax error: applicative paths of the form F(X).t are not supported when the option -no-app-funct is set.")
-    | Syntaxerr.Error (Syntaxerr.Other loc) ->
+      | Syntaxerr.Other loc ->
         Error ([mkloc loc],
                "Syntax error")
+#if ocaml_version >= (4, 01, 0)
+      | Syntaxerr.Expecting (loc, nonterm) ->
+        Error ([mkloc loc],
+               Printf.sprintf "Syntax error: %s expected." nonterm)
+      | Syntaxerr.Variable_in_scope (loc, var) ->
+        Error ([mkloc loc],
+               Printf.sprintf "In this scoped type, variable '%s is reserved for the local type %s." var var)
+#endif
+    end
     | Syntaxerr.Escape_error | Parsing.Parse_error ->
         Error ([mkloc (Location.curr lexbuf)],
                "Syntax error")
