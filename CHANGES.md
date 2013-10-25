@@ -1,3 +1,10 @@
+1.8 (2013-10-25)
+----------------
+
+* handle new syntax errors
+* extend `#typeof` to values and modules. Thanks to Thomas Refis for
+  this feature
+
 1.7 (2013-08-08)
 ----------------
 
