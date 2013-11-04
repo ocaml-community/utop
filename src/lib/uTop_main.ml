@@ -1102,6 +1102,16 @@ let () = Clflags.real_paths := false
 let app_name = Filename.basename Sys.executable_name
 let usage = Printf.sprintf "Usage: %s <options> <object-files> [script-file [arguments]]\noptions are:" app_name
 
+let load_init_files dir =
+  let files = Sys.readdir dir in
+  Array.sort String.compare files;
+  Array.iter
+    (fun fn ->
+       if Filename.check_suffix fn ".ml" then
+         ignore (Toploop.use_silently Format.err_formatter fn : bool))
+    files
+;;
+
 let common_init () =
   (* Initializes toplevel environment. *)
   Toploop.initialize_toplevel_env ();
@@ -1109,16 +1119,24 @@ let common_init () =
   Location.input_name := UTop.input_name;
   (* Make sure SIGINT is catched while executing OCaml code. *)
   Sys.catch_break true;
+  (* Load system init files. *)
+  (match try Some (Sys.getenv "OCAML_TOPLEVEL_PATH") with Not_found -> None with
+    | Some dir ->
+      Topdirs.dir_directory dir;
+      let autoload = Filename.concat dir "autoload" in
+      if Sys.file_exists autoload then
+        load_init_files autoload
+    | None -> ());
   (* Load user's .ocamlinit file. *)
   (match !Clflags.init_file with
      | Some fn ->
          if Sys.file_exists fn then
-           ignore (Toploop.use_silently Format.err_formatter fn)
+           ignore (Toploop.use_silently Format.err_formatter fn : bool)
          else
            Printf.eprintf "Init file not found: \"%s\".\n" fn
      | None ->
          if Sys.file_exists ".ocamlinit" then
-           ignore (Toploop.use_silently Format.err_formatter ".ocamlinit")
+           ignore (Toploop.use_silently Format.err_formatter ".ocamlinit" : bool)
          else
            let fn = Filename.concat LTerm_resources.home ".ocamlinit" in
            if Sys.file_exists fn then
