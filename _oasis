@@ -10,7 +10,7 @@ LicenseFile: LICENSE
 License: BSD3
 Authors: Jeremie Dimino
 Maintainers: Jeremie Dimino <jeremie@dimino.org>
-Homepage: http://utop.forge.ocamlcore.org/
+Homepage: https://github.com/diml/utop
 BuildTools: ocamlbuild
 Plugins: DevFiles (0.3), META (0.3)
 XDevFilesEnableMakefile: false
