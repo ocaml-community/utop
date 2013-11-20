@@ -73,8 +73,9 @@ To use utop, simply run:
     $ utop
 
 utop display a bar after the prompt which is used to show possible
-completions in real-time. You can navigate in it using `Alt+Left` and
-`Alt+Right`, and select one completion using `Alt+Tab`.
+completions in real-time. You can navigate in it using `M-left` and
+`M-right`, and select one completion using `M-tab`. The `M` denotes
+the meta key, which is `Alt` most of the time.
 
 Customization
 -------------
