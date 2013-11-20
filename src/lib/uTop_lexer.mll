@@ -75,13 +75,12 @@ let float_literal =
 let symbolchar =
   ['!' '$' '%' '&' '*' '+' '-' '.' '/' ':' '<' '=' '>' '?' '@' '^' '|' '~']
 
-rule tokens syntax context idx = parse
+rule tokens syntax context idx acc = parse
   | eof
-      { (idx, None, []) }
+      { (idx, None, List.rev acc) }
   | ('\n' | blank)+
       { let loc = lexeme_loc idx lexbuf in
-        let idx, res, l = tokens syntax context loc.idx2 lexbuf in
-        (idx, res, (Blanks, loc) :: l) }
+        tokens syntax context loc.idx2 ((Blanks, loc) :: acc) lexbuf }
   | lident
       { let src = lexeme lexbuf in
         let loc = lexeme_loc idx lexbuf in
@@ -92,8 +91,7 @@ rule tokens syntax context idx = parse
             | _ ->
                 Lident src
         in
-        let idx, res, l = tokens syntax context loc.idx2 lexbuf in
-        (idx, res, (tok, loc) :: l) }
+        tokens syntax context loc.idx2 ((tok, loc) :: acc) lexbuf }
   | uident
       { let src = lexeme lexbuf in
         let loc = lexeme_loc idx lexbuf in
@@ -106,8 +104,7 @@ rule tokens syntax context idx = parse
             | _ ->
                 Uident src
         in
-        let idx, res, l = tokens syntax context loc.idx2 lexbuf in
-        (idx, res, (tok, loc) :: l) }
+        tokens syntax context loc.idx2 ((tok, loc) :: acc) lexbuf }
   | int_literal "l"
   | int_literal "L"
   | int_literal "n"
@@ -115,14 +112,12 @@ rule tokens syntax context idx = parse
   | float_literal
       { let loc = lexeme_loc idx lexbuf in
         let tok = Constant (lexeme lexbuf) in
-        let idx, res, l = tokens syntax context loc.idx2 lexbuf in
-        (idx, res, (tok, loc) :: l) }
+        tokens syntax context loc.idx2 ((tok, loc) :: acc) lexbuf }
   | '"'
       { let ofs = lexeme_start lexbuf in
         let idx2, terminated = string (idx + 1) lexbuf in
         let loc = mkloc idx idx2 ofs (lexeme_end lexbuf) in
-        let idx, res, l = tokens syntax context idx2 lexbuf in
-        (idx, res, (String terminated, loc) :: l) }
+        tokens syntax context idx2 ((String terminated, loc) :: acc) lexbuf }
   | "'" [^'\'' '\\'] "'"
   | "'\\" ['\\' '"' 'n' 't' 'b' 'r' ' ' '\'' 'x' '0'-'9'] eof
   | "'\\" ['\\' '"' 'n' 't' 'b' 'r' ' ' '\''] "'"
@@ -130,43 +125,37 @@ rule tokens syntax context idx = parse
   | "'\\" (['0'-'9'] ['0'-'9'] ['0'-'9'] | 'x' hexa_char hexa_char) eof
   | "'\\" (['0'-'9'] ['0'-'9'] ['0'-'9'] | 'x' hexa_char hexa_char) "'"
       { let loc = lexeme_loc idx lexbuf in
-        let idx, res, l = tokens syntax context loc.idx2 lexbuf in
-        (idx, res, (Char, loc) :: l) }
+        tokens syntax context loc.idx2 ((Char, loc) :: acc) lexbuf }
   | "'\\" uchar
       { let loc = mkloc idx (idx + 3) (lexeme_start lexbuf) (lexeme_end lexbuf) in
-        let idx, res, l = tokens syntax context loc.idx2 lexbuf in
-        (idx, res, (Error, loc) :: l) }
+        tokens syntax context loc.idx2 ((Error, loc) :: acc) lexbuf }
   | "(*)"
       { let loc = lexeme_loc idx lexbuf in
-        let idx, res, l = tokens syntax context loc.idx2 lexbuf in
-        (idx, res, (Comment (Comment_reg, true), loc) :: l) }
+        tokens syntax context loc.idx2 ((Comment (Comment_reg, true), loc) :: acc) lexbuf }
   | "(**)"
       { let loc = lexeme_loc idx lexbuf in
-        let idx, res, l = tokens syntax context loc.idx2 lexbuf in
-        (idx, res, (Comment (Comment_doc, true), loc) :: l) }
+        tokens syntax context loc.idx2 ((Comment (Comment_doc, true), loc) :: acc) lexbuf }
   | "(**"
       { let ofs = lexeme_start lexbuf in
         let idx2, terminated = comment (idx + 3) 0 lexbuf in
         let loc = mkloc idx idx2 ofs (lexeme_end lexbuf) in
-        let idx, res, l = tokens syntax context idx2 lexbuf in
-        (idx, res, (Comment (Comment_doc, terminated), loc) :: l) }
+        tokens syntax context idx2 ((Comment (Comment_doc, terminated), loc) :: acc) lexbuf }
   | "(*"
       { let ofs = lexeme_start lexbuf in
         let idx2, terminated = comment (idx + 2) 0 lexbuf in
         let loc = mkloc idx idx2 ofs (lexeme_end lexbuf) in
-        let idx, res, l = tokens syntax context idx2 lexbuf in
-        (idx, res, (Comment (Comment_reg, terminated), loc) :: l) }
+        tokens syntax context idx2 ((Comment (Comment_reg, terminated), loc) :: acc) lexbuf }
   | ""
       { if syntax = UTop.Normal then
-          symbol syntax context idx lexbuf
+          symbol syntax context idx acc lexbuf
         else
           match context with
             | Toplevel ->
-                camlp4_toplevel syntax context idx lexbuf
+                camlp4_toplevel syntax context idx acc lexbuf
             | Antiquot ->
-                camlp4_antiquot syntax context idx lexbuf }
+                camlp4_antiquot syntax context idx acc lexbuf }
 
-and symbol syntax context idx = parse
+and symbol syntax context idx acc = parse
   | "(" | ")"
   | "[" | "]"
   | "{" | "}"
@@ -177,28 +166,27 @@ and symbol syntax context idx = parse
   | symbolchar+
       { let loc = lexeme_loc idx lexbuf in
         let tok = Symbol (lexeme lexbuf) in
-        let idx, res, l = tokens syntax context loc.idx2 lexbuf in
-        (idx, res, (tok, loc) :: l) }
+        tokens syntax context loc.idx2 ((tok, loc) :: acc) lexbuf }
   | uchar
       { let loc = mkloc idx (idx + 1) (lexeme_start lexbuf) (lexeme_end lexbuf) in
-        let idx, res, l = tokens syntax context loc.idx2 lexbuf in
-        (idx, res, (Error, loc) :: l) }
+        tokens syntax context loc.idx2 ((Error, loc) :: acc) lexbuf }
 
-and camlp4_toplevel syntax context idx = parse
+and camlp4_toplevel syntax context idx acc = parse
   | '<' (':' ident)? ('@' lident)? '<'
       { let ofs = lexeme_start lexbuf in
         let idx2, items, terminated = quotation syntax 0 idx (idx + lexeme_size lexbuf) (lexeme_start lexbuf) lexbuf in
         let ofs2 = lexeme_end lexbuf in
-        let idx3, res, l = tokens syntax context idx2 lexbuf in
-        (idx3, res, (Quotation (items, terminated), mkloc idx idx2 ofs ofs2) :: l) }
+        tokens syntax context idx2
+          ((Quotation (items, terminated), mkloc idx idx2 ofs ofs2) :: acc)
+          lexbuf }
   | ""
-      { symbol syntax context idx lexbuf }
+      { symbol syntax context idx acc lexbuf }
 
-and camlp4_antiquot syntax context idx = parse
+and camlp4_antiquot syntax context idx acc = parse
   | '$'
-      { (idx + 1, Some (lexeme_loc idx lexbuf), []) }
+      { (idx + 1, Some (lexeme_loc idx lexbuf), List.rev acc) }
   | ""
-      { camlp4_toplevel syntax context idx lexbuf }
+      { camlp4_toplevel syntax context idx acc lexbuf }
 
 and comment idx depth = parse
   | "(*"
@@ -247,7 +235,7 @@ and quotation syntax depth idx1 idx2 ofs1 = parse
         in
         let opening_loc = lexeme_loc idx2 lexbuf in
         let idx, name = quotation_name (idx2 + 1) lexbuf in
-        let idx, closing_loc, items = tokens syntax Antiquot idx lexbuf in
+        let idx, closing_loc, items = tokens syntax Antiquot idx [] lexbuf in
         let anti = {
           a_opening = opening_loc;
           a_closing = closing_loc;
@@ -283,6 +271,6 @@ and quotation_name idx = parse
 
 {
   let lex_string syntax str =
-    let _, _, items = tokens syntax Toplevel 0 (Lexing.from_string str) in
+    let _, _, items = tokens syntax Toplevel 0 [] (Lexing.from_string str) in
     items
 }
