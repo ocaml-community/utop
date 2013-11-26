@@ -25,4 +25,5 @@ let ui, set_ui = S.create Console
 
 let error_style = ref LTerm_style.none
 
+(* Config from ~/.utoprc *)
 let autoload = ref true

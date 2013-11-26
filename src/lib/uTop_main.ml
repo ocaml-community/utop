@@ -1049,6 +1049,9 @@ let print_version () =
 let print_version_num () =
   Printf.printf "%s\n" UTop.version
 
+(* Config from command line *)
+let autoload = ref true
+
 let args = Arg.align [
 #if ocaml_version >= (3, 13, 0)
   "-absname", Arg.Set Location.absname, " Show absolute filenames in error message";
@@ -1093,6 +1096,8 @@ let args = Arg.align [
   " Hide identifiers starting with a '_' (the default)";
   "-show-reserved", Arg.Unit (fun () -> UTop.set_hide_reserved false),
   " Show identifiers starting with a '_'";
+  "-no-autoload", Arg.Clear autoload,
+  " Disable autoloading of files in $OCAML_TOPLEVEL_PATH/autoload";
 ]
 
 #if ocaml_version >= (4, 01, 0)
@@ -1123,9 +1128,9 @@ let common_init () =
   (match try Some (Sys.getenv "OCAML_TOPLEVEL_PATH") with Not_found -> None with
     | Some dir ->
       Topdirs.dir_directory dir;
-      let autoload = Filename.concat dir "autoload" in
-      if !UTop_private.autoload && Sys.file_exists autoload then
-        load_init_files autoload
+      let autoload_dir = Filename.concat dir "autoload" in
+      if !autoload && !UTop_private.autoload && Sys.file_exists autoload_dir then
+        load_init_files autoload_dir
     | None -> ());
   (* Load user's .ocamlinit file. *)
   (match !Clflags.init_file with
