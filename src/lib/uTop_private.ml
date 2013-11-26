@@ -24,3 +24,5 @@ type ui = Console | Emacs
 let ui, set_ui = S.create Console
 
 let error_style = ref LTerm_style.none
+
+let autoload = ref true

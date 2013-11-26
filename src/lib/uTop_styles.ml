@@ -84,6 +84,7 @@ let load () =
        | "" -> ()
        | str -> raise (LTerm_resources.Error (Printf.sprintf "invalid profile %S" str)));
     UTop_private.error_style := styles.style_error;
+    UTop_private.autoload := LTerm_resources.get_bool "autoload" res <> Some false;
     return ()
   with
     | Unix.Unix_error(Unix.ENOENT, _, _) ->

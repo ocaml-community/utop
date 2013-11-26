@@ -27,6 +27,14 @@ ignored. Configuration lines are of the form:
 may contains the '*' star character. In that case any key which match
 the pattern is given the value after the colon.
 
+The boolean key
+.I autoload
+can be set to
+.I false
+to disable the autoloading of files in
+.I $OCAML_TOPLEVEL_PATH/autload
+at startup.
+
 The key
 .I profile
 may have the value

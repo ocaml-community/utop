@@ -1108,7 +1108,7 @@ let load_init_files dir =
   Array.iter
     (fun fn ->
        if Filename.check_suffix fn ".ml" then
-         ignore (Toploop.use_silently Format.err_formatter fn : bool))
+         ignore (Toploop.use_silently Format.err_formatter (Filename.concat dir fn) : bool))
     files
 ;;
 
@@ -1124,7 +1124,7 @@ let common_init () =
     | Some dir ->
       Topdirs.dir_directory dir;
       let autoload = Filename.concat dir "autoload" in
-      if Sys.file_exists autoload then
+      if !UTop_private.autoload && Sys.file_exists autoload then
         load_init_files autoload
     | None -> ());
   (* Load user's .ocamlinit file. *)
