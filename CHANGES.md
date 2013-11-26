@@ -1,3 +1,12 @@
+1.9 (2013-11-26)
+----------------
+
+* automatically load all files in `$OCAML_TOPLEVEL_PATH/autoload` at
+  startup. Can be disabled with `autoload: false` in `~/.utoprc` or
+  `-no-autoload`.
+* fix #38: handle errors from custom camlp4 ast filters
+* fix #7: avoid a stack overflow in UTop_lexer
+
 1.8 (2013-10-25)
 ----------------
 
