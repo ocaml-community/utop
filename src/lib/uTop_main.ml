@@ -1052,6 +1052,9 @@ let print_version_num () =
 (* Config from command line *)
 let autoload = ref true
 
+(* Packages to load at startup *)
+let requires = ref []
+
 let args = Arg.align [
 #if ocaml_version >= (3, 13, 0)
   "-absname", Arg.Set Location.absname, " Show absolute filenames in error message";
@@ -1098,6 +1101,8 @@ let args = Arg.align [
   " Show identifiers starting with a '_'";
   "-no-autoload", Arg.Clear autoload,
   " Disable autoloading of files in $OCAML_TOPLEVEL_PATH/autoload";
+  "-require", Arg.String (fun s -> requires := !requires @ UTop.split_words s),
+  "<package> Load this package";
 ]
 
 #if ocaml_version >= (4, 01, 0)
@@ -1124,6 +1129,8 @@ let common_init () =
   Location.input_name := UTop.input_name;
   (* Make sure SIGINT is catched while executing OCaml code. *)
   Sys.catch_break true;
+  (* Requires *)
+  UTop.require !requires;
   (* Load system init files. *)
   (match try Some (Sys.getenv "OCAML_TOPLEVEL_PATH") with Not_found -> None with
     | Some dir ->

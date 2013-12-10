@@ -23,6 +23,9 @@ val keywords : Set.Make(String).t ref
 val add_keyword : string -> unit
   (** Add a new OCaml keyword. *)
 
+val require : string list -> unit
+  (** Load all the given findlib packages *)
+
 type ui = Console | Emacs
     (** The user interface in use. *)
 
@@ -297,6 +300,8 @@ val collect_formatters : Buffer.t -> Format.formatter list -> (unit -> 'a) -> 'a
 val discard_formatters : Format.formatter list -> (unit -> 'a) -> 'a
   (** [discard_formatters pps f] executes [f], dropping everything it
       prints on [pps]. *)
+
+val split_words : string -> string list
 
 (**/**)
 
