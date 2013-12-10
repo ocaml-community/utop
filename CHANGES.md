@@ -1,3 +1,9 @@
+1.10 (2013-12-10)
+-----------------
+
+* add the `-require` command line argument to specify packages on the
+  command line
+
 1.9 (2013-11-26)
 ----------------
 
