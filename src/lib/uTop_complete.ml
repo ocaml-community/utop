@@ -828,7 +828,7 @@ let complete ~syntax ~phrase_terminator ~input =
       end
 
     (* Completion on #load. *)
-    | [(Symbol "#", _); (Lident "load", _); (String false, loc)] ->
+    | [(Symbol "#", _); (Lident ("load" | "load_rec"), _); (String false, loc)] ->
         let file = String.sub input (loc.ofs1 + 1) (String.length input - loc.ofs1 - 1) in
         let filter name = Filename.check_suffix name ".cma" || Filename.check_suffix name ".cmo" in
         let map =
