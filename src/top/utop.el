@@ -135,7 +135,7 @@ This hook is only run if exiting actually kills the buffer."
     (define-key map [(control ?a)] 'utop-bol)
     (define-key map [(meta ?p)] 'utop-history-goto-prev)
     (define-key map [(meta ?n)] 'utop-history-goto-next)
-    (define-key map [tab] 'utop-complete)
+    (define-key map (kbd "TAB") 'utop-complete)
     (define-key map [(control ?c) (control ?c)] 'utop-interrupt)
     (define-key map [(control ?c) (control ?i)] 'utop-interrupt)
     (define-key map [(control ?c) (control ?k)] 'utop-kill)
