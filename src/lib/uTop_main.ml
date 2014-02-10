@@ -340,7 +340,7 @@ type rewrite_rule = {
 let rewrite_rules : (Longident.t, rewrite_rule) Hashtbl.t = Hashtbl.create 42
 
 let longident_lwt_main_run = Longident.Ldot (Longident.Lident "Lwt_main", "run")
-let longident_async_core_thread_safe_block_on_async_exn =
+let longident_async_thread_safe_block_on_async_exn =
   Longident.parse "Async.Std.Thread_safe.block_on_async_exn"
 let longident_unit = Longident.Lident "()"
 
@@ -372,20 +372,22 @@ let () =
   };
 
   (* Rewrite Async.Std.Defered.t expressions to
-     Async_core.Thread_safe.block_on_async_exn (fun () -> <expr>). *)
-  Hashtbl.add rewrite_rules (Longident.parse "Async_core.Ivar.Deferred.t") {
-    required_values = [longident_async_core_thread_safe_block_on_async_exn];
+     Async.Std.Thread_safe.block_on_async_exn (fun () -> <expr>). *)
+  let rule = {
+    required_values = [longident_async_thread_safe_block_on_async_exn];
     rewrite = (fun loc e -> {
       Parsetree.pexp_desc =
         Parsetree.Pexp_apply
           ({ Parsetree.pexp_desc = Parsetree.Pexp_ident
-              (with_loc loc longident_async_core_thread_safe_block_on_async_exn);
+              (with_loc loc longident_async_thread_safe_block_on_async_exn);
              Parsetree.pexp_loc = loc },
            [("", wrap_unit loc e)]);
       Parsetree.pexp_loc = loc;
     });
     enabled = UTop.auto_run_async;
-  }
+  } in
+  Hashtbl.add rewrite_rules (Longident.parse "Async_core.Ivar.Deferred.t") rule;
+  Hashtbl.add rewrite_rules (Longident.parse "Async_kernel.Ivar.Deferred.t") rule
 
 (* Returns whether the argument is a toplevel expression. *)
 let is_eval = function
