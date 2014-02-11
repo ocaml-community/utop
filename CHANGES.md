@@ -1,3 +1,11 @@
+1.11 (2014-02-11)
+-----------------
+
+* update the async hook following the renaming of `Async_core` to
+  `Async_kernel`
+* fix tab completion not working on some emacs
+* complete `#load_rec` the same way as `#load`
+
 1.10 (2013-12-10)
 -----------------
 
