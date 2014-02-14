@@ -1007,7 +1007,7 @@ let typeof sid =
       let (path, mod_typ) = Env.lookup_module id env in
 #else
       let path = Env.lookup_module id env in
-      let mod_typ = Env.find_modtype_expansion path env in
+      let mod_typ = (Env.find_module path env).Types.md_type in
 #endif
       let id = Ident.create (Path.name path) in
       Some (Printtyp.tree_of_module id mod_typ Types.Trec_not)
