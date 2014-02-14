@@ -288,7 +288,7 @@ let rec eval env = function
 
   (* Boolean operations *)
   | <:expr< not $x$ >> -> Bool(not (eval_bool env x))
-  | <:expr< $x$ or $y$ >> -> Bool(eval_bool env x or eval_bool env y)
+  | <:expr< $x$ or $y$ >> -> Bool(eval_bool env x || eval_bool env y)
   | <:expr< $x$ || $y$ >> -> Bool(eval_bool env x || eval_bool env y)
   | <:expr< $x$ && $y$ >> -> Bool(eval_bool env x && eval_bool env y)
 

@@ -369,7 +369,10 @@ let visible_modules () =
             acc)
         String_set.empty !Config.load_path)
 
-#if ocaml_version >= (4, 0, 0)
+#if ocaml_version >= (4, 2, 0)
+let field_name { ld_id = id } = Ident.name id
+let constructor_name { cd_id = id } = Ident.name id
+#elif ocaml_version >= (4, 0, 0)
 let field_name (id, _, _) = Ident.name id
 let constructor_name (id, _, _) = Ident.name id
 #else
@@ -413,8 +416,13 @@ let rec names_of_module_type = function
         String_set.empty decls
   | Mty_ident path -> begin
       match lookup_env Env.find_modtype path !Toploop.toplevel_env with
+#if ocaml_version < (4, 2, 0)
         | Some Modtype_abstract -> String_set.empty
         | Some Modtype_manifest module_type -> names_of_module_type module_type
+#else
+        | Some { mtd_type = None } -> String_set.empty
+        | Some { mtd_type = Some module_type } -> names_of_module_type module_type
+#endif
         | None -> String_set.empty
     end
   | _ ->
@@ -436,8 +444,13 @@ let rec fields_of_module_type = function
         String_set.empty decls
   | Mty_ident path -> begin
       match lookup_env Env.find_modtype path !Toploop.toplevel_env with
+#if ocaml_version < (4, 2, 0)
         | Some Modtype_abstract -> String_set.empty
         | Some Modtype_manifest module_type -> fields_of_module_type module_type
+#else
+        | Some { mtd_type = None } -> String_set.empty
+        | Some { mtd_type = Some module_type } -> fields_of_module_type module_type
+#endif
         | None -> String_set.empty
     end
   | _ ->
@@ -493,11 +506,21 @@ let rec fields_of_module_type = function
 
 #endif
 
+#if ocaml_version < (4, 2, 0)
+let lookup_module = Env.lookup_module
+let find_module = Env.find_module
+#else
+let lookup_module id env =
+  let path = Env.lookup_module id env in
+  (path, Env.find_modtype_expansion path env)
+let find_module path env = (Env.find_module path env).md_type
+#endif
+
 let names_of_module longident =
   try
     Longident_map.find longident !local_names_by_longident
   with Not_found ->
-    match lookup_env Env.lookup_module longident !Toploop.toplevel_env with
+    match lookup_env lookup_module longident !Toploop.toplevel_env with
       | Some(path, module_type) ->
           let names = names_of_module_type module_type in
           local_names_by_path := Path_map.add path names !local_names_by_path;
@@ -511,7 +534,7 @@ let fields_of_module longident =
   try
     Longident_map.find longident !local_fields_by_longident
   with Not_found ->
-    match lookup_env Env.lookup_module longident !Toploop.toplevel_env with
+    match lookup_env lookup_module longident !Toploop.toplevel_env with
       | Some(path, module_type) ->
           let fields = fields_of_module_type module_type in
           local_fields_by_path := Path_map.add path fields !local_fields_by_path;
@@ -538,12 +561,16 @@ let list_global_names () =
         loop (add (Ident.name id) acc) summary
     | Env.Env_cltype(summary, id, _) ->
         loop (add (Ident.name id) acc) summary
+#if ocaml_version >= (4, 2, 0)
+    | Env.Env_functor_arg(summary, id) ->
+        loop (add (Ident.name id) acc) summary
+#endif
     | Env.Env_open(summary, path) ->
         match try Some (Path_map.find path !local_names_by_path) with Not_found -> None with
           | Some names ->
               loop (String_set.union acc names) summary
           | None ->
-              match lookup_env Env.find_module path !Toploop.toplevel_env with
+              match lookup_env find_module path !Toploop.toplevel_env with
                 | Some module_type ->
                     let names = names_of_module_type module_type in
                     local_names_by_path := Path_map.add path names !local_names_by_path;
@@ -589,6 +616,10 @@ let list_global_fields () =
         loop (add (Ident.name id) acc) summary
     | Env.Env_module(summary, id, _) ->
         loop (add (Ident.name id) acc) summary
+#if ocaml_version >= (4, 2, 0)
+    | Env.Env_functor_arg(summary, id) ->
+        loop (add (Ident.name id) acc) summary
+#endif
     | Env.Env_modtype(summary, id, _) ->
         loop (add (Ident.name id) acc) summary
     | Env.Env_class(summary, id, _) ->
@@ -600,7 +631,7 @@ let list_global_fields () =
           | Some fields ->
               loop (String_set.union acc fields) summary
           | None ->
-              match lookup_env Env.find_module path !Toploop.toplevel_env with
+              match lookup_env find_module path !Toploop.toplevel_env with
                 | Some module_type ->
                     let fields = fields_of_module_type module_type in
                     local_fields_by_path := Path_map.add path fields !local_fields_by_path;

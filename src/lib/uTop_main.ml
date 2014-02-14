@@ -344,6 +344,7 @@ let longident_async_thread_safe_block_on_async_exn =
   Longident.parse "Async.Std.Thread_safe.block_on_async_exn"
 let longident_unit = Longident.Lident "()"
 
+#if ocaml_version < (4, 2, 0)
 (* Wrap <expr> into: fun () -> <expr> *)
 let wrap_unit loc e =
   let i = with_loc loc longident_unit in
@@ -355,19 +356,28 @@ let wrap_unit loc e =
     Parsetree.pexp_desc = Parsetree.Pexp_function ("", None, [(p, e)]);
     Parsetree.pexp_loc = loc;
   }
+#endif
 
 let () =
   (* Rewrite Lwt.t expressions to Lwt_main.run <expr> *)
   Hashtbl.add rewrite_rules (Longident.Ldot (Longident.Lident "Lwt", "t")) {
     required_values = [longident_lwt_main_run];
-    rewrite = (fun loc e -> {
-      Parsetree.pexp_desc =
-        Parsetree.Pexp_apply
-          ({ Parsetree.pexp_desc = Parsetree.Pexp_ident (with_loc loc longident_lwt_main_run);
-             Parsetree.pexp_loc = loc },
-           [("", e)]);
-      Parsetree.pexp_loc = loc;
-    });
+    rewrite = (fun loc e ->
+#if ocaml_version < (4, 2, 0)
+      { Parsetree.pexp_desc =
+          Parsetree.Pexp_apply
+            ({ Parsetree.pexp_desc = Parsetree.Pexp_ident (with_loc loc longident_lwt_main_run);
+               Parsetree.pexp_loc = loc },
+             [("", e)])
+      ; Parsetree.pexp_loc = loc }
+#else
+      let open Ast_helper in
+      let open Convenience in
+      with_default_loc loc (fun () ->
+        Exp.apply (Exp.ident (with_loc loc longident_lwt_main_run)) [("", e)]
+      )
+#endif
+    );
     enabled = UTop.auto_run_lwt;
   };
 
@@ -375,15 +385,25 @@ let () =
      Async.Std.Thread_safe.block_on_async_exn (fun () -> <expr>). *)
   let rule = {
     required_values = [longident_async_thread_safe_block_on_async_exn];
-    rewrite = (fun loc e -> {
-      Parsetree.pexp_desc =
-        Parsetree.Pexp_apply
-          ({ Parsetree.pexp_desc = Parsetree.Pexp_ident
-              (with_loc loc longident_async_thread_safe_block_on_async_exn);
-             Parsetree.pexp_loc = loc },
-           [("", wrap_unit loc e)]);
-      Parsetree.pexp_loc = loc;
-    });
+    rewrite = (fun loc e ->
+#if ocaml_version < (4, 2, 0)
+      { Parsetree.pexp_desc =
+          Parsetree.Pexp_apply
+            ({ Parsetree.pexp_desc = Parsetree.Pexp_ident
+                                       (with_loc loc longident_async_thread_safe_block_on_async_exn);
+               Parsetree.pexp_loc = loc },
+             [("", wrap_unit loc e)])
+      ; Parsetree.pexp_loc = loc }
+#else
+      let open Ast_helper in
+      let open Convenience in
+      with_default_loc loc (fun () ->
+        Exp.apply
+          (Exp.ident (with_loc loc longident_async_thread_safe_block_on_async_exn))
+          [("", Exp.fun_ "" None (punit ()) e)]
+      )
+#endif
+    );
     enabled = UTop.auto_run_async;
   } in
   Hashtbl.add rewrite_rules (Longident.parse "Async_core.Ivar.Deferred.t") rule;
@@ -448,6 +468,7 @@ let str_items_of_typed_structure tstr = tstr
 let str_desc_of_typed_str_item tstr = tstr
 #endif
 
+#if ocaml_version < (4, 2, 0)
 let rewrite_str_item pstr_item tstr_item =
   match pstr_item, str_desc_of_typed_str_item tstr_item with
     | ({ Parsetree.pstr_desc = Parsetree.Pstr_eval e;
@@ -465,6 +486,25 @@ let rewrite_str_item pstr_item tstr_item =
     end
     | _ ->
       pstr_item
+#else
+let rewrite_str_item pstr_item tstr_item =
+  match pstr_item, str_desc_of_typed_str_item tstr_item with
+    | ({ Parsetree.pstr_desc = Parsetree.Pstr_eval (e, _);
+         Parsetree.pstr_loc = loc },
+       Typedtree.Tstr_eval ({ Typedtree.exp_type = typ }, _)) -> begin
+      match rule_of_type typ with
+        | Some rule ->
+          if React.S.value rule.enabled && List.for_all is_persistent_in_env rule.required_values then
+            { Parsetree.pstr_desc = Parsetree.Pstr_eval (rule.rewrite loc e, []);
+              Parsetree.pstr_loc = loc }
+          else
+            pstr_item
+        | None ->
+          pstr_item
+    end
+    | _ ->
+      pstr_item
+#endif
 
 let rewrite phrase =
   match phrase with
@@ -963,7 +1003,12 @@ let typeof sid =
       Some (Printtyp.tree_of_type_declaration id ty_decl Types.Trec_not)
     with Not_found ->
     try
+#if ocaml_version < (4, 2, 0)
       let (path, mod_typ) = Env.lookup_module id env in
+#else
+      let path = Env.lookup_module id env in
+      let mod_typ = Env.find_modtype_expansion path env in
+#endif
       let id = Ident.create (Path.name path) in
       Some (Printtyp.tree_of_module id mod_typ Types.Trec_not)
     with Not_found ->

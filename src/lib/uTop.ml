@@ -250,6 +250,11 @@ let parse_default parse str eos_is_error =
         Error ([mkloc loc],
                Printf.sprintf "In this scoped type, variable '%s is reserved for the local type %s." var var)
 #endif
+#if ocaml_version >= (4, 2, 0)
+      | Syntaxerr.Not_expecting (loc, nonterm) ->
+          Error ([mkloc loc],
+                 Printf.sprintf "Syntax error: %s not expected" nonterm)
+#endif
     end
     | Syntaxerr.Escape_error | Parsing.Parse_error ->
         Error ([mkloc (Location.curr lexbuf)],
@@ -305,6 +310,7 @@ let check_phrase phrase =
         let env = !Toploop.toplevel_env in
         (* Construct "let _ () = let module _ = struct <items> end in ()" in order to test
            the typing and compilation of [items] without evaluating them. *)
+#if ocaml_version < (4, 2, 0)
         let structure = {
           pmod_loc = loc;
           pmod_desc = Pmod_structure (item :: items);
@@ -332,6 +338,18 @@ let check_phrase phrase =
                                       ppat_loc = loc }, func)]);
           pstr_loc = loc;
         } in
+#else
+        let top_def =
+          let open Ast_helper in
+          let open Convenience in
+          with_default_loc loc
+            (fun () ->
+               Str.eval
+                 (Exp.letmodule (with_loc loc "_")
+                    (Mod.structure (item :: items))
+                    (unit ())))
+        in
+#endif
         let check_phrase = Ptop_def [top_def] in
         try
           let _ =

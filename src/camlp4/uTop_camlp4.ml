@@ -13,7 +13,11 @@ open Camlp4.PreCast
 
 module Ast2pt = Camlp4.Struct.Camlp4Ast2OCamlAst.Make(Ast)
 
+#if ocaml_version < (4, 2, 0)
 external cast_toplevel_phrase : Camlp4_import.Parsetree.toplevel_phrase -> Parsetree.toplevel_phrase = "%identity"
+#else
+let cast_toplevel_phrase x = x
+#endif
 
 let print_camlp4_error pp exn =
   Format.fprintf pp "@[<0>%a@]" Camlp4.ErrorHandler.print exn;
