@@ -4,6 +4,11 @@
 ;; Licence   : BSD3
 ;;
 ;; This file is a part of utop.
+;;
+;; Keywords: ocaml languages
+;; Package-Requires: ((emacs "24"))
+;; See the README for more info:
+;; https://github.com/diml/utop
 
 (require 'easymenu)
 
@@ -1222,3 +1227,5 @@ Special keys for utop:
   buf))
 
 (provide 'utop)
+
+;;; utop.el ends here
