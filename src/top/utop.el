@@ -1,14 +1,21 @@
-;; utop.el
-;; -------
-;; Copyright : (c) 2011, Jeremie Dimino <jeremie@dimino.org>
-;; Licence   : BSD3
-;;
-;; This file is a part of utop.
-;;
-;; Keywords: ocaml languages
+;;; utop.el --- Universal toplevel for OCaml
+
+;; Copyright: (c) 2011, Jeremie Dimino <jeremie@dimino.org>
+;; Author: Jeremie Dimino <jeremie@dimino.org>
+;; URL: https://github.com/diml/utop
+;; Licence: BSD3
+;; Version: 1.11
 ;; Package-Requires: ((emacs "24"))
-;; See the README for more info:
+;; Keywords: ocaml languages
+
+;; This file is a part of utop.
+
+;;; Commentary:
+
+;; See the README for more info;
 ;; https://github.com/diml/utop
+
+;;; Code:
 
 (require 'easymenu)
 
