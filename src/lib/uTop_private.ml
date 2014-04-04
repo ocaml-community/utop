@@ -11,11 +11,13 @@ open Lwt_react
 
 let size, set_size =
   let ev, set_size = E.create () in
-  (S.switch (S.const { LTerm_geom.rows = 25; LTerm_geom.cols = 80 }) ev, set_size)
+  let init = S.const { LTerm_geom.rows = 25; LTerm_geom.cols = 80 } in
+  (S.switch (S.hold ~eq:( == ) init ev), set_size)
 
 let key_sequence, set_key_sequence =
   let ev, set_key_sequence = E.create () in
-  (S.switch (S.const ([] : LTerm_key.t list)) ev, set_key_sequence)
+  let init = (S.const ([] : LTerm_key.t list)) in
+  (S.switch (S.hold ~eq:( == ) init ev), set_key_sequence)
 
 let count, set_count = S.create (-1)
 

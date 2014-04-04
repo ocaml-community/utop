@@ -44,6 +44,7 @@ let get_ui () = S.value UTop_private.ui
 type profile = Dark | Light
 
 let profile, set_profile = S.create Dark
+let set_profile p = set_profile p 
 
 let size = UTop_private.size
 
@@ -57,6 +58,7 @@ let () = at_new_command (fun () -> time := Unix.time ())
 
 let make_variable ?eq x =
   let signal, set = S.create ?eq x in
+  let set v = set v in
   (signal, (fun () -> S.value signal), set)
 
 type syntax =
