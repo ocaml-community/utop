@@ -1055,14 +1055,20 @@ let () =
    +-----------------------------------------------------------------+ *)
 
 let emacs_mode = ref false
-let preload_objects = ref []
+let preload = ref []
 
 let prepare () =
   Toploop.set_paths ();
   try
-    let res = List.for_all (Topdirs.load_file Format.err_formatter) (List.rev !preload_objects) in
-    !Toploop.toplevel_startup_hook ();
-    res
+    let ok =
+      List.for_all
+        (function
+          | `Packages l -> UTop.require l; true
+          | `Object fn -> Topdirs.load_file Format.err_formatter fn)
+        (List.rev !preload)
+    in
+    if ok then !Toploop.toplevel_startup_hook ();
+    ok
   with exn ->
     try
       Errors.report_error Format.err_formatter exn;
@@ -1071,23 +1077,26 @@ let prepare () =
       Format.eprintf "Uncaught exception: %s\n" (Printexc.to_string exn);
       false
 
-let read_script_from_stdin () =
-  let args = Array.sub Sys.argv !Arg.current (Array.length Sys.argv - !Arg.current) in
-  if prepare () && Toploop.run_script Format.err_formatter "" args then
+let run_script name =
+  (* To prevent message from camlp4 *)
+  Sys.interactive := false;
+  if not (prepare ()) then exit 2;
+  let len = Array.length Sys.argv - !Arg.current in
+  Array.blit Sys.argv !Arg.current Sys.argv 0 len;
+  Obj.truncate (Obj.repr Sys.argv) len;
+  Arg.current := 0;
+  Toploop.initialize_toplevel_env ();
+  Location.input_name := UTop.input_name;
+  if Toploop.use_silently Format.err_formatter name then
     exit 0
   else
     exit 2
 
 let file_argument name =
   if Filename.check_suffix name ".cmo" || Filename.check_suffix name ".cma" then
-    preload_objects := name :: !preload_objects
-  else begin
-    let args = Array.sub Sys.argv !Arg.current (Array.length Sys.argv - !Arg.current) in
-    if prepare () && Toploop.run_script Format.err_formatter name args then
-      exit 0
-    else
-      exit 2
-  end
+    preload := `Object name :: !preload
+  else
+    run_script name
 
 let print_version () =
   Printf.printf "The universal toplevel for OCaml, version %s, compiled for OCaml version %s\n" UTop.version Sys.ocaml_version;
@@ -1098,9 +1107,6 @@ let print_version_num () =
 
 (* Config from command line *)
 let autoload = ref true
-
-(* Packages to load at startup *)
-let requires = ref []
 
 let args = Arg.align [
 #if ocaml_version >= (3, 13, 0)
@@ -1119,7 +1125,7 @@ let args = Arg.align [
   "-no-short-paths", Arg.Set Clflags.real_paths, " Do not shorten paths in types";
 #endif
   "-rectypes", Arg.Set Clflags.recursive_types, " Allow arbitrary recursive types";
-  "-stdin", Arg.Unit read_script_from_stdin, " Read script from standard input";
+  "-stdin", Arg.Unit (fun () -> run_script ""), " Read script from standard input";
   "-strict-sequence", Arg.Set Clflags.strict_sequence, " Left-hand part of a sequence must have type unit";
   "-unsafe", Arg.Set Clflags.fast, " Do not compile bounds checking on array and string access";
   "-version", Arg.Unit print_version, " Print version and exit";
@@ -1148,7 +1154,7 @@ let args = Arg.align [
   " Show identifiers starting with a '_'";
   "-no-autoload", Arg.Clear autoload,
   " Disable autoloading of files in $OCAML_TOPLEVEL_PATH/autoload";
-  "-require", Arg.String (fun s -> requires := !requires @ UTop.split_words s),
+  "-require", Arg.String (fun s -> preload := `Packages (UTop.split_words s) :: !preload),
   "<package> Load this package";
 ]
 
@@ -1176,8 +1182,6 @@ let common_init () =
   Location.input_name := UTop.input_name;
   (* Make sure SIGINT is catched while executing OCaml code. *)
   Sys.catch_break true;
-  (* Requires *)
-  UTop.require !requires;
   (* Load system init files. *)
   (match try Some (Sys.getenv "OCAML_TOPLEVEL_PATH") with Not_found -> None with
     | Some dir ->
