@@ -1,3 +1,10 @@
+1.12 (2014-04-21)
+-----------------
+
+* supports -require for scripts
+* support for React 1.0.0
+* make utop.el compatible with melpa: http://melpa.milkbox.net
+
 1.11 (2014-02-11)
 -----------------
 
