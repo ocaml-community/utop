@@ -118,8 +118,13 @@ let parse_use_file str eos_is_error =
 let () =
   UTop.parse_toplevel_phrase := parse_toplevel_phrase;
   UTop.parse_use_file := parse_use_file;
-  (* Force camlp4 to display its welcome message. *)
-  try
-    ignore (!Toploop.parse_toplevel_phrase (Lexing.from_string ""))
-  with _ ->
-    ()
+  (* So that camlp4 doesn't display its welcome message. *)
+  let interactive = !Sys.interactive in
+  Sys.interactive := false;
+  let () =
+    try
+      ignore (!Toploop.parse_toplevel_phrase (Lexing.from_string ""))
+    with _ ->
+      ()
+  in
+  Sys.interactive := interactive
