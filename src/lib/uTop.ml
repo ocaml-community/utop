@@ -44,7 +44,7 @@ let get_ui () = S.value UTop_private.ui
 type profile = Dark | Light
 
 let profile, set_profile = S.create Dark
-let set_profile p = set_profile p 
+let set_profile p = set_profile p
 
 let size = UTop_private.size
 
@@ -312,12 +312,12 @@ let check_phrase phrase =
         let env = !Toploop.toplevel_env in
         (* Construct "let _ () = let module _ = struct <items> end in ()" in order to test
            the typing and compilation of [items] without evaluating them. *)
+        let unit = with_loc loc (Longident.Lident "()") in
 #if ocaml_version < (4, 2, 0)
         let structure = {
           pmod_loc = loc;
           pmod_desc = Pmod_structure (item :: items);
         } in
-        let unit = with_loc loc (Longident.Lident "()") in
         let unit_expr = {
           pexp_desc = Pexp_construct (unit, None, false);
           pexp_loc = loc;
@@ -343,13 +343,12 @@ let check_phrase phrase =
 #else
         let top_def =
           let open Ast_helper in
-          let open Convenience in
           with_default_loc loc
             (fun () ->
                Str.eval
                  (Exp.letmodule (with_loc loc "_")
                     (Mod.structure (item :: items))
-                    (unit ())))
+                    (Exp.construct unit None)))
         in
 #endif
         let check_phrase = Ptop_def [top_def] in

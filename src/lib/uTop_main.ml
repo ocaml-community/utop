@@ -372,7 +372,6 @@ let () =
       ; Parsetree.pexp_loc = loc }
 #else
       let open Ast_helper in
-      let open Convenience in
       with_default_loc loc (fun () ->
         Exp.apply (Exp.ident (with_loc loc longident_lwt_main_run)) [("", e)]
       )
@@ -396,11 +395,11 @@ let () =
       ; Parsetree.pexp_loc = loc }
 #else
       let open Ast_helper in
-      let open Convenience in
+      let punit = Pat.construct (with_loc loc (Longident.Lident "()")) None in
       with_default_loc loc (fun () ->
         Exp.apply
           (Exp.ident (with_loc loc longident_async_thread_safe_block_on_async_exn))
-          [("", Exp.fun_ "" None (punit ()) e)]
+          [("", Exp.fun_ "" None punit e)]
       )
 #endif
     );
@@ -661,7 +660,11 @@ let read_input_classic prompt buffer len =
     else
       Lwt_io.read_char_opt Lwt_io.stdin >>= function
         | Some c ->
+#if ocaml_version >= (4, 02, 0)
+            Bytes.set buffer i c;
+#else
             buffer.[i] <- c;
+#endif
             if c = '\n' then
               return (i + 1, false)
             else
@@ -1021,9 +1024,13 @@ let typeof sid =
       let cstr_desc = Env.lookup_constructor id env in
       match cstr_desc.Types.cstr_tag with
       | Types.Cstr_exception (_path, loc) ->
+#if ocaml_version < (4, 2, 0)
         let path, exn_decl = Typedecl.transl_exn_rebind env loc id in
         let id = Ident.create (Path.name path) in
         Some (Printtyp.tree_of_exception_declaration id exn_decl)
+#else
+        None
+#endif
       | _ ->
         let (path, ty_decl) = from_type_desc cstr_desc.Types.cstr_res.Types.desc in
         let id = Ident.create (Path.name path) in
