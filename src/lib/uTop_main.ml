@@ -585,6 +585,8 @@ let rec loop term =
 #if ocaml_version > (4, 00, 1)
            Env.reset_cache_toplevel ();
 #endif
+           if !Clflags.dump_parsetree then Printast.top_phrase pp phrase;
+           if !Clflags.dump_source then Pprintast.top_phrase pp phrase;
            ignore (Toploop.execute_phrase true pp phrase);
            (* Flush everything. *)
            Format.pp_print_flush Format.std_formatter ();
@@ -1169,6 +1171,8 @@ let args = Arg.align [
   " Disable autoloading of files in $OCAML_TOPLEVEL_PATH/autoload";
   "-require", Arg.String (fun s -> preload := `Packages (UTop.split_words s) :: !preload),
   "<package> Load this package";
+  "-dparsetree", Arg.Set Clflags.dump_parsetree, " Dump OCaml AST after rewriting";
+  "-dsource", Arg.Set Clflags.dump_source, " Dump OCaml source after rewriting";
 ]
 
 #if ocaml_version >= (4, 01, 0)
