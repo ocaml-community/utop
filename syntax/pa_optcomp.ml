@@ -70,7 +70,7 @@ let env = ref Env.empty
 let define id value = env := Env.add id value !env
 
 let _ =
-  define "ocaml_version" (Scanf.sscanf Sys.ocaml_version "%d.%d.%d" (fun major minor patchlevel -> Tuple [Int major; Int minor; Int patchlevel]))
+  define "ocaml_version" (Scanf.sscanf Sys.ocaml_version "%d.%d" (fun major minor -> Tuple [Int major; Int minor]))
 
 let dirs = ref []
 let add_include_dir dir = dirs := dir :: !dirs
@@ -475,20 +475,27 @@ let parse_ident stream =
 let parse_until entry is_stop_token stream =
   (* Lists of opened brackets *)
   let opened_brackets = ref [] in
-
+  let eoi = ref None in
   let end_loc = ref Loc.ghost in
 
   (* Return the next token of [stream] until all opened parentheses
      have been closed and a newline is reached *)
   let rec next_token _ =
-    Some(match Stream.next stream, !opened_brackets with
+    match !eoi with
+    | Some _ as x -> x
+    | None ->
+        Some(match Stream.next stream, !opened_brackets with
            | (tok, loc), [] when is_stop_token tok ->
                end_loc := loc;
-               (EOI, loc)
+               let x = (EOI, loc) in
+               eoi := Some x;
+               x
 
            | (EOI, loc), _ ->
                end_loc := loc;
-               (EOI, loc)
+               let x = (EOI, loc) in
+               eoi := Some x;
+               x
 
            | ((KEYWORD ("(" | "[" | "{" as b) | SYMBOL ("(" | "[" | "{" as b)), _) as x, l ->
                opened_brackets := b :: l;
