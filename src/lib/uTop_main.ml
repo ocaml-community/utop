@@ -508,12 +508,15 @@ let rewrite_str_item pstr_item tstr_item =
 let rewrite phrase =
   match phrase with
     | Parsetree.Ptop_def pstr ->
+#if ocaml_version >= (4, 02, 0)
+      let pstr = Pparse.apply_rewriters Config.ast_impl_magic_number pstr in
+#endif
       if (UTop.get_auto_run_lwt () || UTop.get_auto_run_async ()) && List.exists is_eval pstr then
         let tstr, _, _ = Typemod.type_structure !Toploop.toplevel_env pstr Location.none in
         let tstr = str_items_of_typed_structure tstr in
         Parsetree.Ptop_def (List.map2 rewrite_str_item pstr tstr)
       else
-        phrase
+        Parsetree.Ptop_def pstr
     | Parsetree.Ptop_dir _ ->
       phrase
 
@@ -582,6 +585,8 @@ let rec loop term =
 #if ocaml_version > (4, 00, 1)
            Env.reset_cache_toplevel ();
 #endif
+           if !Clflags.dump_parsetree then Printast.top_phrase pp phrase;
+           if !Clflags.dump_source then Pprintast.top_phrase pp phrase;
            ignore (Toploop.execute_phrase true pp phrase);
            (* Flush everything. *)
            Format.pp_print_flush Format.std_formatter ();
@@ -1126,6 +1131,9 @@ let args = Arg.align [
   "-noassert", Arg.Set Clflags.noassert, " Do not compile assertion checks";
   "-nolabels", Arg.Set Clflags.classic, " Ignore non-optional labels in types";
   "-nostdlib", Arg.Set Clflags.no_std_include, " Do not add default directory to the list of include directories";
+#if ocaml_version >= (4, 02, 0)
+  "-ppx", Arg.String (fun ppx -> Clflags.all_ppx := ppx :: !Clflags.all_ppx), "<command> Pipe abstract syntax trees through preprocessor <command>";
+#endif
   "-principal", Arg.Set Clflags.principal, " Check principality of type inference";
 #if ocaml_version >= (4, 01, 0)
   "-short-paths", Arg.Clear Clflags.real_paths, " Shorten paths in types (the default)";
@@ -1163,6 +1171,8 @@ let args = Arg.align [
   " Disable autoloading of files in $OCAML_TOPLEVEL_PATH/autoload";
   "-require", Arg.String (fun s -> preload := `Packages (UTop.split_words s) :: !preload),
   "<package> Load this package";
+  "-dparsetree", Arg.Set Clflags.dump_parsetree, " Dump OCaml AST after rewriting";
+  "-dsource", Arg.Set Clflags.dump_source, " Dump OCaml source after rewriting";
 ]
 
 #if ocaml_version >= (4, 01, 0)
