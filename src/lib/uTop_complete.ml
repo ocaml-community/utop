@@ -388,6 +388,10 @@ let add_fields_of_type decl acc =
         List.fold_left (fun acc field -> add (field_name field) acc) acc fields
     | Type_abstract ->
         acc
+#if ocaml_version >= (4, 02, 0)
+    | Type_open ->
+        acc
+#endif
 
 let add_names_of_type decl acc =
   match decl.type_kind with
@@ -397,6 +401,10 @@ let add_names_of_type decl acc =
         List.fold_left (fun acc field -> add (field_name field) acc) acc fields
     | Type_abstract ->
         acc
+#if ocaml_version >= (4, 02, 0)
+    | Type_open ->
+        acc
+#endif
 
 #if ocaml_version >= (4, 0, 0)
 
@@ -405,7 +413,11 @@ let rec names_of_module_type = function
       List.fold_left
         (fun acc decl -> match decl with
            | Sig_value (id, _)
+#if ocaml_version >= (4, 02, 0)
+           | Sig_typext (id, _, _)
+#else
            | Sig_exception (id, _)
+#endif
            | Sig_module (id, _, _)
            | Sig_modtype (id, _)
            | Sig_class (id, _, _)
@@ -433,7 +445,11 @@ let rec fields_of_module_type = function
       List.fold_left
         (fun acc decl -> match decl with
            | Sig_value (id, _)
+#if ocaml_version >= (4, 02, 0)
+           | Sig_typext (id, _, _)
+#else
            | Sig_exception (id, _)
+#endif
            | Sig_module (id, _, _)
            | Sig_modtype (id, _)
            | Sig_class (id, _, _)
@@ -551,7 +567,11 @@ let list_global_names () =
         loop (add (Ident.name id) acc) summary
     | Env.Env_type(summary, id, decl) ->
         loop (add_names_of_type decl (add (Ident.name id) acc)) summary
+#if ocaml_version >= (4, 02, 0)
+    | Env.Env_extension(summary, id, _) ->
+#else
     | Env.Env_exception(summary, id, _) ->
+#endif
         loop (add (Ident.name id) acc) summary
     | Env.Env_module(summary, id, _) ->
         loop (add (Ident.name id) acc) summary
@@ -612,7 +632,11 @@ let list_global_fields () =
         loop (add (Ident.name id) acc) summary
     | Env.Env_type(summary, id, decl) ->
         loop (add_fields_of_type decl (add (Ident.name id) acc)) summary
+#if ocaml_version >= (4, 02, 0)
+    | Env.Env_extension(summary, id, _) ->
+#else
     | Env.Env_exception(summary, id, _) ->
+#endif
         loop (add (Ident.name id) acc) summary
     | Env.Env_module(summary, id, _) ->
         loop (add (Ident.name id) acc) summary
