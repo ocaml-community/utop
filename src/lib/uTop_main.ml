@@ -242,9 +242,17 @@ let rec map_items unwrap wrap items =
       | Outcometree.Osig_class (_, name, _, _, rs)
       | Outcometree.Osig_class_type (_, name, _, _, rs)
       | Outcometree.Osig_module (name, _, rs)
+#if ocaml_version >= (4, 02, 0)
+      | Outcometree.Osig_type ({ Outcometree.otype_name = name }, rs) ->
+#else
       | Outcometree.Osig_type ((name, _, _, _, _), rs) ->
+#endif
         (name, rs)
+#if ocaml_version >= (4, 02, 0)
+      | Outcometree.Osig_typext ({ Outcometree.oext_name = name}, _)
+#else
       | Outcometree.Osig_exception (name, _)
+#endif
       | Outcometree.Osig_modtype (name, _)
       | Outcometree.Osig_value (name, _, _) ->
         (name, Outcometree.Orec_not)
@@ -276,12 +284,16 @@ let rec map_items unwrap wrap items =
               wrap (Outcometree.Osig_module (name, a, Outcometree.Orec_first)) extra :: items'
             else
               items
-          | Outcometree.Osig_type ((name, a, b, c, d), rs) ->
+          | Outcometree.Osig_type (oty, rs) ->
             if rs = Outcometree.Orec_next then
-              wrap (Outcometree.Osig_type ((name, a, b, c, d), Outcometree.Orec_first)) extra :: items'
+              wrap (Outcometree.Osig_type (oty, Outcometree.Orec_first)) extra :: items'
             else
               items
+#if ocaml_version >= (4, 02, 0)
+          | Outcometree.Osig_typext _
+#else
           | Outcometree.Osig_exception _
+#endif
           | Outcometree.Osig_modtype _
           | Outcometree.Osig_value _ ->
             items
@@ -1011,7 +1023,7 @@ let typeof sid =
       Some (Printtyp.tree_of_type_declaration id ty_decl Types.Trec_not)
     with Not_found ->
     try
-#if ocaml_version < (4, 2, 0)
+#if ocaml_version < (4, 02, 0)
       let (path, mod_typ) = Env.lookup_module id env in
 #else
       let path = Env.lookup_module id env in
@@ -1028,13 +1040,11 @@ let typeof sid =
     try
       let cstr_desc = Env.lookup_constructor id env in
       match cstr_desc.Types.cstr_tag with
+#if ocaml_version < (4, 02, 0)
       | Types.Cstr_exception (_path, loc) ->
-#if ocaml_version < (4, 2, 0)
         let path, exn_decl = Typedecl.transl_exn_rebind env loc id in
         let id = Ident.create (Path.name path) in
         Some (Printtyp.tree_of_exception_declaration id exn_decl)
-#else
-        None
 #endif
       | _ ->
         let (path, ty_decl) = from_type_desc cstr_desc.Types.cstr_res.Types.desc in
