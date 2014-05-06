@@ -85,6 +85,13 @@ let parse_input_multi input =
   in
   (result, Buffer.contents buf)
 
+#if ocaml_version = (4, 02, 0)
+(* #ppx missed the 4.02 merge window. :/ *)
+let () =
+  Hashtbl.add Toploop.directive_table "ppx"
+              (Toploop.Directive_string(fun s -> Clflags.all_ppx := s :: !Clflags.all_ppx))
+#endif
+
 let parse_and_check input eos_is_error =
   let buf = Buffer.create 32 in
   let preprocess input =
