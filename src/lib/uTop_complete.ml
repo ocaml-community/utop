@@ -302,6 +302,31 @@ let list_directories dir =
        String_set.empty
        (try Sys.readdir (if dir = "" then Filename.current_dir_name else dir) with Sys_error _ -> [||]))
 
+#if ocaml_version >= (4, 02, 0)
+let path () =
+  let path_separator =
+    match Sys.os_type with
+    | "Unix" | "Cygwin" -> ':'
+    | "Win32" -> ';'
+    | _ -> assert false in
+  let split str sep =
+    let rec split_rec pos =
+      if pos >= String.length str then [] else begin
+        match try  Some (String.index_from str pos sep)
+              with Not_found -> None with
+        | Some newpos ->
+          String.sub str pos (newpos - pos) ::
+          split_rec (newpos + 1)
+        | None ->
+          [String.sub str pos (String.length str - pos)]
+      end in
+    split_rec 0
+  in
+  try
+    split (Sys.getenv "PATH") path_separator
+  with Not_found -> []
+#endif
+
 (* +-----------------------------------------------------------------+
    | Names listing                                                   |
    +-----------------------------------------------------------------+ *)
@@ -901,6 +926,37 @@ let complete ~syntax ~phrase_terminator ~input =
         let result = lookup_assoc name list in
         (loc.idx2 - Zed_utf8.length name,
          List.map (function (w, Directory) -> (w, "") | (w, File) -> (w, "\"" ^ phrase_terminator)) result)
+
+#if ocaml_version >= (4, 02, 0)
+    (* Completion on #ppx. *)
+    | [(Symbol "#", _); (Lident ("ppx"), _); (String false, loc)] ->
+        let file = String.sub input (loc.ofs1 + 1) (String.length input - loc.ofs1 - 1) in
+        let filter ~dir_ok name =
+          try
+            Unix.access name [Unix.X_OK];
+            let kind     = (Unix.stat name).Unix.st_kind in
+            let basename = Filename.basename name in
+            (kind = Unix.S_REG && String.length basename >= 4 &&
+                String.sub basename 0 4 = "ppx_") ||
+              (dir_ok && kind = Unix.S_DIR)
+          with Unix.Unix_error _ -> false
+        in
+        let map =
+          if Filename.dirname file = "." && not (Filename.is_implicit file) then
+            let dir = Filename.dirname file in
+            add_files (filter ~dir_ok:true) String_map.empty dir
+          else
+            List.fold_left
+              (fun acc dir -> add_files (fun name ->
+                  filter ~dir_ok:false (Filename.concat dir name)) acc dir)
+              String_map.empty (path ())
+        in
+        let list = String_map.bindings map in
+        let name = basename file in
+        let result = lookup_assoc name list in
+        (loc.idx2 - Zed_utf8.length name,
+         List.map (function (w, Directory) -> (w, "") | (w, File) -> (w, "\"" ^ phrase_terminator)) result)
+#endif
 
     (* Completion on #use. *)
     | [(Symbol "#", _); (Lident "use", _); (String false, loc)] ->
