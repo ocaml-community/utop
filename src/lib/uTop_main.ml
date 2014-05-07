@@ -85,12 +85,33 @@ let parse_input_multi input =
   in
   (result, Buffer.contents buf)
 
+#if ocaml_version = (4, 02, 0)
+(* #ppx missed the 4.02 merge window. :/ *)
+let () =
+  Hashtbl.add Toploop.directive_table "ppx"
+              (Toploop.Directive_string(fun s -> Clflags.all_ppx := s :: !Clflags.all_ppx))
+#endif
+
 let parse_and_check input eos_is_error =
   let buf = Buffer.create 32 in
+  let preprocess input =
+    match input with
+#if ocaml_version >= (4, 02, 0)
+    | UTop.Value (Parsetree.Ptop_def pstr) ->
+        begin try
+          let pstr = Pparse.apply_rewriters Config.ast_impl_magic_number pstr in
+          UTop.Value (Parsetree.Ptop_def pstr)
+        with Pparse.Error error ->
+          Pparse.report_error Format.str_formatter error;
+          UTop.Error ([], Format.flush_str_formatter ())
+        end
+#endif
+    | _ -> input
+  in
   let result =
     UTop.collect_formatters buf [Format.err_formatter]
       (fun () ->
-         match !UTop.parse_toplevel_phrase input eos_is_error with
+         match preprocess (!UTop.parse_toplevel_phrase input eos_is_error) with
            | UTop.Error (locs, msg) ->
                UTop.Error (convert_locs input locs, "Error: " ^ msg ^ "\n")
            | UTop.Value phrase ->
@@ -520,9 +541,6 @@ let rewrite_str_item pstr_item tstr_item =
 let rewrite phrase =
   match phrase with
     | Parsetree.Ptop_def pstr ->
-#if ocaml_version >= (4, 02, 0)
-      let pstr = Pparse.apply_rewriters Config.ast_impl_magic_number pstr in
-#endif
       if (UTop.get_auto_run_lwt () || UTop.get_auto_run_async ()) && List.exists is_eval pstr then
         let tstr, _, _ = Typemod.type_structure !Toploop.toplevel_env pstr Location.none in
         let tstr = str_items_of_typed_structure tstr in
