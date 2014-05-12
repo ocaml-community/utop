@@ -192,7 +192,7 @@ sub-command.
 
 For example:
 
-    $ camlfind ocamlc -o myutop -thread -linkpkg -linkall -predicates create_toploop \
+    $ ocamlfind ocamlc -o myutop -thread -linkpkg -linkall -predicates create_toploop \
         -package compiler-libs.toplevel,utop myutop.cmo
 
 Note that if you are not using ocamlfind, you will need to do that
@@ -200,4 +200,4 @@ yourself. You have to call `Topfind.don't_load` with the list of all
 packages linked with the toplevel.
 
 A full example using ocamlbuild is provided in the
-[examples/custom-utop]() directory.
+[examples/custom-utop](examples/custom-utop) directory.
