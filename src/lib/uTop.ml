@@ -346,9 +346,10 @@ let check_phrase phrase =
           with_default_loc loc
             (fun () ->
                Str.eval
-                 (Exp.letmodule (with_loc loc "_")
-                    (Mod.structure (item :: items))
-                    (Exp.construct unit None)))
+                 (Exp.fun_ "" None (Pat.construct unit None)
+                   (Exp.letmodule (with_loc loc "_")
+                      (Mod.structure (item :: items))
+                      (Exp.construct unit None))))
         in
 #endif
         let check_phrase = Ptop_def [top_def] in
