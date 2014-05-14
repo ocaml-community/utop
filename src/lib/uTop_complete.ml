@@ -552,7 +552,7 @@ let lookup_module = Env.lookup_module
 let find_module = Env.find_module
 #else
 let lookup_module id env =
-  let path = Env.lookup_module id env in
+  let path = Env.lookup_module id env ~load:true in
   (path, (Env.find_module path env).md_type)
 let find_module path env = (Env.find_module path env).md_type
 #endif

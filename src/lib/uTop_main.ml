@@ -1037,7 +1037,7 @@ let typeof sid =
 #if ocaml_version < (4, 02, 0)
       let (path, mod_typ) = Env.lookup_module id env in
 #else
-      let path = Env.lookup_module id env in
+      let path = Env.lookup_module id env ~load:true in
       let mod_typ = (Env.find_module path env).Types.md_type in
 #endif
       let id = Ident.create (Path.name path) in
