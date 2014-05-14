@@ -1,0 +1,20 @@
+opam-version: "1"
+maintainer: "jeremie@dimino.org"
+authors: ["Jérémie Dimino"]
+homepage: "https://github.com/diml/utop"
+license: "BSD3"
+build: [
+  ["./configure" "--prefix" prefix]
+  [make]
+  [make "install"]
+]
+build-doc: [["ocaml" "setup.ml" "-doc"]]
+remove: [["ocamlfind" "remove" "utop"]]
+depends: [
+  "ocamlfind"
+  "lambda-term" {>= "1.2"}
+  "lwt"
+  "react" {>= "1.0.0"}
+  "oasis" {>= "0.3.0"}
+]
+ocaml-version: [>= "3.12"]
