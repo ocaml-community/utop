@@ -231,16 +231,20 @@ let fix_string str =
   end
 
 let render_out_phrase term string =
-  let string = fix_string string in
-  let styled = LTerm_text.of_string string in
-  let stylise loc token_style =
-    for i = loc.idx1 to loc.idx2 - 1 do
-      let ch, style = styled.(i) in
-      styled.(i) <- (ch, LTerm_style.merge token_style style)
-    done
-  in
-  UTop_styles.stylise stylise (UTop_lexer.lex_string (UTop.get_syntax ()) string);
-  LTerm.fprints term styled
+  if String.length string >= 100 * 1024 then
+    LTerm.fprint term string
+  else begin
+    let string = fix_string string in
+    let styled = LTerm_text.of_string string in
+    let stylise loc token_style =
+      for i = loc.idx1 to loc.idx2 - 1 do
+        let ch, style = styled.(i) in
+        styled.(i) <- (ch, LTerm_style.merge token_style style)
+      done
+    in
+    UTop_styles.stylise stylise (UTop_lexer.lex_string (UTop.get_syntax ()) string);
+    LTerm.fprints term styled
+  end
 
 let orig_print_out_signature = !Toploop.print_out_signature
 let orig_print_out_phrase = !Toploop.print_out_phrase
