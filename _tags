@@ -13,4 +13,53 @@
 <src/camlp5/**/*.ml{,i}>: use_camlp5
 
 # OASIS_START
+# DO NOT EDIT (digest: a0aa2417538db1190c17a7ef7c4bdc21)
+# Ignore VCS directories, you can use the same kind of rule outside
+# OASIS_START/STOP if you want to exclude directories that contains
+# useless stuff for the build process
+<**/.svn>: -traverse
+<**/.svn>: not_hygienic
+".bzr": -traverse
+".bzr": not_hygienic
+".hg": -traverse
+".hg": not_hygienic
+".git": -traverse
+".git": not_hygienic
+"_darcs": -traverse
+"_darcs": not_hygienic
+# Library optcomp
+"syntax/optcomp.cmxs": use_optcomp
+<syntax/*.ml{,i}>: pkg_camlp4
+<syntax/*.ml{,i}>: pkg_camlp4.quotations.o
+# Library utop
+"src/lib/utop.cmxs": use_utop
+<src/lib/*.ml{,i}>: pkg_findlib
+<src/lib/*.ml{,i}>: pkg_lambda-term
+<src/lib/*.ml{,i}>: pkg_lwt.syntax
+<src/lib/*.ml{,i}>: pkg_threads
+# Library utop-camlp4
+"src/camlp4/utop-camlp4.cmxs": use_utop-camlp4
+<src/camlp4/*.ml{,i}>: pkg_camlp4
+<src/camlp4/*.ml{,i}>: pkg_findlib
+<src/camlp4/*.ml{,i}>: pkg_lambda-term
+<src/camlp4/*.ml{,i}>: pkg_lwt.syntax
+<src/camlp4/*.ml{,i}>: pkg_threads
+<src/camlp4/*.ml{,i}>: use_utop
+# Executable utop
+"src/top/uTop_top.byte": pkg_findlib
+"src/top/uTop_top.byte": pkg_lambda-term
+"src/top/uTop_top.byte": pkg_lwt.syntax
+"src/top/uTop_top.byte": pkg_threads
+"src/top/uTop_top.byte": use_utop
+# Executable utop-full
+"src/top/uTop_top_full.byte": pkg_findlib
+"src/top/uTop_top_full.byte": pkg_lambda-term
+"src/top/uTop_top_full.byte": pkg_lwt.syntax
+"src/top/uTop_top_full.byte": pkg_threads
+"src/top/uTop_top_full.byte": use_utop
+<src/top/*.ml{,i}>: pkg_findlib
+<src/top/*.ml{,i}>: pkg_lambda-term
+<src/top/*.ml{,i}>: pkg_lwt.syntax
+<src/top/*.ml{,i}>: pkg_threads
+<src/top/*.ml{,i}>: use_utop
 # OASIS_STOP
