@@ -52,7 +52,7 @@ let key_sequence = UTop_private.key_sequence
 
 let count = UTop_private.count
 
-let time = ref 0.
+let time = ref (Unix.time ())
 
 let () = at_new_command (fun () -> time := Unix.time ())
 
