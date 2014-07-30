@@ -462,6 +462,13 @@ let rec names_of_module_type = function
 #endif
         | None -> String_set.empty
     end
+#if ocaml_version >= (4, 02, 0)
+  | Mty_alias path -> begin
+      match lookup_env Env.find_module path !Toploop.toplevel_env with
+        | None -> String_set.empty
+        | Some { md_type = module_type } -> names_of_module_type module_type
+    end
+#endif
   | _ ->
       String_set.empty
 
@@ -494,6 +501,13 @@ let rec fields_of_module_type = function
 #endif
         | None -> String_set.empty
     end
+#if ocaml_version >= (4, 02, 0)
+  | Mty_alias path -> begin
+      match lookup_env Env.find_module path !Toploop.toplevel_env with
+        | None -> String_set.empty
+        | Some { md_type = module_type } -> fields_of_module_type module_type
+  end
+#endif
   | _ ->
       String_set.empty
 
