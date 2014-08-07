@@ -92,7 +92,8 @@ let parse_and_check input eos_is_error =
 #if ocaml_version >= (4, 02, 0)
     | UTop.Value (Parsetree.Ptop_def pstr) ->
         begin try
-          let pstr = Pparse.apply_rewriters Config.ast_impl_magic_number pstr in
+          let pstr = Pparse.apply_rewriters ~tool_name:"ocaml"
+                                Config.ast_impl_magic_number pstr in
           UTop.Value (Parsetree.Ptop_def pstr)
         with Pparse.Error error ->
           Pparse.report_error Format.str_formatter error;
