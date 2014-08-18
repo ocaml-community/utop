@@ -256,6 +256,9 @@ let parse_default parse str eos_is_error =
       | Syntaxerr.Not_expecting (loc, nonterm) ->
           Error ([mkloc loc],
                  Printf.sprintf "Syntax error: %s not expected" nonterm)
+      | Syntaxerr.Ill_formed_ast (loc, s) ->
+          Error ([mkloc loc],
+                 Printf.sprintf "Error: broken invariant in parsetree: %s" s)
 #endif
     end
     | Syntaxerr.Escape_error | Parsing.Parse_error ->
