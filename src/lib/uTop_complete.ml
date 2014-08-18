@@ -1078,3 +1078,9 @@ let complete ~syntax ~phrase_terminator ~input =
                                 (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (global_fields ()))))
                             | Some (Field, Some longident, start, id) ->
                                 (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (fields_of_module longident))))
+
+let complete ~syntax ~phrase_terminator ~input =
+  try
+    (complete ~syntax ~phrase_terminator ~input : int * (string * string) list)
+  with Cmi_format.Error _ ->
+    (0, [])
