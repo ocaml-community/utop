@@ -628,9 +628,11 @@ it is started."
      ;; End of completion
      ((string= command "completion-stop")
       (utop-set-state 'edit)
-      (with-current-buffer utop-complete-buffer
-        (with-output-to-temp-buffer "*Completions*"
-          (display-completion-list (nreverse utop-completion))))
+      (if (> (length utop-completion) 1)
+          (with-current-buffer utop-complete-buffer
+            (with-output-to-temp-buffer "*Completions*"
+              (display-completion-list (nreverse utop-completion))))
+        (minibuffer-hide-completions))
       (setq utop-completion nil)))))
 
 (defun utop-process-output (process output)
@@ -669,7 +671,6 @@ automatically inserted by utop.
 
 If ADD-TO-HISTORY is t then the input will be added to history."
   (interactive)
-  (minibuffer-hide-completions)
   (with-current-buffer utop-buffer-name
     (when (eq utop-state 'edit)
       ;; Clear saved pending position
