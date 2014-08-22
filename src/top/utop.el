@@ -759,7 +759,8 @@ when byte-compiling."
     (intern (concat "typerex-" symbol)))
    ((require 'caml nil t)
     (intern (concat "caml-" symbol)))
-   (error (concat "unsupported mode: " (symbol-name major-mode) ", utop support only caml, tuareg and typerex modes"))))
+   (t (error "Unsupported mode: %S, utop supports only caml, tuareg and typerex modes"
+             major-mode))))
 
 (defmacro utop-choose-symbol (symbol)
   (utop-choose symbol))
