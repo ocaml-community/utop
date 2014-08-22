@@ -743,24 +743,25 @@ If ADD-TO-HISTORY is t then the input will be added to history."
 ;; | Caml/Tuareg/Typerex integration                                 |
 ;; +-----------------------------------------------------------------+
 
-(defun utop-choose (symbol)
-  "Be best at resolving caml, tuareg or typerex dependencies even
+(eval-and-compile
+  (defun utop-choose (symbol)
+    "Be best at resolving caml, tuareg or typerex dependencies even
 when byte-compiling."
-  (cond
-   ((eq major-mode 'tuareg-mode)
-    (intern (concat "tuareg-" symbol)))
-   ((eq major-mode 'typerex-mode)
-    (intern (concat "typerex-" symbol)))
-   ((eq major-mode 'caml-mode)
-    (intern (concat "caml-" symbol)))
-   ((require 'tuareg nil t)
-    (intern (concat "tuareg-" symbol)))
-   ((require 'typerex nil t)
-    (intern (concat "typerex-" symbol)))
-   ((require 'caml nil t)
-    (intern (concat "caml-" symbol)))
-   (t (error "Unsupported mode: %S, utop supports only caml, tuareg and typerex modes"
-             major-mode))))
+    (cond
+     ((eq major-mode 'tuareg-mode)
+      (intern (concat "tuareg-" symbol)))
+     ((eq major-mode 'typerex-mode)
+      (intern (concat "typerex-" symbol)))
+     ((eq major-mode 'caml-mode)
+      (intern (concat "caml-" symbol)))
+     ((require 'tuareg nil t)
+      (intern (concat "tuareg-" symbol)))
+     ((require 'typerex nil t)
+      (intern (concat "typerex-" symbol)))
+     ((require 'caml nil t)
+      (intern (concat "caml-" symbol)))
+     (t (error "Unsupported mode: %S, utop supports only caml, tuareg and typerex modes"
+               major-mode)))))
 
 (defmacro utop-choose-symbol (symbol)
   (utop-choose symbol))
