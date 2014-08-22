@@ -120,10 +120,12 @@ you can copy-paste this code into you `~/.emacs` file:
   (setenv (car var) (cadr var)))
 
 ;; Update the emacs path
-(setq exec-path (split-string (getenv "PATH") path-separator))
+(setq exec-path (append (parse-colon-path (getenv "PATH"))
+                        (list exec-directory)))
 
 ;; Update the emacs load path
-(push (concat (getenv "OCAML_TOPLEVEL_PATH") "/../../share/emacs/site-lisp") load-path)
+(add-to-list 'load-path (expand-file-name "../../share/emacs/site-lisp"
+                                          (getenv "OCAML_TOPLEVEL_PATH")))
 
 ;; Automatically load utop.el
 (autoload 'utop "utop" "Toplevel for OCaml" t)
