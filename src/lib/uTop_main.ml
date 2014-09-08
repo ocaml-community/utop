@@ -1163,6 +1163,9 @@ let args = Arg.align [
   "-ppx", Arg.String (fun ppx -> Clflags.all_ppx := ppx :: !Clflags.all_ppx), "<command> Pipe abstract syntax trees through preprocessor <command>";
 #endif
   "-principal", Arg.Set Clflags.principal, " Check principality of type inference";
+#if ocaml_version >= (4, 02, 0)
+  "-safe-string", Arg.Clear Clflags.unsafe_string, " Make strings immutable";
+#endif
 #if ocaml_version >= (4, 01, 0)
   "-short-paths", Arg.Clear Clflags.real_paths, " Shorten paths in types (the default)";
   "-no-short-paths", Arg.Set Clflags.real_paths, " Do not shorten paths in types";
