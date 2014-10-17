@@ -605,7 +605,7 @@ let handle_findlib_error = function
   | Failure msg ->
       Lwt_main.run (print_error msg)
   | Fl_package_base.No_such_package(pkg, reason) ->
-      Lwt_main.run (print_error (Printf.sprintf "No such package: %s%S\n" pkg (if reason <> "" then " - " ^ reason else "")))
+      Lwt_main.run (print_error (Printf.sprintf "No such package: %s%s\n" pkg (if reason <> "" then " - " ^ reason else "")))
   | Fl_package_base.Package_loop pkg ->
       Lwt_main.run (print_error (Printf.sprintf "Package requires itself: %s\n" pkg))
   | exn ->
