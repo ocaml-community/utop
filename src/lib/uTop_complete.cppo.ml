@@ -302,7 +302,7 @@ let list_directories dir =
        String_set.empty
        (try Sys.readdir (if dir = "" then Filename.current_dir_name else dir) with Sys_error _ -> [||]))
 
-#if ocaml_version >= (4, 02, 0)
+#if OCAML_VERSION >= 040200
 let path () =
   let path_separator =
     match Sys.os_type with
@@ -394,10 +394,10 @@ let visible_modules () =
             acc)
         String_set.empty !Config.load_path)
 
-#if ocaml_version >= (4, 2, 0)
+#if OCAML_VERSION >= 040200
 let field_name { ld_id = id } = Ident.name id
 let constructor_name { cd_id = id } = Ident.name id
-#elif ocaml_version >= (4, 0, 0)
+#elif OCAML_VERSION >= 040000
 let field_name (id, _, _) = Ident.name id
 let constructor_name (id, _, _) = Ident.name id
 #else
@@ -413,7 +413,7 @@ let add_fields_of_type decl acc =
         List.fold_left (fun acc field -> add (field_name field) acc) acc fields
     | Type_abstract ->
         acc
-#if ocaml_version >= (4, 02, 0)
+#if OCAML_VERSION >= 040200
     | Type_open ->
         acc
 #endif
@@ -426,19 +426,19 @@ let add_names_of_type decl acc =
         List.fold_left (fun acc field -> add (field_name field) acc) acc fields
     | Type_abstract ->
         acc
-#if ocaml_version >= (4, 02, 0)
+#if OCAML_VERSION >= 040200
     | Type_open ->
         acc
 #endif
 
-#if ocaml_version >= (4, 0, 0)
+#if OCAML_VERSION >= 040000
 
 let rec names_of_module_type = function
   | Mty_signature decls ->
       List.fold_left
         (fun acc decl -> match decl with
            | Sig_value (id, _)
-#if ocaml_version >= (4, 02, 0)
+#if OCAML_VERSION >= 040200
            | Sig_typext (id, _, _)
 #else
            | Sig_exception (id, _)
@@ -453,7 +453,7 @@ let rec names_of_module_type = function
         String_set.empty decls
   | Mty_ident path -> begin
       match lookup_env Env.find_modtype path !Toploop.toplevel_env with
-#if ocaml_version < (4, 2, 0)
+#if OCAML_VERSION < 040200
         | Some Modtype_abstract -> String_set.empty
         | Some Modtype_manifest module_type -> names_of_module_type module_type
 #else
@@ -462,7 +462,7 @@ let rec names_of_module_type = function
 #endif
         | None -> String_set.empty
     end
-#if ocaml_version >= (4, 02, 0)
+#if OCAML_VERSION >= 040200
   | Mty_alias path -> begin
       match lookup_env Env.find_module path !Toploop.toplevel_env with
         | None -> String_set.empty
@@ -477,7 +477,7 @@ let rec fields_of_module_type = function
       List.fold_left
         (fun acc decl -> match decl with
            | Sig_value (id, _)
-#if ocaml_version >= (4, 02, 0)
+#if OCAML_VERSION >= 040200
            | Sig_typext (id, _, _)
 #else
            | Sig_exception (id, _)
@@ -492,7 +492,7 @@ let rec fields_of_module_type = function
         String_set.empty decls
   | Mty_ident path -> begin
       match lookup_env Env.find_modtype path !Toploop.toplevel_env with
-#if ocaml_version < (4, 2, 0)
+#if OCAML_VERSION < 040200
         | Some Modtype_abstract -> String_set.empty
         | Some Modtype_manifest module_type -> fields_of_module_type module_type
 #else
@@ -501,7 +501,7 @@ let rec fields_of_module_type = function
 #endif
         | None -> String_set.empty
     end
-#if ocaml_version >= (4, 02, 0)
+#if OCAML_VERSION >= 040200
   | Mty_alias path -> begin
       match lookup_env Env.find_module path !Toploop.toplevel_env with
         | None -> String_set.empty
@@ -561,7 +561,7 @@ let rec fields_of_module_type = function
 
 #endif
 
-#if ocaml_version < (4, 2, 0)
+#if OCAML_VERSION < 040200
 let lookup_module = Env.lookup_module
 let find_module = Env.find_module
 #else
@@ -606,7 +606,7 @@ let list_global_names () =
         loop (add (Ident.name id) acc) summary
     | Env.Env_type(summary, id, decl) ->
         loop (add_names_of_type decl (add (Ident.name id) acc)) summary
-#if ocaml_version >= (4, 02, 0)
+#if OCAML_VERSION >= 040200
     | Env.Env_extension(summary, id, _) ->
 #else
     | Env.Env_exception(summary, id, _) ->
@@ -620,7 +620,7 @@ let list_global_names () =
         loop (add (Ident.name id) acc) summary
     | Env.Env_cltype(summary, id, _) ->
         loop (add (Ident.name id) acc) summary
-#if ocaml_version >= (4, 2, 0)
+#if OCAML_VERSION >= 040200
     | Env.Env_functor_arg(summary, id) ->
         loop (add (Ident.name id) acc) summary
 #endif
@@ -671,7 +671,7 @@ let list_global_fields () =
         loop (add (Ident.name id) acc) summary
     | Env.Env_type(summary, id, decl) ->
         loop (add_fields_of_type decl (add (Ident.name id) acc)) summary
-#if ocaml_version >= (4, 02, 0)
+#if OCAML_VERSION >= 040200
     | Env.Env_extension(summary, id, _) ->
 #else
     | Env.Env_exception(summary, id, _) ->
@@ -679,7 +679,7 @@ let list_global_fields () =
         loop (add (Ident.name id) acc) summary
     | Env.Env_module(summary, id, _) ->
         loop (add (Ident.name id) acc) summary
-#if ocaml_version >= (4, 2, 0)
+#if OCAML_VERSION >= 040200
     | Env.Env_functor_arg(summary, id) ->
         loop (add (Ident.name id) acc) summary
 #endif
@@ -941,7 +941,7 @@ let complete ~syntax ~phrase_terminator ~input =
         (loc.idx2 - Zed_utf8.length name,
          List.map (function (w, Directory) -> (w, "") | (w, File) -> (w, "\"" ^ phrase_terminator)) result)
 
-#if ocaml_version >= (4, 02, 0)
+#if OCAML_VERSION >= 040200
     (* Completion on #ppx. *)
     | [(Symbol "#", _); (Lident ("ppx"), _); (String false, loc)] ->
         let file = String.sub input (loc.ofs1 + 1) (String.length input - loc.ofs1 - 1) in

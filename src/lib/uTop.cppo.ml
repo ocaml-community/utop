@@ -189,7 +189,7 @@ type 'a result =
 
 exception Need_more
 
-#if ocaml_version <= (3, 12, 1)
+#if OCAML_VERSION <= 031201
 let input_name = ""
 #else
 let input_name = "//toplevel//"
@@ -244,7 +244,7 @@ let parse_default parse str eos_is_error =
       | Syntaxerr.Other loc ->
         Error ([mkloc loc],
                "Syntax error")
-#if ocaml_version >= (4, 01, 0)
+#if OCAML_VERSION >= 040100
       | Syntaxerr.Expecting (loc, nonterm) ->
         Error ([mkloc loc],
                Printf.sprintf "Syntax error: %s expected." nonterm)
@@ -252,7 +252,7 @@ let parse_default parse str eos_is_error =
         Error ([mkloc loc],
                Printf.sprintf "In this scoped type, variable '%s is reserved for the local type %s." var var)
 #endif
-#if ocaml_version >= (4, 2, 0)
+#if OCAML_VERSION >= 040200
       | Syntaxerr.Not_expecting (loc, nonterm) ->
           Error ([mkloc loc],
                  Printf.sprintf "Syntax error: %s not expected" nonterm)
@@ -286,7 +286,7 @@ let rec last head tail =
     | head :: tail ->
         last head tail
 
-#if ocaml_version >= (4, 0, 0)
+#if OCAML_VERSION >= 040000
 let with_loc loc str = {
   Location.txt = str;
   Location.loc = loc;
@@ -316,7 +316,7 @@ let check_phrase phrase =
         (* Construct "let _ () = let module _ = struct <items> end in ()" in order to test
            the typing and compilation of [items] without evaluating them. *)
         let unit = with_loc loc (Longident.Lident "()") in
-#if ocaml_version < (4, 2, 0)
+#if OCAML_VERSION < 040200
         let structure = {
           pmod_loc = loc;
           pmod_desc = Pmod_structure (item :: items);
@@ -359,7 +359,7 @@ let check_phrase phrase =
         try
           let _ =
             discard_formatters [Format.err_formatter] (fun () ->
-#if ocaml_version > (4, 00, 1)
+#if OCAML_VERSION > 040001
               Env.reset_cache_toplevel ();
 #endif
               Toploop.execute_phrase false null check_phrase)
@@ -658,7 +658,7 @@ let () =
 
 let topfind_log, set_topfind_log = S.create ~eq:(fun _ _ -> false) []
 
-#if findlib_version >= (1, 4)
+#if FINDLIB_VERSION >= 010400
 let () =
   let real_log = !Topfind.log in
   Topfind.log := fun str ->

@@ -14,6 +14,7 @@ let () =
   dispatch
     (fun hook ->
        dispatch_default hook;
+       Ocamlbuild_cppo.dispatcher hook;
        match hook with
          | Before_options ->
              Options.make_links := false
@@ -34,20 +35,20 @@ let () =
              let path = BaseEnvLight.var_get "compiler_libs" env in
              let stdlib = BaseEnvLight.var_get "standard_library" env in
 
-             let findlib_version = BaseEnvLight.var_get "findlib_version" env in
-             let findlib_version =
-               Scanf.sscanf findlib_version "%d.%d" (Printf.sprintf "findlib_version=(%d, %d)")
+             let ocaml_version =
+               Scanf.sscanf Sys.ocaml_version "%d.%d.%d" (fun major minor patchlevel ->
+                  (* e.g. #define OCAML_VERSION 040201 *)
+                 Printf.sprintf "OCAML_VERSION %d" (major * 10000 + minor * 100 + patchlevel))
              in
 
-             (* Optcomp *)
-             let args =
-               S[A"-ppopt"; A"syntax/pa_optcomp.cmo";
-                 A"-ppopt"; A"-let"; A"-ppopt"; A findlib_version]
+             let findlib_version = BaseEnvLight.var_get "findlib_version" env in
+             let findlib_version =
+               Scanf.sscanf findlib_version "%d.%d.%d" (fun major minor patchlevel ->
+                 Printf.sprintf "FINDLIB_VERSION %d" (major * 10000 + minor * 100 + patchlevel))
              in
-             flag ["ocaml"; "compile"; "pa_optcomp"] args;
-             flag ["ocaml"; "ocamldep"; "pa_optcomp"] args;
-             flag ["ocaml"; "doc"; "pa_optcomp"] args;
-             dep ["ocaml"; "ocamldep"; "pa_optcomp"] ["syntax/pa_optcomp.cmo"];
+
+             (* Cppo *)
+             flag ["cppo"] & S[A"-D"; A ocaml_version; A"-D"; A findlib_version];
 
              (* Add directories for compiler-libraries: *)
              let paths = List.filter Sys.file_exists [path; path / "typing"; path / "parsing"; path / "utils"] in

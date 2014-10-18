@@ -89,7 +89,7 @@ let parse_and_check input eos_is_error =
   let buf = Buffer.create 32 in
   let preprocess input =
     match input with
-#if ocaml_version >= (4, 02, 0)
+#if OCAML_VERSION >= 040200
     | UTop.Value (Parsetree.Ptop_def pstr) ->
         begin try
           let pstr = Pparse.apply_rewriters ~tool_name:"ocaml"
@@ -261,13 +261,13 @@ let rec map_items unwrap wrap items =
       | Outcometree.Osig_class (_, name, _, _, rs)
       | Outcometree.Osig_class_type (_, name, _, _, rs)
       | Outcometree.Osig_module (name, _, rs)
-#if ocaml_version >= (4, 02, 0)
+#if OCAML_VERSION >= 040200
       | Outcometree.Osig_type ({ Outcometree.otype_name = name }, rs) ->
 #else
       | Outcometree.Osig_type ((name, _, _, _, _), rs) ->
 #endif
         (name, rs)
-#if ocaml_version >= (4, 02, 0)
+#if OCAML_VERSION >= 040200
       | Outcometree.Osig_typext ({ Outcometree.oext_name = name}, _)
 #else
       | Outcometree.Osig_exception (name, _)
@@ -308,7 +308,7 @@ let rec map_items unwrap wrap items =
               wrap (Outcometree.Osig_type (oty, Outcometree.Orec_first)) extra :: items'
             else
               items
-#if ocaml_version >= (4, 02, 0)
+#if OCAML_VERSION >= 040200
           | Outcometree.Osig_typext _
 #else
           | Outcometree.Osig_exception _
@@ -347,7 +347,7 @@ let () =
    | Toplevel expression rewriting                                   |
    +-----------------------------------------------------------------+ *)
 
-#if ocaml_version >= (4, 0, 0)
+#if OCAML_VERSION >= 040000
 let with_loc loc str = {
   Location.txt = str;
   Location.loc = loc;
@@ -375,7 +375,7 @@ let longident_async_thread_safe_block_on_async_exn =
   Longident.parse "Async.Std.Thread_safe.block_on_async_exn"
 let longident_unit = Longident.Lident "()"
 
-#if ocaml_version < (4, 2, 0)
+#if OCAML_VERSION < 040200
 (* Wrap <expr> into: fun () -> <expr> *)
 let wrap_unit loc e =
   let i = with_loc loc longident_unit in
@@ -394,7 +394,7 @@ let () =
   Hashtbl.add rewrite_rules (Longident.Ldot (Longident.Lident "Lwt", "t")) {
     required_values = [longident_lwt_main_run];
     rewrite = (fun loc e ->
-#if ocaml_version < (4, 2, 0)
+#if OCAML_VERSION < 040200
       { Parsetree.pexp_desc =
           Parsetree.Pexp_apply
             ({ Parsetree.pexp_desc = Parsetree.Pexp_ident (with_loc loc longident_lwt_main_run);
@@ -416,7 +416,7 @@ let () =
   let rule = {
     required_values = [longident_async_thread_safe_block_on_async_exn];
     rewrite = (fun loc e ->
-#if ocaml_version < (4, 2, 0)
+#if OCAML_VERSION < 040200
       { Parsetree.pexp_desc =
           Parsetree.Pexp_apply
             ({ Parsetree.pexp_desc = Parsetree.Pexp_ident
@@ -490,7 +490,7 @@ let is_persistent_in_env longident =
   with Not_found ->
     false
 
-#if ocaml_version >= (4, 0, 0)
+#if OCAML_VERSION >= 040000
 let str_items_of_typed_structure tstr = tstr.Typedtree.str_items
 let str_desc_of_typed_str_item tstr = tstr.Typedtree.str_desc
 #else
@@ -498,7 +498,7 @@ let str_items_of_typed_structure tstr = tstr
 let str_desc_of_typed_str_item tstr = tstr
 #endif
 
-#if ocaml_version < (4, 2, 0)
+#if OCAML_VERSION < 040200
 let rewrite_str_item pstr_item tstr_item =
   match pstr_item, str_desc_of_typed_str_item tstr_item with
     | ({ Parsetree.pstr_desc = Parsetree.Pstr_eval e;
@@ -610,11 +610,11 @@ let rec loop term =
         let pp = Format.formatter_of_buffer buffer in
         Format.pp_set_margin pp (LTerm.size term).cols;
         (try
-#if ocaml_version > (4, 00, 1)
+#if OCAML_VERSION > 040001
            Env.reset_cache_toplevel ();
 #endif
            if !Clflags.dump_parsetree then Printast.top_phrase pp phrase;
-#if ocaml_version > (4, 00, 1)
+#if OCAML_VERSION > 040001
            if !Clflags.dump_source then Pprintast.top_phrase pp phrase;
 #endif
            ignore (Toploop.execute_phrase true pp phrase);
@@ -695,7 +695,7 @@ let read_input_classic prompt buffer len =
     else
       Lwt_io.read_char_opt Lwt_io.stdin >>= function
         | Some c ->
-#if ocaml_version >= (4, 02, 0)
+#if OCAML_VERSION >= 040200
             Bytes.set buffer i c;
 #else
             buffer.[i] <- c;
@@ -825,7 +825,7 @@ module Emacs(M : sig end) = struct
     (* Rewrite toplevel expressions. *)
     let phrase = rewrite phrase in
     try
-#if ocaml_version > (4, 00, 1)
+#if OCAML_VERSION > 040001
       Env.reset_cache_toplevel ();
 #endif
       ignore (Toploop.execute_phrase true Format.std_formatter phrase);
@@ -1012,7 +1012,7 @@ end
    | Extra macros                                                    |
    +-----------------------------------------------------------------+ *)
 
-#if ocaml_version > (4, 00, 1)
+#if OCAML_VERSION > 040001
 
 let typeof sid =
   let id  = Longident.parse sid in
@@ -1041,7 +1041,7 @@ let typeof sid =
       Some (Printtyp.tree_of_type_declaration id ty_decl Types.Trec_not)
     with Not_found ->
     try
-#if ocaml_version < (4, 02, 0)
+#if OCAML_VERSION < 040200
       let (path, mod_typ) = Env.lookup_module id env in
 #else
       let path = Env.lookup_module id env ~load:true in
@@ -1058,7 +1058,7 @@ let typeof sid =
     try
       let cstr_desc = Env.lookup_constructor id env in
       match cstr_desc.Types.cstr_tag with
-#if ocaml_version < (4, 02, 0)
+#if OCAML_VERSION < 040200
       | Types.Cstr_exception (_path, loc) ->
         let path, exn_decl = Typedecl.transl_exn_rebind env loc id in
         let id = Ident.create (Path.name path) in
@@ -1149,7 +1149,7 @@ let print_version_num () =
 let autoload = ref true
 
 let args = Arg.align [
-#if ocaml_version >= (3, 13, 0)
+#if OCAML_VERSION >= 031300
   "-absname", Arg.Set Location.absname, " Show absolute filenames in error message";
 #endif
   "-I", Arg.String (fun dir ->  Clflags.include_dirs := Misc.expand_directory Config.standard_library dir :: !Clflags.include_dirs), "<dir> Add <dir> to the list of include directories";
@@ -1159,14 +1159,14 @@ let args = Arg.align [
   "-noassert", Arg.Set Clflags.noassert, " Do not compile assertion checks";
   "-nolabels", Arg.Set Clflags.classic, " Ignore non-optional labels in types";
   "-nostdlib", Arg.Set Clflags.no_std_include, " Do not add default directory to the list of include directories";
-#if ocaml_version >= (4, 02, 0)
+#if OCAML_VERSION >= 040200
   "-ppx", Arg.String (fun ppx -> Clflags.all_ppx := ppx :: !Clflags.all_ppx), "<command> Pipe abstract syntax trees through preprocessor <command>";
 #endif
   "-principal", Arg.Set Clflags.principal, " Check principality of type inference";
-#if ocaml_version >= (4, 02, 0)
+#if OCAML_VERSION >= 040200
   "-safe-string", Arg.Clear Clflags.unsafe_string, " Make strings immutable";
 #endif
-#if ocaml_version >= (4, 01, 0)
+#if OCAML_VERSION >= 040100
   "-short-paths", Arg.Clear Clflags.real_paths, " Shorten paths in types (the default)";
   "-no-short-paths", Arg.Set Clflags.real_paths, " Do not shorten paths in types";
 #endif
@@ -1203,12 +1203,12 @@ let args = Arg.align [
   "-require", Arg.String (fun s -> preload := `Packages (UTop.split_words s) :: !preload),
   "<package> Load this package";
   "-dparsetree", Arg.Set Clflags.dump_parsetree, " Dump OCaml AST after rewriting";
-#if ocaml_version > (4, 00, 1)
+#if OCAML_VERSION >= 040100
   "-dsource", Arg.Set Clflags.dump_source, " Dump OCaml source after rewriting";
 #endif
 ]
 
-#if ocaml_version >= (4, 01, 0)
+#if OCAML_VERSION >= 040100
 let () = Clflags.real_paths := false
 #endif
 

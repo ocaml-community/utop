@@ -2,8 +2,8 @@
 # | Package parameters                                                |
 # +-------------------------------------------------------------------+
 
-OASISFormat: 0.3
-OCamlVersion: >= 3.12
+OASISFormat: 0.4
+OCamlVersion: >= 4.01
 Name: utop
 Version: 1.15
 LicenseFile: LICENSE
@@ -15,6 +15,8 @@ BuildTools: ocamlbuild
 Plugins: DevFiles (0.3), META (0.3)
 XDevFilesEnableMakefile: false
 FilesAB: src/lib/uTop_version.ml.ab
+AlphaFeatures: ocamlbuild_more_args
+XOCamlbuildPluginTags: package(cppo_ocamlbuild)
 Synopsis: Universal toplevel for OCaml
 Description:
   utop is an improved toplevel for OCaml. It can run in a terminal or
@@ -30,13 +32,6 @@ Description:
 Flag camlp4
   Description: camlp4 support
   Default: true
-
-Library "optcomp"
-  Install: false
-  Path: syntax
-  Modules: Pa_optcomp
-  BuildDepends: camlp4, camlp4.quotations.o
-  CompiledObject: byte
 
 Library utop
   Path: src/lib
