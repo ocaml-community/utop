@@ -7,7 +7,7 @@ OCamlVersion: >= 4.01
 Name: utop
 Version: 1.15
 LicenseFile: LICENSE
-License: BSD3
+License: BSD-3-clause
 Authors: Jeremie Dimino
 Maintainers: Jeremie Dimino <jeremie@dimino.org>
 Homepage: https://github.com/diml/utop
