@@ -45,7 +45,7 @@ Library utop
     UTop_token,
     UTop_complete,
     UTop_styles
-  BuildDepends: findlib, lambda-term (>= 1.2), lwt.syntax, threads
+  BuildDepends: threads, findlib, lambda-term (>= 1.2)
   XMETADescription: utop configuration
   XMETARequires: findlib, lambda-term
 
@@ -65,7 +65,7 @@ Executable utop
   Path: src/top
   CompiledObject: byte
   MainIs: uTop_top.ml
-  BuildDepends: utop, findlib, lambda-term, lwt.syntax, threads
+  BuildDepends: threads, findlib, lambda-term, utop
   DataFiles: utop.el ($datadir/emacs/site-lisp)
 
 Executable "utop-full"
@@ -73,7 +73,7 @@ Executable "utop-full"
   Path: src/top
   CompiledObject: byte
   MainIs: uTop_top_full.ml
-  BuildDepends: utop, findlib, lambda-term, lwt.syntax, threads
+  BuildDepends: threads, findlib, lambda-term, utop
   DataFiles: utop.el ($datadir/emacs/site-lisp)
 
 # +-------------------------------------------------------------------+

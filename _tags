@@ -1,8 +1,5 @@
 # -*- conf -*-
 
-# Use camlp4 on all files
-<**/*.ml>: syntax_camlp4o, pkg_lwt.syntax
-
 # Use compiler interfaces
 <src/**/*.ml{,i}>: use_compiler_libs
 

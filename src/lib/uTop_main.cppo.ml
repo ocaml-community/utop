@@ -8,13 +8,14 @@
  *)
 
 open CamomileLibraryDyn.Camomile
-open Lwt
 open Lwt_react
 open LTerm_text
 open LTerm_geom
 open UTop_token
 open UTop_styles
 open UTop_private
+
+let return, (>>=) = Lwt.return, Lwt.(>>=)
 
 module String_set = Set.Make(String)
 
@@ -29,10 +30,14 @@ let save_history () =
     | None ->
         return ()
     | Some fn ->
-        try_lwt
-          LTerm_history.save UTop.history ?max_size:!UTop.history_file_max_size ?max_entries:!UTop.history_file_max_entries fn
-        with Unix.Unix_error (error, func, arg) ->
-          Lwt_log.error_f "cannot save history to %S: %s: %s" fn func (Unix.error_message error)
+        Lwt.catch
+          (fun () -> LTerm_history.save UTop.history
+                        ?max_size:!UTop.history_file_max_size
+                        ?max_entries:!UTop.history_file_max_entries fn)
+          (function
+          | Unix.Unix_error (error, func, arg) ->
+              Lwt_log.error_f "cannot save history to %S: %s: %s" fn func (Unix.error_message error)
+          | exn -> Lwt.fail exn)
 
 let init_history () =
   (* Save history on exit. *)
@@ -42,10 +47,13 @@ let init_history () =
     | None ->
         return ()
     | Some fn ->
-        try_lwt
-          LTerm_history.load UTop.history fn
-        with Unix.Unix_error (error, func, arg) ->
-          Lwt_log.error_f "cannot load history from %S: %s: %s" fn func (Unix.error_message error)
+        Lwt.catch
+          (fun () -> LTerm_history.load UTop.history fn)
+          (function
+          | Unix.Unix_error (error, func, arg) ->
+              Lwt_log.error_f "cannot load history from %S: %s: %s"
+                              fn func (Unix.error_message error)
+          | exn -> Lwt.fail exn)
 
 (* +-----------------------------------------------------------------+
    | offset --> index                                                |
@@ -553,20 +561,22 @@ let rewrite phrase =
    +-----------------------------------------------------------------+ *)
 
 let rec read_phrase term =
-  try_lwt
-    (new read_phrase ~term)#run
-  with Sys.Break ->
-    lwt () = LTerm.fprintl term "Interrupted." in
-    read_phrase term
+  Lwt.catch
+    (fun () -> (new read_phrase ~term)#run)
+    (function
+    | Sys.Break ->
+      LTerm.fprintl term "Interrupted." >>= fun () ->
+      read_phrase term
+    | exn -> Lwt.fail exn)
 
 let update_margin pp cols =
   if Format.pp_get_margin pp () <> cols then
     Format.pp_set_margin pp cols
 
 let print_error term msg =
-  lwt () = LTerm.set_style term styles.style_error in
-  lwt () = Lwt_io.print msg in
-  lwt () = LTerm.set_style term LTerm_style.none in
+  LTerm.set_style term styles.style_error >>= fun () ->
+  Lwt_io.print msg >>= fun () ->
+  LTerm.set_style term LTerm_style.none >>= fun () ->
   LTerm.flush term
 
 let rec loop term =
@@ -582,18 +592,18 @@ let rec loop term =
   (* Read interactively user input. *)
   let phrase_opt =
     Lwt_main.run (
-      try_lwt
-        lwt result, warnings = read_phrase term in
-        (* Print warnings before errors. *)
-        lwt () = Lwt_io.print warnings in
-        match result with
-          | UTop.Value phrase ->
-              return (Some phrase)
-          | UTop.Error (_, msg) ->
-              lwt () = print_error term msg in
-              return None
-      finally
-        LTerm.flush term
+      Lwt.finalize
+        (fun () ->
+          read_phrase term >>= fun (result, warnings) ->
+          (* Print warnings before errors. *)
+          Lwt_io.print warnings >>= fun () ->
+          match result with
+            | UTop.Value phrase ->
+                return (Some phrase)
+            | UTop.Error (_, msg) ->
+                print_error term msg >>= fun () ->
+                return None)
+        (fun () -> LTerm.flush term)
     )
   in
 
@@ -677,10 +687,10 @@ let welcome term =
   LTerm_draw.draw_styled ctx 1 ((size.cols - String.length message) / 2) (eval [B_fg LTerm_style.yellow; S message]);
 
   (* Render to the screen. *)
-  lwt () = LTerm.print_box term matrix in
+  LTerm.print_box term matrix >>= fun () ->
 
   (* Move to after the box. *)
-  lwt () = LTerm.fprint term "\n" in
+  LTerm.fprint term "\n" >>= fun () ->
 
   LTerm.flush term
 
@@ -707,7 +717,7 @@ let read_input_classic prompt buffer len =
         | None ->
             return (i, true)
   in
-  Lwt_main.run (Lwt_io.write Lwt_io.stdout prompt >> loop 0)
+  Lwt_main.run (Lwt_io.write Lwt_io.stdout prompt >>= fun () -> loop 0)
 
 (* +-----------------------------------------------------------------+
    | Emacs mode                                                      |
@@ -1272,13 +1282,14 @@ let common_init () =
   catch Sys.sigterm
 
 let load_inputrc () =
-  try_lwt
-    LTerm_inputrc.load ()
-  with
-  | Unix.Unix_error (error, func, arg) ->
-    Lwt_log.error_f "cannot load key bindings from %S: %s: %s" LTerm_inputrc.default func (Unix.error_message error)
-  | LTerm_inputrc.Parse_error (fname, line, msg) ->
-    Lwt_log.error_f "error in key bindings file %S, line %d: %s" fname line msg
+  Lwt.catch
+    LTerm_inputrc.load
+    (function
+    | Unix.Unix_error (error, func, arg) ->
+      Lwt_log.error_f "cannot load key bindings from %S: %s: %s" LTerm_inputrc.default func (Unix.error_message error)
+    | LTerm_inputrc.Parse_error (fname, line, msg) ->
+      Lwt_log.error_f "error in key bindings file %S, line %d: %s" fname line msg
+    | exn -> Lwt.fail exn)
 
 let main_aux () =
   Arg.parse args file_argument usage;
@@ -1296,7 +1307,7 @@ let main_aux () =
       (* Set the initial size. *)
       UTop_private.set_size (S.const (LTerm.size term));
       (* Load user data. *)
-      Lwt_main.run (join [UTop_styles.load (); load_inputrc ()]);
+      Lwt_main.run (Lwt.join [UTop_styles.load (); load_inputrc ()]);
       (* Display a welcome message. *)
       Lwt_main.run (welcome term);
       (* Common initialization. *)

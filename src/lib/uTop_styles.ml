@@ -7,8 +7,9 @@
  * This file is a part of utop.
  *)
 
-open Lwt
 open UTop_token
+
+let return, (>>=) = Lwt.return, Lwt.(>>=)
 
 module String_set = Set.Make (String)
 
@@ -56,41 +57,43 @@ let styles = {
 
 let load () =
   let fn = Filename.concat LTerm_resources.home ".utoprc" in
-  try_lwt
-    lwt res = LTerm_resources.load fn in
-    styles.style_keyword <- LTerm_resources.get_style "keyword" res;
-    styles.style_symbol <- LTerm_resources.get_style "symbol" res;
-    styles.style_ident <- LTerm_resources.get_style "identifier" res;
-    styles.style_module <- LTerm_resources.get_style "module" res;
-    styles.style_constant <- LTerm_resources.get_style "constant" res;
-    styles.style_char <- LTerm_resources.get_style "char" res;
-    styles.style_string <- LTerm_resources.get_style "string" res;
-    styles.style_quotation <- LTerm_resources.get_style "quotation" res;
-    styles.style_comment <- LTerm_resources.get_style "comment" res;
-    styles.style_doc <- LTerm_resources.get_style "doc" res;
-    styles.style_blanks <- LTerm_resources.get_style "blanks" res;
-    styles.style_error <- LTerm_resources.get_style "error" res;
-    styles.style_directive <- LTerm_resources.get_style "directive" res;
-    styles.style_paren <- LTerm_resources.get_style "parenthesis" res;
-    styles.style_font <- (match LTerm_resources.get "font" res with
-                            | "" -> None
-                            | str -> Some str);
-    styles.style_foreground <- LTerm_resources.get_color "foreground" res;
-    styles.style_background <- LTerm_resources.get_color "background" res;
-    styles.style_cursor <- LTerm_resources.get_color "cursor" res;
-    (match String.lowercase (LTerm_resources.get "profile" res) with
-       | "light" -> UTop.set_profile UTop.Light
-       | "dark" -> UTop.set_profile UTop.Dark
-       | "" -> ()
-       | str -> raise (LTerm_resources.Error (Printf.sprintf "invalid profile %S" str)));
-    UTop_private.error_style := styles.style_error;
-    UTop_private.autoload := LTerm_resources.get_bool "autoload" res <> Some false;
-    return ()
-  with
+  Lwt.catch
+    (fun () ->
+      LTerm_resources.load fn >>= fun res ->
+      styles.style_keyword <- LTerm_resources.get_style "keyword" res;
+      styles.style_symbol <- LTerm_resources.get_style "symbol" res;
+      styles.style_ident <- LTerm_resources.get_style "identifier" res;
+      styles.style_module <- LTerm_resources.get_style "module" res;
+      styles.style_constant <- LTerm_resources.get_style "constant" res;
+      styles.style_char <- LTerm_resources.get_style "char" res;
+      styles.style_string <- LTerm_resources.get_style "string" res;
+      styles.style_quotation <- LTerm_resources.get_style "quotation" res;
+      styles.style_comment <- LTerm_resources.get_style "comment" res;
+      styles.style_doc <- LTerm_resources.get_style "doc" res;
+      styles.style_blanks <- LTerm_resources.get_style "blanks" res;
+      styles.style_error <- LTerm_resources.get_style "error" res;
+      styles.style_directive <- LTerm_resources.get_style "directive" res;
+      styles.style_paren <- LTerm_resources.get_style "parenthesis" res;
+      styles.style_font <- (match LTerm_resources.get "font" res with
+                              | "" -> None
+                              | str -> Some str);
+      styles.style_foreground <- LTerm_resources.get_color "foreground" res;
+      styles.style_background <- LTerm_resources.get_color "background" res;
+      styles.style_cursor <- LTerm_resources.get_color "cursor" res;
+      (match String.lowercase (LTerm_resources.get "profile" res) with
+         | "light" -> UTop.set_profile UTop.Light
+         | "dark" -> UTop.set_profile UTop.Dark
+         | "" -> ()
+         | str -> raise (LTerm_resources.Error (Printf.sprintf "invalid profile %S" str)));
+      UTop_private.error_style := styles.style_error;
+      UTop_private.autoload := LTerm_resources.get_bool "autoload" res <> Some false;
+      return ())
+    (function
     | Unix.Unix_error(Unix.ENOENT, _, _) ->
         return ()
     | Unix.Unix_error (error, func, arg) ->
         Lwt_log.error_f "cannot load styles from %S: %s: %s" fn func (Unix.error_message error)
+    | exn -> Lwt.fail exn)
 
 let rec stylise_filter_layout stylise tokens =
   match tokens with

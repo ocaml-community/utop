@@ -13,6 +13,8 @@ open LTerm_text
 open LTerm_geom
 open LTerm_style
 
+let (>>=) = Lwt.(>>=)
+
 module String_set = Set.Make(String)
 
 let version = UTop_version.version
@@ -595,10 +597,10 @@ For a complete description of utop, look at the utop(1) manual page."));
    +-----------------------------------------------------------------+ *)
 
 let print_error msg =
-  lwt term = Lazy.force LTerm.stdout in
-  lwt () = LTerm.set_style term !UTop_private.error_style in
-  lwt () = Lwt_io.print msg in
-  lwt () = LTerm.set_style term LTerm_style.none in
+  Lazy.force LTerm.stdout >>= fun term ->
+  LTerm.set_style term !UTop_private.error_style >>= fun () ->
+  Lwt_io.print msg >>= fun () ->
+  LTerm.set_style term LTerm_style.none >>= fun () ->
   LTerm.flush term
 
 let handle_findlib_error = function
