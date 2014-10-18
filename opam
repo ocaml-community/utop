@@ -4,7 +4,7 @@ authors: ["Jérémie Dimino"]
 homepage: "https://github.com/diml/utop"
 license: "BSD3"
 build: [
-  ["./configure" "--prefix" prefix]
+  ["./configure" "--prefix" prefix "--%{camlp4:enable}%-camlp4"]
   [make]
   [make "install"]
 ]

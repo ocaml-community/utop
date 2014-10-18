@@ -27,6 +27,10 @@ Description:
 # | The toplevel                                                      |
 # +-------------------------------------------------------------------+
 
+Flag camlp4
+  Description: camlp4 support
+  Default: true
+
 Library "optcomp"
   Install: false
   Path: syntax
@@ -51,6 +55,8 @@ Library utop
   XMETARequires: findlib, lambda-term
 
 Library "utop-camlp4"
+  Build$: flag(camlp4)
+  Install$: flag(camlp4)
   FindlibName: camlp4
   FindlibParent: utop
   Path: src/camlp4
