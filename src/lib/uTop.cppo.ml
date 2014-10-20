@@ -124,25 +124,26 @@ let collect_formatters buf pps f =
   (* First flush all formatters. *)
   List.iter (fun pp -> Format.pp_print_flush pp ()) pps;
   (* Save all formatter functions. *)
-  let save = List.map (fun pp -> Format.pp_get_all_formatter_output_functions pp ()) pps in
+  let save = List.map (fun pp -> Format.pp_get_formatter_out_functions pp ()) pps in
   let restore () =
     List.iter2
-      (fun pp (out, flush, newline, spaces) ->
+      (fun pp out_functions ->
          Format.pp_print_flush pp ();
-         Format.pp_set_all_formatter_output_functions pp ~out ~flush ~newline ~spaces)
+         Format.pp_set_formatter_out_functions pp out_functions)
       pps save
   in
   (* Output functions. *)
-  let out str ofs len = Buffer.add_substring buf str ofs len in
-  let flush = ignore in
-  let newline () = Buffer.add_char buf '\n' in
-  let spaces n = for i = 1 to n do Buffer.add_char buf ' ' done in
+  let out_string str ofs len = Buffer.add_substring buf str ofs len
+  and out_flush = ignore
+  and out_newline () = Buffer.add_char buf '\n'
+  and out_spaces n = for i = 1 to n do Buffer.add_char buf ' ' done in
+  let out_functions = { Format.out_string; out_flush; out_newline; out_spaces } in
   (* Replace formatter functions. *)
   let cols = (S.value size).cols in
   List.iter
     (fun pp ->
        Format.pp_set_margin pp cols;
-       Format.pp_set_all_formatter_output_functions pp ~out ~flush ~newline ~spaces)
+       Format.pp_set_formatter_out_functions pp out_functions)
     pps;
   try
     let x = f () in
@@ -156,21 +157,21 @@ let discard_formatters pps f =
   (* First flush all formatters. *)
   List.iter (fun pp -> Format.pp_print_flush pp ()) pps;
   (* Save all formatter functions. *)
-  let save = List.map (fun pp -> Format.pp_get_all_formatter_output_functions pp ()) pps in
+  let save = List.map (fun pp -> Format.pp_get_formatter_out_functions pp ()) pps in
   let restore () =
     List.iter2
-      (fun pp (out, flush, newline, spaces) ->
+      (fun pp out_functions ->
          Format.pp_print_flush pp ();
-         Format.pp_set_all_formatter_output_functions pp ~out ~flush ~newline ~spaces)
+         Format.pp_set_formatter_out_functions pp out_functions)
       pps save
   in
   (* Output functions. *)
-  let out str ofs len = () in
-  let flush = ignore in
-  let newline = ignore in
-  let spaces = ignore in
+  let out_functions = {
+    Format.out_string = (fun _ _ _ -> ()); out_flush = ignore;
+    out_newline = ignore; out_spaces = ignore;
+  } in
   (* Replace formatter functions. *)
-  List.iter (fun pp -> Format.pp_set_all_formatter_output_functions pp ~out ~flush ~newline ~spaces) pps;
+  List.iter (fun pp -> Format.pp_set_formatter_out_functions pp out_functions) pps;
   try
     let x = f () in
     restore ();
