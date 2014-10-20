@@ -1,3 +1,10 @@
+1.16 (2014-10-20)
+-----------------
+
+* make camlp4 support optional
+* require OCaml 4.01.0 or newer
+* implement wrapper for -safe-string
+
 1.15 (2014-08-30)
 -----------------
 
