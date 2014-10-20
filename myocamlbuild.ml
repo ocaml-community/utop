@@ -14,6 +14,7 @@ let () =
   dispatch
     (fun hook ->
        dispatch_default hook;
+       Ocamlbuild_cppo.dispatcher hook;
        match hook with
          | Before_options ->
              Options.make_links := false
@@ -31,30 +32,16 @@ let () =
              flag ["ocaml"; "link"; "toplevel"] & A"-linkpkg";
 
              let env = BaseEnvLight.load () in
-             let path = BaseEnvLight.var_get "compiler_libs" env in
              let stdlib = BaseEnvLight.var_get "standard_library" env in
 
-             let findlib_version = BaseEnvLight.var_get "findlib_version" env in
-             let findlib_version =
-               Scanf.sscanf findlib_version "%d.%d" (Printf.sprintf "findlib_version=(%d, %d)")
+             let ocaml_version =
+               Scanf.sscanf Sys.ocaml_version "%d.%d.%d" (fun major minor patchlevel ->
+                  (* e.g. #define OCAML_VERSION 040201 *)
+                 Printf.sprintf "OCAML_VERSION %d" (major * 10000 + minor * 100 + patchlevel))
              in
 
-             (* Optcomp *)
-             let args =
-               S[A"-ppopt"; A"syntax/pa_optcomp.cmo";
-                 A"-ppopt"; A"-let"; A"-ppopt"; A findlib_version]
-             in
-             flag ["ocaml"; "compile"; "pa_optcomp"] args;
-             flag ["ocaml"; "ocamldep"; "pa_optcomp"] args;
-             flag ["ocaml"; "doc"; "pa_optcomp"] args;
-             dep ["ocaml"; "ocamldep"; "pa_optcomp"] ["syntax/pa_optcomp.cmo"];
-
-             (* Add directories for compiler-libraries: *)
-             let paths = List.filter Sys.file_exists [path; path / "typing"; path / "parsing"; path / "utils"] in
-             let paths = List.map (fun path -> S [A "-I"; A path]) paths in
-             flag ["ocaml"; "compile"; "use_compiler_libs"] & S paths;
-             flag ["ocaml"; "ocamldep"; "use_compiler_libs"] & S paths;
-             flag ["ocaml"; "doc"; "use_compiler_libs"] & S paths;
+             (* Cppo *)
+             flag ["cppo"] & S[A"-D"; A ocaml_version];
 
              let paths = [A "-I"; A "+camlp5"] in
              flag ["ocaml"; "compile"; "use_camlp5"] & S paths;
@@ -70,8 +57,8 @@ let () =
                   let packages =
                     Tags.fold
                       (fun tag packages ->
-                         if String.is_prefix "pkg_" tag && not (String.is_suffix tag ".syntax") then
-                           String.after tag 4 :: packages
+                         if String.is_prefix "package(" tag then
+                           String.sub tag 8 (String.length tag - 9) :: packages
                          else
                            packages)
                       (tags_of_pathname "src/top/uTop_top.byte")

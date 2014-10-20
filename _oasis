@@ -2,12 +2,12 @@
 # | Package parameters                                                |
 # +-------------------------------------------------------------------+
 
-OASISFormat: 0.3
-OCamlVersion: >= 3.12
+OASISFormat: 0.4
+OCamlVersion: >= 4.01
 Name: utop
 Version: 1.15
 LicenseFile: LICENSE
-License: BSD3
+License: BSD-3-clause
 Authors: Jeremie Dimino
 Maintainers: Jeremie Dimino <jeremie@dimino.org>
 Homepage: https://github.com/diml/utop
@@ -15,6 +15,8 @@ BuildTools: ocamlbuild
 Plugins: DevFiles (0.3), META (0.3)
 XDevFilesEnableMakefile: false
 FilesAB: src/lib/uTop_version.ml.ab
+AlphaFeatures: ocamlbuild_more_args
+XOCamlbuildPluginTags: package(cppo_ocamlbuild)
 Synopsis: Universal toplevel for OCaml
 Description:
   utop is an improved toplevel for OCaml. It can run in a terminal or
@@ -27,12 +29,9 @@ Description:
 # | The toplevel                                                      |
 # +-------------------------------------------------------------------+
 
-Library "optcomp"
-  Install: false
-  Path: syntax
-  Modules: Pa_optcomp
-  BuildDepends: camlp4, camlp4.quotations.o
-  CompiledObject: byte
+Flag camlp4
+  Description: camlp4 support
+  Default: false
 
 Library utop
   Path: src/lib
@@ -46,11 +45,13 @@ Library utop
     UTop_token,
     UTop_complete,
     UTop_styles
-  BuildDepends: findlib, lambda-term (>= 1.2), lwt.syntax, threads
+  BuildDepends: threads, findlib, lambda-term (>= 1.2)
   XMETADescription: utop configuration
   XMETARequires: findlib, lambda-term
 
 Library "utop-camlp4"
+  Build$: flag(camlp4)
+  Install$: flag(camlp4)
   FindlibName: camlp4
   FindlibParent: utop
   Path: src/camlp4
@@ -64,7 +65,7 @@ Executable utop
   Path: src/top
   CompiledObject: byte
   MainIs: uTop_top.ml
-  BuildDepends: utop, findlib, lambda-term, lwt.syntax, threads
+  BuildDepends: threads, findlib, lambda-term, utop
   DataFiles: utop.el ($datadir/emacs/site-lisp)
 
 Executable "utop-full"
@@ -72,7 +73,7 @@ Executable "utop-full"
   Path: src/top
   CompiledObject: byte
   MainIs: uTop_top_full.ml
-  BuildDepends: utop, findlib, lambda-term, lwt.syntax, threads
+  BuildDepends: threads, findlib, lambda-term, utop
   DataFiles: utop.el ($datadir/emacs/site-lisp)
 
 # +-------------------------------------------------------------------+

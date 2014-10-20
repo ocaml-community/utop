@@ -8,13 +8,14 @@
  *)
 
 open CamomileLibraryDyn.Camomile
-open Lwt
 open Lwt_react
 open LTerm_text
 open LTerm_geom
 open UTop_token
 open UTop_styles
 open UTop_private
+
+let return, (>>=) = Lwt.return, Lwt.(>>=)
 
 module String_set = Set.Make(String)
 
@@ -29,10 +30,14 @@ let save_history () =
     | None ->
         return ()
     | Some fn ->
-        try_lwt
-          LTerm_history.save UTop.history ?max_size:!UTop.history_file_max_size ?max_entries:!UTop.history_file_max_entries fn
-        with Unix.Unix_error (error, func, arg) ->
-          Lwt_log.error_f "cannot save history to %S: %s: %s" fn func (Unix.error_message error)
+        Lwt.catch
+          (fun () -> LTerm_history.save UTop.history
+                        ?max_size:!UTop.history_file_max_size
+                        ?max_entries:!UTop.history_file_max_entries fn)
+          (function
+          | Unix.Unix_error (error, func, arg) ->
+              Lwt_log.error_f "cannot save history to %S: %s: %s" fn func (Unix.error_message error)
+          | exn -> Lwt.fail exn)
 
 let init_history () =
   (* Save history on exit. *)
@@ -42,10 +47,13 @@ let init_history () =
     | None ->
         return ()
     | Some fn ->
-        try_lwt
-          LTerm_history.load UTop.history fn
-        with Unix.Unix_error (error, func, arg) ->
-          Lwt_log.error_f "cannot load history from %S: %s: %s" fn func (Unix.error_message error)
+        Lwt.catch
+          (fun () -> LTerm_history.load UTop.history fn)
+          (function
+          | Unix.Unix_error (error, func, arg) ->
+              Lwt_log.error_f "cannot load history from %S: %s: %s"
+                              fn func (Unix.error_message error)
+          | exn -> Lwt.fail exn)
 
 (* +-----------------------------------------------------------------+
    | offset --> index                                                |
@@ -89,7 +97,7 @@ let parse_and_check input eos_is_error =
   let buf = Buffer.create 32 in
   let preprocess input =
     match input with
-#if ocaml_version >= (4, 02, 0)
+#if OCAML_VERSION >= 040200
     | UTop.Value (Parsetree.Ptop_def pstr) ->
         begin try
           let pstr = Pparse.apply_rewriters ~tool_name:"ocaml"
@@ -261,13 +269,13 @@ let rec map_items unwrap wrap items =
       | Outcometree.Osig_class (_, name, _, _, rs)
       | Outcometree.Osig_class_type (_, name, _, _, rs)
       | Outcometree.Osig_module (name, _, rs)
-#if ocaml_version >= (4, 02, 0)
+#if OCAML_VERSION >= 040200
       | Outcometree.Osig_type ({ Outcometree.otype_name = name }, rs) ->
 #else
       | Outcometree.Osig_type ((name, _, _, _, _), rs) ->
 #endif
         (name, rs)
-#if ocaml_version >= (4, 02, 0)
+#if OCAML_VERSION >= 040200
       | Outcometree.Osig_typext ({ Outcometree.oext_name = name}, _)
 #else
       | Outcometree.Osig_exception (name, _)
@@ -308,7 +316,7 @@ let rec map_items unwrap wrap items =
               wrap (Outcometree.Osig_type (oty, Outcometree.Orec_first)) extra :: items'
             else
               items
-#if ocaml_version >= (4, 02, 0)
+#if OCAML_VERSION >= 040200
           | Outcometree.Osig_typext _
 #else
           | Outcometree.Osig_exception _
@@ -347,14 +355,10 @@ let () =
    | Toplevel expression rewriting                                   |
    +-----------------------------------------------------------------+ *)
 
-#if ocaml_version >= (4, 0, 0)
 let with_loc loc str = {
   Location.txt = str;
   Location.loc = loc;
 }
-#else
-let with_loc loc str = str
-#endif
 
 (* A rule for rewriting a toplevel expression. *)
 type rewrite_rule = {
@@ -375,7 +379,7 @@ let longident_async_thread_safe_block_on_async_exn =
   Longident.parse "Async.Std.Thread_safe.block_on_async_exn"
 let longident_unit = Longident.Lident "()"
 
-#if ocaml_version < (4, 2, 0)
+#if OCAML_VERSION < 040200
 (* Wrap <expr> into: fun () -> <expr> *)
 let wrap_unit loc e =
   let i = with_loc loc longident_unit in
@@ -394,7 +398,7 @@ let () =
   Hashtbl.add rewrite_rules (Longident.Ldot (Longident.Lident "Lwt", "t")) {
     required_values = [longident_lwt_main_run];
     rewrite = (fun loc e ->
-#if ocaml_version < (4, 2, 0)
+#if OCAML_VERSION < 040200
       { Parsetree.pexp_desc =
           Parsetree.Pexp_apply
             ({ Parsetree.pexp_desc = Parsetree.Pexp_ident (with_loc loc longident_lwt_main_run);
@@ -416,7 +420,7 @@ let () =
   let rule = {
     required_values = [longident_async_thread_safe_block_on_async_exn];
     rewrite = (fun loc e ->
-#if ocaml_version < (4, 2, 0)
+#if OCAML_VERSION < 040200
       { Parsetree.pexp_desc =
           Parsetree.Pexp_apply
             ({ Parsetree.pexp_desc = Parsetree.Pexp_ident
@@ -490,17 +494,9 @@ let is_persistent_in_env longident =
   with Not_found ->
     false
 
-#if ocaml_version >= (4, 0, 0)
-let str_items_of_typed_structure tstr = tstr.Typedtree.str_items
-let str_desc_of_typed_str_item tstr = tstr.Typedtree.str_desc
-#else
-let str_items_of_typed_structure tstr = tstr
-let str_desc_of_typed_str_item tstr = tstr
-#endif
-
-#if ocaml_version < (4, 2, 0)
+#if OCAML_VERSION < 040200
 let rewrite_str_item pstr_item tstr_item =
-  match pstr_item, str_desc_of_typed_str_item tstr_item with
+  match pstr_item, tstr_item.Typedtree.str_desc with
     | ({ Parsetree.pstr_desc = Parsetree.Pstr_eval e;
          Parsetree.pstr_loc = loc },
        Typedtree.Tstr_eval { Typedtree.exp_type = typ }) -> begin
@@ -518,7 +514,7 @@ let rewrite_str_item pstr_item tstr_item =
       pstr_item
 #else
 let rewrite_str_item pstr_item tstr_item =
-  match pstr_item, str_desc_of_typed_str_item tstr_item with
+  match pstr_item, tstr_item.Typedtree.str_desc with
     | ({ Parsetree.pstr_desc = Parsetree.Pstr_eval (e, _);
          Parsetree.pstr_loc = loc },
        Typedtree.Tstr_eval ({ Typedtree.exp_type = typ }, _)) -> begin
@@ -541,8 +537,7 @@ let rewrite phrase =
     | Parsetree.Ptop_def pstr ->
       if (UTop.get_auto_run_lwt () || UTop.get_auto_run_async ()) && List.exists is_eval pstr then
         let tstr, _, _ = Typemod.type_structure !Toploop.toplevel_env pstr Location.none in
-        let tstr = str_items_of_typed_structure tstr in
-        Parsetree.Ptop_def (List.map2 rewrite_str_item pstr tstr)
+        Parsetree.Ptop_def (List.map2 rewrite_str_item pstr tstr.Typedtree.str_items)
       else
         Parsetree.Ptop_def pstr
     | Parsetree.Ptop_dir _ ->
@@ -553,20 +548,22 @@ let rewrite phrase =
    +-----------------------------------------------------------------+ *)
 
 let rec read_phrase term =
-  try_lwt
-    (new read_phrase ~term)#run
-  with Sys.Break ->
-    lwt () = LTerm.fprintl term "Interrupted." in
-    read_phrase term
+  Lwt.catch
+    (fun () -> (new read_phrase ~term)#run)
+    (function
+    | Sys.Break ->
+      LTerm.fprintl term "Interrupted." >>= fun () ->
+      read_phrase term
+    | exn -> Lwt.fail exn)
 
 let update_margin pp cols =
   if Format.pp_get_margin pp () <> cols then
     Format.pp_set_margin pp cols
 
 let print_error term msg =
-  lwt () = LTerm.set_style term styles.style_error in
-  lwt () = Lwt_io.print msg in
-  lwt () = LTerm.set_style term LTerm_style.none in
+  LTerm.set_style term styles.style_error >>= fun () ->
+  Lwt_io.print msg >>= fun () ->
+  LTerm.set_style term LTerm_style.none >>= fun () ->
   LTerm.flush term
 
 let rec loop term =
@@ -582,18 +579,18 @@ let rec loop term =
   (* Read interactively user input. *)
   let phrase_opt =
     Lwt_main.run (
-      try_lwt
-        lwt result, warnings = read_phrase term in
-        (* Print warnings before errors. *)
-        lwt () = Lwt_io.print warnings in
-        match result with
-          | UTop.Value phrase ->
-              return (Some phrase)
-          | UTop.Error (_, msg) ->
-              lwt () = print_error term msg in
-              return None
-      finally
-        LTerm.flush term
+      Lwt.finalize
+        (fun () ->
+          read_phrase term >>= fun (result, warnings) ->
+          (* Print warnings before errors. *)
+          Lwt_io.print warnings >>= fun () ->
+          match result with
+            | UTop.Value phrase ->
+                return (Some phrase)
+            | UTop.Error (_, msg) ->
+                print_error term msg >>= fun () ->
+                return None)
+        (fun () -> LTerm.flush term)
     )
   in
 
@@ -610,13 +607,9 @@ let rec loop term =
         let pp = Format.formatter_of_buffer buffer in
         Format.pp_set_margin pp (LTerm.size term).cols;
         (try
-#if ocaml_version > (4, 00, 1)
            Env.reset_cache_toplevel ();
-#endif
            if !Clflags.dump_parsetree then Printast.top_phrase pp phrase;
-#if ocaml_version > (4, 00, 1)
            if !Clflags.dump_source then Pprintast.top_phrase pp phrase;
-#endif
            ignore (Toploop.execute_phrase true pp phrase);
            (* Flush everything. *)
            Format.pp_print_flush Format.std_formatter ();
@@ -677,10 +670,10 @@ let welcome term =
   LTerm_draw.draw_styled ctx 1 ((size.cols - String.length message) / 2) (eval [B_fg LTerm_style.yellow; S message]);
 
   (* Render to the screen. *)
-  lwt () = LTerm.print_box term matrix in
+  LTerm.print_box term matrix >>= fun () ->
 
   (* Move to after the box. *)
-  lwt () = LTerm.fprint term "\n" in
+  LTerm.fprint term "\n" >>= fun () ->
 
   LTerm.flush term
 
@@ -695,7 +688,7 @@ let read_input_classic prompt buffer len =
     else
       Lwt_io.read_char_opt Lwt_io.stdin >>= function
         | Some c ->
-#if ocaml_version >= (4, 02, 0)
+#if OCAML_VERSION >= 040200
             Bytes.set buffer i c;
 #else
             buffer.[i] <- c;
@@ -707,7 +700,7 @@ let read_input_classic prompt buffer len =
         | None ->
             return (i, true)
   in
-  Lwt_main.run (Lwt_io.write Lwt_io.stdout prompt >> loop 0)
+  Lwt_main.run (Lwt_io.write Lwt_io.stdout prompt >>= fun () -> loop 0)
 
 (* +-----------------------------------------------------------------+
    | Emacs mode                                                      |
@@ -825,7 +818,7 @@ module Emacs(M : sig end) = struct
     (* Rewrite toplevel expressions. *)
     let phrase = rewrite phrase in
     try
-#if ocaml_version > (4, 00, 1)
+#if OCAML_VERSION > 040001
       Env.reset_cache_toplevel ();
 #endif
       ignore (Toploop.execute_phrase true Format.std_formatter phrase);
@@ -1012,8 +1005,6 @@ end
    | Extra macros                                                    |
    +-----------------------------------------------------------------+ *)
 
-#if ocaml_version > (4, 00, 1)
-
 let typeof sid =
   let id  = Longident.parse sid in
   let env = !Toploop.toplevel_env in
@@ -1041,7 +1032,7 @@ let typeof sid =
       Some (Printtyp.tree_of_type_declaration id ty_decl Types.Trec_not)
     with Not_found ->
     try
-#if ocaml_version < (4, 02, 0)
+#if OCAML_VERSION < 040200
       let (path, mod_typ) = Env.lookup_module id env in
 #else
       let path = Env.lookup_module id env ~load:true in
@@ -1058,7 +1049,7 @@ let typeof sid =
     try
       let cstr_desc = Env.lookup_constructor id env in
       match cstr_desc.Types.cstr_tag with
-#if ocaml_version < (4, 02, 0)
+#if OCAML_VERSION < 040200
       | Types.Cstr_exception (_path, loc) ->
         let path, exn_decl = Typedecl.transl_exn_rebind env loc id in
         let id = Ident.create (Path.name path) in
@@ -1083,12 +1074,9 @@ let typeof sid =
     let str = Buffer.contents buf in
     Lwt_main.run (Lazy.force LTerm.stdout >>= fun term -> render_out_phrase term str)
 
-
 let () =
   Hashtbl.add Toploop.directive_table "typeof"
     (Toploop.Directive_string typeof)
-
-#endif
 
 (* +-----------------------------------------------------------------+
    | Entry point                                                     |
@@ -1149,9 +1137,7 @@ let print_version_num () =
 let autoload = ref true
 
 let args = Arg.align [
-#if ocaml_version >= (3, 13, 0)
   "-absname", Arg.Set Location.absname, " Show absolute filenames in error message";
-#endif
   "-I", Arg.String (fun dir ->  Clflags.include_dirs := Misc.expand_directory Config.standard_library dir :: !Clflags.include_dirs), "<dir> Add <dir> to the list of include directories";
   "-init", Arg.String (fun s -> Clflags.init_file := Some s), "<file> Load <file> instead of default init file";
   "-labels", Arg.Clear Clflags.classic, " Use commuting label mode";
@@ -1159,17 +1145,15 @@ let args = Arg.align [
   "-noassert", Arg.Set Clflags.noassert, " Do not compile assertion checks";
   "-nolabels", Arg.Set Clflags.classic, " Ignore non-optional labels in types";
   "-nostdlib", Arg.Set Clflags.no_std_include, " Do not add default directory to the list of include directories";
-#if ocaml_version >= (4, 02, 0)
+#if OCAML_VERSION >= 040200
   "-ppx", Arg.String (fun ppx -> Clflags.all_ppx := ppx :: !Clflags.all_ppx), "<command> Pipe abstract syntax trees through preprocessor <command>";
 #endif
   "-principal", Arg.Set Clflags.principal, " Check principality of type inference";
-#if ocaml_version >= (4, 02, 0)
+#if OCAML_VERSION >= 040200
   "-safe-string", Arg.Clear Clflags.unsafe_string, " Make strings immutable";
 #endif
-#if ocaml_version >= (4, 01, 0)
   "-short-paths", Arg.Clear Clflags.real_paths, " Shorten paths in types (the default)";
   "-no-short-paths", Arg.Set Clflags.real_paths, " Do not shorten paths in types";
-#endif
   "-rectypes", Arg.Set Clflags.recursive_types, " Allow arbitrary recursive types";
   "-stdin", Arg.Unit (fun () -> run_script ""), " Read script from standard input";
   "-strict-sequence", Arg.Set Clflags.strict_sequence, " Left-hand part of a sequence must have type unit";
@@ -1203,14 +1187,10 @@ let args = Arg.align [
   "-require", Arg.String (fun s -> preload := `Packages (UTop.split_words s) :: !preload),
   "<package> Load this package";
   "-dparsetree", Arg.Set Clflags.dump_parsetree, " Dump OCaml AST after rewriting";
-#if ocaml_version > (4, 00, 1)
   "-dsource", Arg.Set Clflags.dump_source, " Dump OCaml source after rewriting";
-#endif
 ]
 
-#if ocaml_version >= (4, 01, 0)
 let () = Clflags.real_paths := false
-#endif
 
 let app_name = Filename.basename Sys.executable_name
 let usage = Printf.sprintf "Usage: %s <options> <object-files> [script-file [arguments]]\noptions are:" app_name
@@ -1272,13 +1252,14 @@ let common_init () =
   catch Sys.sigterm
 
 let load_inputrc () =
-  try_lwt
-    LTerm_inputrc.load ()
-  with
-  | Unix.Unix_error (error, func, arg) ->
-    Lwt_log.error_f "cannot load key bindings from %S: %s: %s" LTerm_inputrc.default func (Unix.error_message error)
-  | LTerm_inputrc.Parse_error (fname, line, msg) ->
-    Lwt_log.error_f "error in key bindings file %S, line %d: %s" fname line msg
+  Lwt.catch
+    LTerm_inputrc.load
+    (function
+    | Unix.Unix_error (error, func, arg) ->
+      Lwt_log.error_f "cannot load key bindings from %S: %s: %s" LTerm_inputrc.default func (Unix.error_message error)
+    | LTerm_inputrc.Parse_error (fname, line, msg) ->
+      Lwt_log.error_f "error in key bindings file %S, line %d: %s" fname line msg
+    | exn -> Lwt.fail exn)
 
 let main_aux () =
   Arg.parse args file_argument usage;
@@ -1296,7 +1277,7 @@ let main_aux () =
       (* Set the initial size. *)
       UTop_private.set_size (S.const (LTerm.size term));
       (* Load user data. *)
-      Lwt_main.run (join [UTop_styles.load (); load_inputrc ()]);
+      Lwt_main.run (Lwt.join [UTop_styles.load (); load_inputrc ()]);
       (* Display a welcome message. *)
       Lwt_main.run (welcome term);
       (* Common initialization. *)

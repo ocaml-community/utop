@@ -13,6 +13,8 @@ open LTerm_text
 open LTerm_geom
 open LTerm_style
 
+let (>>=) = Lwt.(>>=)
+
 module String_set = Set.Make(String)
 
 let version = UTop_version.version
@@ -122,25 +124,26 @@ let collect_formatters buf pps f =
   (* First flush all formatters. *)
   List.iter (fun pp -> Format.pp_print_flush pp ()) pps;
   (* Save all formatter functions. *)
-  let save = List.map (fun pp -> Format.pp_get_all_formatter_output_functions pp ()) pps in
+  let save = List.map (fun pp -> Format.pp_get_formatter_out_functions pp ()) pps in
   let restore () =
     List.iter2
-      (fun pp (out, flush, newline, spaces) ->
+      (fun pp out_functions ->
          Format.pp_print_flush pp ();
-         Format.pp_set_all_formatter_output_functions pp ~out ~flush ~newline ~spaces)
+         Format.pp_set_formatter_out_functions pp out_functions)
       pps save
   in
   (* Output functions. *)
-  let out str ofs len = Buffer.add_substring buf str ofs len in
-  let flush = ignore in
-  let newline () = Buffer.add_char buf '\n' in
-  let spaces n = for i = 1 to n do Buffer.add_char buf ' ' done in
+  let out_string str ofs len = Buffer.add_substring buf str ofs len
+  and out_flush = ignore
+  and out_newline () = Buffer.add_char buf '\n'
+  and out_spaces n = for i = 1 to n do Buffer.add_char buf ' ' done in
+  let out_functions = { Format.out_string; out_flush; out_newline; out_spaces } in
   (* Replace formatter functions. *)
   let cols = (S.value size).cols in
   List.iter
     (fun pp ->
        Format.pp_set_margin pp cols;
-       Format.pp_set_all_formatter_output_functions pp ~out ~flush ~newline ~spaces)
+       Format.pp_set_formatter_out_functions pp out_functions)
     pps;
   try
     let x = f () in
@@ -154,21 +157,21 @@ let discard_formatters pps f =
   (* First flush all formatters. *)
   List.iter (fun pp -> Format.pp_print_flush pp ()) pps;
   (* Save all formatter functions. *)
-  let save = List.map (fun pp -> Format.pp_get_all_formatter_output_functions pp ()) pps in
+  let save = List.map (fun pp -> Format.pp_get_formatter_out_functions pp ()) pps in
   let restore () =
     List.iter2
-      (fun pp (out, flush, newline, spaces) ->
+      (fun pp out_functions ->
          Format.pp_print_flush pp ();
-         Format.pp_set_all_formatter_output_functions pp ~out ~flush ~newline ~spaces)
+         Format.pp_set_formatter_out_functions pp out_functions)
       pps save
   in
   (* Output functions. *)
-  let out str ofs len = () in
-  let flush = ignore in
-  let newline = ignore in
-  let spaces = ignore in
+  let out_functions = {
+    Format.out_string = (fun _ _ _ -> ()); out_flush = ignore;
+    out_newline = ignore; out_spaces = ignore;
+  } in
   (* Replace formatter functions. *)
-  List.iter (fun pp -> Format.pp_set_all_formatter_output_functions pp ~out ~flush ~newline ~spaces) pps;
+  List.iter (fun pp -> Format.pp_set_formatter_out_functions pp out_functions) pps;
   try
     let x = f () in
     restore ();
@@ -189,11 +192,7 @@ type 'a result =
 
 exception Need_more
 
-#if ocaml_version <= (3, 12, 1)
-let input_name = ""
-#else
 let input_name = "//toplevel//"
-#endif
 
 let lexbuf_of_string eof str =
   let pos = ref 0 in
@@ -244,15 +243,13 @@ let parse_default parse str eos_is_error =
       | Syntaxerr.Other loc ->
         Error ([mkloc loc],
                "Syntax error")
-#if ocaml_version >= (4, 01, 0)
       | Syntaxerr.Expecting (loc, nonterm) ->
         Error ([mkloc loc],
                Printf.sprintf "Syntax error: %s expected." nonterm)
       | Syntaxerr.Variable_in_scope (loc, var) ->
         Error ([mkloc loc],
                Printf.sprintf "In this scoped type, variable '%s is reserved for the local type %s." var var)
-#endif
-#if ocaml_version >= (4, 2, 0)
+#if OCAML_VERSION >= 040200
       | Syntaxerr.Not_expecting (loc, nonterm) ->
           Error ([mkloc loc],
                  Printf.sprintf "Syntax error: %s not expected" nonterm)
@@ -286,14 +283,10 @@ let rec last head tail =
     | head :: tail ->
         last head tail
 
-#if ocaml_version >= (4, 0, 0)
 let with_loc loc str = {
   Location.txt = str;
   Location.loc = loc;
 }
-#else
-let with_loc loc str = str
-#endif
 
 (* Check that the given phrase can be evaluated without typing/compile
    errors. *)
@@ -316,7 +309,7 @@ let check_phrase phrase =
         (* Construct "let _ () = let module _ = struct <items> end in ()" in order to test
            the typing and compilation of [items] without evaluating them. *)
         let unit = with_loc loc (Longident.Lident "()") in
-#if ocaml_version < (4, 2, 0)
+#if OCAML_VERSION < 040200
         let structure = {
           pmod_loc = loc;
           pmod_desc = Pmod_structure (item :: items);
@@ -359,9 +352,7 @@ let check_phrase phrase =
         try
           let _ =
             discard_formatters [Format.err_formatter] (fun () ->
-#if ocaml_version > (4, 00, 1)
               Env.reset_cache_toplevel ();
-#endif
               Toploop.execute_phrase false null check_phrase)
           in
           (* The phrase is safe. *)
@@ -595,10 +586,10 @@ For a complete description of utop, look at the utop(1) manual page."));
    +-----------------------------------------------------------------+ *)
 
 let print_error msg =
-  lwt term = Lazy.force LTerm.stdout in
-  lwt () = LTerm.set_style term !UTop_private.error_style in
-  lwt () = Lwt_io.print msg in
-  lwt () = LTerm.set_style term LTerm_style.none in
+  Lazy.force LTerm.stdout >>= fun term ->
+  LTerm.set_style term !UTop_private.error_style >>= fun () ->
+  Lwt_io.print msg >>= fun () ->
+  LTerm.set_style term LTerm_style.none >>= fun () ->
   LTerm.flush term
 
 let handle_findlib_error = function
@@ -611,6 +602,14 @@ let handle_findlib_error = function
   | exn ->
       raise exn
 
+let check_for_camlp4_support () =
+  try
+    ignore (Fl_package_base.query "utop.camlp4");
+    true
+  with Fl_package_base.No_such_package("utop.camlp4", "") ->
+    Lwt_main.run (print_error "utop was built without camlp4 support.\n");
+    false
+
 let set_syntax syntax =
   match get_syntax (), syntax with
     | Normal, Normal
@@ -619,25 +618,21 @@ let set_syntax syntax =
         ()
     | (Camlp4o | Camlp4r), _ ->
         Lwt_main.run (print_error "Camlp4 already loaded, you cannot change the syntax now.\n")
-    | Normal, Camlp4o -> begin
-        set_syntax Camlp4o;
-        set_phrase_terminator ";;";
-        try
+    | Normal, Camlp4o ->
+        if check_for_camlp4_support () then begin
           Topfind.syntax "camlp4o";
-          Topfind.load_deeply ["utop.camlp4"]
-        with exn ->
-          handle_findlib_error exn
-      end
-    | Normal, Camlp4r -> begin
-        set_syntax Camlp4r;
-        set_phrase_terminator ";";
-        add_keyword "value";
-        try
+          Topfind.load_deeply ["utop.camlp4"];
+          set_syntax Camlp4o;
+          set_phrase_terminator ";;"
+        end
+    | Normal, Camlp4r ->
+        if check_for_camlp4_support () then begin
           Topfind.syntax "camlp4r";
-          Topfind.load_deeply ["utop.camlp4"]
-        with exn ->
-          handle_findlib_error exn
-      end
+          Topfind.load_deeply ["utop.camlp4"];
+          set_syntax Camlp4r;
+          set_phrase_terminator ";";
+          add_keyword "value"
+        end
 
 let () =
   Hashtbl.add
@@ -658,13 +653,11 @@ let () =
 
 let topfind_log, set_topfind_log = S.create ~eq:(fun _ _ -> false) []
 
-#if findlib_version >= (1, 4)
 let () =
   let real_log = !Topfind.log in
   Topfind.log := fun str ->
     set_topfind_log (str :: S.value topfind_log);
     if S.value topfind_verbose then real_log str
-#endif
 
 let () =
   Hashtbl.add

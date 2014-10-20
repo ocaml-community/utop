@@ -1,13 +1,7 @@
 # -*- conf -*-
 
-# Use camlp4 on all files
-<**/*.ml>: syntax_camlp4o, pkg_lwt.syntax, pa_optcomp
-
-# Do not use optcomp on syntax extensions
-<syntax/*.ml>: -pa_optcomp
-
 # Use compiler interfaces
-<src/**/*.ml{,i}>: use_compiler_libs
+<src/**/*.ml{,i}>: package(compiler-libs)
 
 # Use camlp5
 <src/camlp5/**/*.ml{,i}>: use_camlp5

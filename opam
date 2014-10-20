@@ -4,17 +4,21 @@ authors: ["Jérémie Dimino"]
 homepage: "https://github.com/diml/utop"
 license: "BSD3"
 build: [
-  ["./configure" "--prefix" prefix]
+  ["./configure" "--prefix" prefix "--%{camlp4:enable}%-camlp4"]
   [make]
   [make "install"]
 ]
 build-doc: [["ocaml" "setup.ml" "-doc"]]
 remove: [["ocamlfind" "remove" "utop"]]
 depends: [
-  "ocamlfind"
+  "ocamlfind"   {>= "1.4.0"}
   "lambda-term" {>= "1.2"}
   "lwt"
-  "react" {>= "1.0.0"}
-  "oasis" {>= "0.3.0"}
+  "react"       {>= "1.0.0"}
+  "cppo"        {>= "1.0.1"}
+  "oasis"       {>= "0.3.0"}
 ]
-ocaml-version: [>= "3.12"]
+depopts: [
+  "camlp4"
+]
+available: [ ocaml-version >= "4.01" ]
