@@ -1,15 +1,23 @@
-opam-version: "1"
+opam-version: "1.2"
 maintainer: "jeremie@dimino.org"
 authors: ["Jérémie Dimino"]
-homepage: "https://github.com/diml/utop"
 license: "BSD3"
+homepage: "https://github.com/diml/utop"
+bug-reports: "https://github.com/diml/utop/issues"
+dev-repo: "git://github.com/diml/utop.git"
 build: [
   ["./configure" "--prefix" prefix "--%{camlp4:enable}%-camlp4"]
   [make]
+]
+install: [
   [make "install"]
 ]
-build-doc: [["ocaml" "setup.ml" "-doc"]]
-remove: [["ocamlfind" "remove" "utop"]]
+build-doc: [
+  ["ocaml" "setup.ml" "-doc"]
+]
+remove: [
+  ["ocamlfind" "remove" "utop"]
+]
 depends: [
   "ocamlfind"   {>= "1.4.0"}
   "lambda-term" {>= "1.2"}
