@@ -191,11 +191,7 @@ type 'a result =
 
 exception Need_more
 
-#if OCAML_VERSION <= 031201
-let input_name = ""
-#else
 let input_name = "//toplevel//"
-#endif
 
 let lexbuf_of_string eof str =
   let pos = ref 0 in
@@ -246,14 +242,12 @@ let parse_default parse str eos_is_error =
       | Syntaxerr.Other loc ->
         Error ([mkloc loc],
                "Syntax error")
-#if OCAML_VERSION >= 040100
       | Syntaxerr.Expecting (loc, nonterm) ->
         Error ([mkloc loc],
                Printf.sprintf "Syntax error: %s expected." nonterm)
       | Syntaxerr.Variable_in_scope (loc, var) ->
         Error ([mkloc loc],
                Printf.sprintf "In this scoped type, variable '%s is reserved for the local type %s." var var)
-#endif
 #if OCAML_VERSION >= 040200
       | Syntaxerr.Not_expecting (loc, nonterm) ->
           Error ([mkloc loc],
@@ -288,14 +282,10 @@ let rec last head tail =
     | head :: tail ->
         last head tail
 
-#if OCAML_VERSION >= 040000
 let with_loc loc str = {
   Location.txt = str;
   Location.loc = loc;
 }
-#else
-let with_loc loc str = str
-#endif
 
 (* Check that the given phrase can be evaluated without typing/compile
    errors. *)
@@ -361,9 +351,7 @@ let check_phrase phrase =
         try
           let _ =
             discard_formatters [Format.err_formatter] (fun () ->
-#if OCAML_VERSION > 040001
               Env.reset_cache_toplevel ();
-#endif
               Toploop.execute_phrase false null check_phrase)
           in
           (* The phrase is safe. *)
@@ -660,13 +648,11 @@ let () =
 
 let topfind_log, set_topfind_log = S.create ~eq:(fun _ _ -> false) []
 
-#if FINDLIB_VERSION >= 010400
 let () =
   let real_log = !Topfind.log in
   Topfind.log := fun str ->
     set_topfind_log (str :: S.value topfind_log);
     if S.value topfind_verbose then real_log str
-#endif
 
 let () =
   Hashtbl.add

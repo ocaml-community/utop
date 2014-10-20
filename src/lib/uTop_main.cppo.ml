@@ -355,14 +355,10 @@ let () =
    | Toplevel expression rewriting                                   |
    +-----------------------------------------------------------------+ *)
 
-#if OCAML_VERSION >= 040000
 let with_loc loc str = {
   Location.txt = str;
   Location.loc = loc;
 }
-#else
-let with_loc loc str = str
-#endif
 
 (* A rule for rewriting a toplevel expression. *)
 type rewrite_rule = {
@@ -498,17 +494,9 @@ let is_persistent_in_env longident =
   with Not_found ->
     false
 
-#if OCAML_VERSION >= 040000
-let str_items_of_typed_structure tstr = tstr.Typedtree.str_items
-let str_desc_of_typed_str_item tstr = tstr.Typedtree.str_desc
-#else
-let str_items_of_typed_structure tstr = tstr
-let str_desc_of_typed_str_item tstr = tstr
-#endif
-
 #if OCAML_VERSION < 040200
 let rewrite_str_item pstr_item tstr_item =
-  match pstr_item, str_desc_of_typed_str_item tstr_item with
+  match pstr_item, tstr_item.Typedtree.str_desc with
     | ({ Parsetree.pstr_desc = Parsetree.Pstr_eval e;
          Parsetree.pstr_loc = loc },
        Typedtree.Tstr_eval { Typedtree.exp_type = typ }) -> begin
@@ -526,7 +514,7 @@ let rewrite_str_item pstr_item tstr_item =
       pstr_item
 #else
 let rewrite_str_item pstr_item tstr_item =
-  match pstr_item, str_desc_of_typed_str_item tstr_item with
+  match pstr_item, tstr_item.Typedtree.str_desc with
     | ({ Parsetree.pstr_desc = Parsetree.Pstr_eval (e, _);
          Parsetree.pstr_loc = loc },
        Typedtree.Tstr_eval ({ Typedtree.exp_type = typ }, _)) -> begin
@@ -549,8 +537,7 @@ let rewrite phrase =
     | Parsetree.Ptop_def pstr ->
       if (UTop.get_auto_run_lwt () || UTop.get_auto_run_async ()) && List.exists is_eval pstr then
         let tstr, _, _ = Typemod.type_structure !Toploop.toplevel_env pstr Location.none in
-        let tstr = str_items_of_typed_structure tstr in
-        Parsetree.Ptop_def (List.map2 rewrite_str_item pstr tstr)
+        Parsetree.Ptop_def (List.map2 rewrite_str_item pstr tstr.Typedtree.str_items)
       else
         Parsetree.Ptop_def pstr
     | Parsetree.Ptop_dir _ ->
@@ -620,13 +607,9 @@ let rec loop term =
         let pp = Format.formatter_of_buffer buffer in
         Format.pp_set_margin pp (LTerm.size term).cols;
         (try
-#if OCAML_VERSION > 040001
            Env.reset_cache_toplevel ();
-#endif
            if !Clflags.dump_parsetree then Printast.top_phrase pp phrase;
-#if OCAML_VERSION > 040001
            if !Clflags.dump_source then Pprintast.top_phrase pp phrase;
-#endif
            ignore (Toploop.execute_phrase true pp phrase);
            (* Flush everything. *)
            Format.pp_print_flush Format.std_formatter ();
@@ -1022,8 +1005,6 @@ end
    | Extra macros                                                    |
    +-----------------------------------------------------------------+ *)
 
-#if OCAML_VERSION > 040001
-
 let typeof sid =
   let id  = Longident.parse sid in
   let env = !Toploop.toplevel_env in
@@ -1093,12 +1074,9 @@ let typeof sid =
     let str = Buffer.contents buf in
     Lwt_main.run (Lazy.force LTerm.stdout >>= fun term -> render_out_phrase term str)
 
-
 let () =
   Hashtbl.add Toploop.directive_table "typeof"
     (Toploop.Directive_string typeof)
-
-#endif
 
 (* +-----------------------------------------------------------------+
    | Entry point                                                     |
@@ -1159,9 +1137,7 @@ let print_version_num () =
 let autoload = ref true
 
 let args = Arg.align [
-#if OCAML_VERSION >= 031300
   "-absname", Arg.Set Location.absname, " Show absolute filenames in error message";
-#endif
   "-I", Arg.String (fun dir ->  Clflags.include_dirs := Misc.expand_directory Config.standard_library dir :: !Clflags.include_dirs), "<dir> Add <dir> to the list of include directories";
   "-init", Arg.String (fun s -> Clflags.init_file := Some s), "<file> Load <file> instead of default init file";
   "-labels", Arg.Clear Clflags.classic, " Use commuting label mode";
@@ -1176,10 +1152,8 @@ let args = Arg.align [
 #if OCAML_VERSION >= 040200
   "-safe-string", Arg.Clear Clflags.unsafe_string, " Make strings immutable";
 #endif
-#if OCAML_VERSION >= 040100
   "-short-paths", Arg.Clear Clflags.real_paths, " Shorten paths in types (the default)";
   "-no-short-paths", Arg.Set Clflags.real_paths, " Do not shorten paths in types";
-#endif
   "-rectypes", Arg.Set Clflags.recursive_types, " Allow arbitrary recursive types";
   "-stdin", Arg.Unit (fun () -> run_script ""), " Read script from standard input";
   "-strict-sequence", Arg.Set Clflags.strict_sequence, " Left-hand part of a sequence must have type unit";
@@ -1213,14 +1187,10 @@ let args = Arg.align [
   "-require", Arg.String (fun s -> preload := `Packages (UTop.split_words s) :: !preload),
   "<package> Load this package";
   "-dparsetree", Arg.Set Clflags.dump_parsetree, " Dump OCaml AST after rewriting";
-#if OCAML_VERSION >= 040100
   "-dsource", Arg.Set Clflags.dump_source, " Dump OCaml source after rewriting";
-#endif
 ]
 
-#if OCAML_VERSION >= 040100
 let () = Clflags.real_paths := false
-#endif
 
 let app_name = Filename.basename Sys.executable_name
 let usage = Printf.sprintf "Usage: %s <options> <object-files> [script-file [arguments]]\noptions are:" app_name

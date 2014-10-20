@@ -397,9 +397,6 @@ let visible_modules () =
 #if OCAML_VERSION >= 040200
 let field_name { ld_id = id } = Ident.name id
 let constructor_name { cd_id = id } = Ident.name id
-#elif OCAML_VERSION >= 040000
-let field_name (id, _, _) = Ident.name id
-let constructor_name (id, _, _) = Ident.name id
 #else
 let field_name (name, _, _) = name
 let constructor_name (name, _) = name
@@ -430,8 +427,6 @@ let add_names_of_type decl acc =
     | Type_open ->
         acc
 #endif
-
-#if OCAML_VERSION >= 040000
 
 let rec names_of_module_type = function
   | Mty_signature decls ->
@@ -510,56 +505,6 @@ let rec fields_of_module_type = function
 #endif
   | _ ->
       String_set.empty
-
-#else
-
-let rec names_of_module_type = function
-  | Tmty_signature decls ->
-      List.fold_left
-        (fun acc decl -> match decl with
-           | Tsig_value(id, _)
-           | Tsig_exception(id, _)
-           | Tsig_module(id, _, _)
-           | Tsig_modtype(id, _)
-           | Tsig_class(id, _, _)
-           | Tsig_cltype(id, _, _) ->
-               add (Ident.name id) acc
-           | Tsig_type(id, decl, _) ->
-               add_names_of_type decl (add (Ident.name id) acc))
-        String_set.empty decls
-  | Tmty_ident path -> begin
-      match lookup_env Env.find_modtype path !Toploop.toplevel_env with
-        | Some Tmodtype_abstract -> String_set.empty
-        | Some Tmodtype_manifest module_type -> names_of_module_type module_type
-        | None -> String_set.empty
-    end
-  | _ ->
-      String_set.empty
-
-let rec fields_of_module_type = function
-  | Tmty_signature decls ->
-      List.fold_left
-        (fun acc decl -> match decl with
-           | Tsig_value(id, _)
-           | Tsig_exception(id, _)
-           | Tsig_module(id, _, _)
-           | Tsig_modtype(id, _)
-           | Tsig_class(id, _, _)
-           | Tsig_cltype(id, _, _) ->
-               acc
-           | Tsig_type(id, decl, _) ->
-               add_fields_of_type decl acc)
-        String_set.empty decls
-  | Tmty_ident path -> begin
-      match lookup_env Env.find_modtype path !Toploop.toplevel_env with
-        | Some Tmodtype_abstract -> String_set.empty
-        | Some Tmodtype_manifest module_type -> fields_of_module_type module_type
-        | None -> String_set.empty
-    end
-  | _ ->
-      String_set.empty
-
-#endif
 
 #if OCAML_VERSION < 040200
 let lookup_module = Env.lookup_module
