@@ -57,8 +57,8 @@ let () =
                   let packages =
                     Tags.fold
                       (fun tag packages ->
-                         if String.is_prefix "pkg_" tag && not (String.is_suffix tag ".syntax") then
-                           String.after tag 4 :: packages
+                         if String.is_prefix "package(" tag then
+                           String.sub tag 8 (String.length tag - 9) :: packages
                          else
                            packages)
                       (tags_of_pathname "src/top/uTop_top.byte")
