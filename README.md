@@ -11,7 +11,7 @@ Installation via opam
 ---------------------
 
 The easiest and recommended way of installing utop is via
-[opam](http://opam.ocamlpro.com/):
+[opam](https://opam.ocaml.org/):
 
     $ opam install utop
 
@@ -21,8 +21,9 @@ dependencies listed in the next section.
 Dependencies
 ------------
 
-* [OCaml](http://caml.inria.fr/ocaml/) (>= 3.12)
-* [findlib](http://projects.camlcity.org/projects/findlib.html)
+* [OCaml](http://caml.inria.fr/ocaml/) (>= 4.01.0)
+* [findlib](http://projects.camlcity.org/projects/findlib.html) (>= 1.4.0)
+* [cppo](mjambon.com/cppo.html) (>= 1.0.1)
 * [react](http://erratique.ch/software/react)
 * [lwt](http://ocsigen.org/lwt/) (>= 2.4.0) built with react support
 * [Camomile](http://github.com/yoriyuki/Camomile) (>= 0.8)
@@ -30,16 +31,7 @@ Dependencies
 * [lambda-term](http://github.com/diml/lambda-term) (>= 1.2)
 
 For building the development version, you also need to install
-[oasis](http://oasis.forge.ocamlcore.org/) (>= 0.3.0).
-
-utop also requires OCaml compiler libraries. Since OCaml 4.00 they are
-already installed, for previous versions:
-
-* if you are using debian, they are available as the package
-  ocaml-compiler-libs,
-* if you are using godi, they are installed by default,
-* if you installed ocaml by hand, you can run the script
-  `utils/install-compiler-libs.sh`.
+[oasis](http://oasis.forge.ocamlcore.org/) (>= 0.4.0).
 
 Installation from sources
 -------------------------
