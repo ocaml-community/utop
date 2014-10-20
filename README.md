@@ -29,6 +29,7 @@ Dependencies
 * [Camomile](http://github.com/yoriyuki/Camomile) (>= 0.8)
 * [zed](http://github.com/diml/zed) (>= 1.2)
 * [lambda-term](http://github.com/diml/lambda-term) (>= 1.2)
+* [camlp4](http://github.com/ocaml/camlp4) (optional)
 
 For building the development version, you also need to install
 [oasis](http://oasis.forge.ocamlcore.org/) (>= 0.4.0).
@@ -42,6 +43,10 @@ To build and install utop:
     $ make
     $ make install
 
+If you want to be able to use camlp4, rather use:
+
+    $ ./configure --enable-camlp4
+
 ### Documentation and manual pages _(optional)_
 
 To build the documentation:
@@ -50,7 +55,7 @@ To build the documentation:
 
 It will then be installed by `make install`.
 
-### Tests _(optionnal)_
+### Tests _(optional)_
 
 To build and execute tests:
 
