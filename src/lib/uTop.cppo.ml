@@ -602,6 +602,14 @@ let handle_findlib_error = function
   | exn ->
       raise exn
 
+let check_for_camlp4_support () =
+  try
+    ignore (Fl_package_base.query "utop.camlp4");
+    true
+  with Fl_package_base.No_such_package("utop.camlp4", "") ->
+    Lwt_main.run (print_error "utop was built without camlp4 support.\n");
+    false
+
 let set_syntax syntax =
   match get_syntax (), syntax with
     | Normal, Normal
@@ -610,25 +618,21 @@ let set_syntax syntax =
         ()
     | (Camlp4o | Camlp4r), _ ->
         Lwt_main.run (print_error "Camlp4 already loaded, you cannot change the syntax now.\n")
-    | Normal, Camlp4o -> begin
-        set_syntax Camlp4o;
-        set_phrase_terminator ";;";
-        try
+    | Normal, Camlp4o ->
+        if check_for_camlp4_support () then begin
           Topfind.syntax "camlp4o";
-          Topfind.load_deeply ["utop.camlp4"]
-        with exn ->
-          handle_findlib_error exn
-      end
-    | Normal, Camlp4r -> begin
-        set_syntax Camlp4r;
-        set_phrase_terminator ";";
-        add_keyword "value";
-        try
+          Topfind.load_deeply ["utop.camlp4"];
+          set_syntax Camlp4o;
+          set_phrase_terminator ";;"
+        end
+    | Normal, Camlp4r ->
+        if check_for_camlp4_support () then begin
           Topfind.syntax "camlp4r";
-          Topfind.load_deeply ["utop.camlp4"]
-        with exn ->
-          handle_findlib_error exn
-      end
+          Topfind.load_deeply ["utop.camlp4"];
+          set_syntax Camlp4r;
+          set_phrase_terminator ";";
+          add_keyword "value"
+        end
 
 let () =
   Hashtbl.add
