@@ -31,7 +31,7 @@ Description:
 
 Flag camlp4
   Description: camlp4 support
-  Default: true
+  Default: false
 
 Library utop
   Path: src/lib
