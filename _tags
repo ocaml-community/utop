@@ -7,4 +7,44 @@
 <src/camlp5/**/*.ml{,i}>: use_camlp5
 
 # OASIS_START
+# DO NOT EDIT (digest: aaa1c83ec0e2802d7efe70fb245ea506)
+# Ignore VCS directories, you can use the same kind of rule outside
+# OASIS_START/STOP if you want to exclude directories that contains
+# useless stuff for the build process
+<**/.svn>: -traverse
+<**/.svn>: not_hygienic
+".bzr": -traverse
+".bzr": not_hygienic
+".hg": -traverse
+".hg": not_hygienic
+".git": -traverse
+".git": not_hygienic
+"_darcs": -traverse
+"_darcs": not_hygienic
+# Library utop
+"src/lib/utop.cmxs": use_utop
+<src/lib/*.ml{,i}>: package(findlib)
+<src/lib/*.ml{,i}>: package(lambda-term)
+<src/lib/*.ml{,i}>: package(threads)
+# Library utop-camlp4
+"src/camlp4/utop-camlp4.cmxs": use_utop-camlp4
+<src/camlp4/*.ml{,i}>: package(camlp4)
+<src/camlp4/*.ml{,i}>: package(findlib)
+<src/camlp4/*.ml{,i}>: package(lambda-term)
+<src/camlp4/*.ml{,i}>: package(threads)
+<src/camlp4/*.ml{,i}>: use_utop
+# Executable utop
+"src/top/uTop_top.byte": package(findlib)
+"src/top/uTop_top.byte": package(lambda-term)
+"src/top/uTop_top.byte": package(threads)
+"src/top/uTop_top.byte": use_utop
+# Executable utop-full
+"src/top/uTop_top_full.byte": package(findlib)
+"src/top/uTop_top_full.byte": package(lambda-term)
+"src/top/uTop_top_full.byte": package(threads)
+"src/top/uTop_top_full.byte": use_utop
+<src/top/*.ml{,i}>: package(findlib)
+<src/top/*.ml{,i}>: package(lambda-term)
+<src/top/*.ml{,i}>: package(threads)
+<src/top/*.ml{,i}>: use_utop
 # OASIS_STOP
