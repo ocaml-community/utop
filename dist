@@ -29,7 +29,7 @@ mv Makefile.new Makefile
 rm -f dist
 
 # Commit
-git add --all --force
+git add --all
 git commit -m "prepare release"
 git tag $VERSION
 
