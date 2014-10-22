@@ -398,8 +398,8 @@ let visible_modules () =
 let field_name { ld_id = id } = Ident.name id
 let constructor_name { cd_id = id } = Ident.name id
 #else
-let field_name (name, _, _) = name
-let constructor_name (name, _) = name
+let field_name (id, _, _) = Ident.name id
+let constructor_name (id, _, _) = Ident.name id
 #endif
 
 let add_fields_of_type decl acc =
