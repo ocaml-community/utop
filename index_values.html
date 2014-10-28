@@ -1,0 +1,314 @@
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of exceptions" rel=Appendix href="index_exceptions.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="UTop" rel="Chapter" href="UTop.html">
+<link title="UTop_main" rel="Chapter" href="UTop_main.html"><title>API reference for utop : Index of values</title>
+</head>
+<body>
+<div class="navbar">&nbsp;<a class="up" href="index.html" title="Index">Up</a>
+&nbsp;</div>
+<h1>Index of values</h1>
+<table>
+<tr><td align="left"><br>A</td></tr>
+<tr><td><a href="UTop.html#VALadd_keyword">add_keyword</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+Add a new OCaml keyword.
+</div>
+</td></tr>
+<tr><td><a href="UTop.html#VALat_new_command">at_new_command</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+<code class="code">at_new_command f</code> adds <code class="code">f</code> to the hooks executed before each
+      new commands.
+</div>
+</td></tr>
+<tr><td><a href="UTop.html#VALauto_run_async">auto_run_async</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+If <code class="code"><span class="keyword">true</span></code> (the default) toplevel Async expressions are
+      automatically run with in a separate thread with
+      <code class="code"><span class="constructor">Thread_safe</span>.block_on_async_exn</code>.
+</div>
+</td></tr>
+<tr><td><a href="UTop.html#VALauto_run_lwt">auto_run_lwt</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+If <code class="code"><span class="keyword">true</span></code> (the default) toplevel lwt expressions are
+      automatically run with <code class="code"><span class="constructor">Lwt_main</span>.run</code>.
+</div>
+</td></tr>
+<tr><td align="left"><br>C</td></tr>
+<tr><td><a href="UTop.html#VALcheck_phrase">check_phrase</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+<code class="code">check_phrase phrase</code> checks that <code class="code">phrase</code> can be executed
+      without typing or compilation errors.
+</div>
+</td></tr>
+<tr><td><a href="UTop.html#VALcollect_formatters">collect_formatters</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+<code class="code">collect_formatters buf pps f</code> executes <code class="code">f</code> and redirect
+      everything it prints on <code class="code">pps</code> to <code class="code">buf</code>.
+</div>
+</td></tr>
+<tr><td><a href="UTop.html#VALcount">count</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+The number of commands already executed.
+</div>
+</td></tr>
+<tr><td align="left"><br>D</td></tr>
+<tr><td><a href="UTop.html#VALdiscard_formatters">discard_formatters</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+<code class="code">discard_formatters pps f</code> executes <code class="code">f</code>, dropping everything it
+      prints on <code class="code">pps</code>.
+</div>
+</td></tr>
+<tr><td align="left"><br>G</td></tr>
+<tr><td><a href="UTop.html#VALget_auto_run_async">get_auto_run_async</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+Returns the value of <a href="UTop.html#VALauto_run_async"><code class="code"><span class="constructor">UTop</span>.auto_run_async</code></a>.
+</div>
+</td></tr>
+<tr><td><a href="UTop.html#VALget_auto_run_lwt">get_auto_run_lwt</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+Returns the value of <a href="UTop.html#VALauto_run_lwt"><code class="code"><span class="constructor">UTop</span>.auto_run_lwt</code></a>.
+</div>
+</td></tr>
+<tr><td><a href="UTop.html#VALget_hide_reserved">get_hide_reserved</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+Returns the value of <a href="UTop.html#VALhide_reserved"><code class="code"><span class="constructor">UTop</span>.hide_reserved</code></a>.
+</div>
+</td></tr>
+<tr><td><a href="UTop.html#VALget_message">get_message</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+<code class="code">get_message printer x</code> applies <code class="code">printer</code> on <code class="code">x</code> and
+      returns everything it prints as a string.
+</div>
+</td></tr>
+<tr><td><a href="UTop.html#VALget_ocaml_error_message">get_ocaml_error_message</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+<code class="code">get_ocaml_error_message exn</code> returns the location and error
+      message for the exception <code class="code">exn</code> which must be an exception from
+      the compiler.
+</div>
+</td></tr>
+<tr><td><a href="UTop.html#VALget_phrase_terminator">get_phrase_terminator</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+Returns the value of <a href="UTop.html#VALphrase_terminator"><code class="code"><span class="constructor">UTop</span>.phrase_terminator</code></a>.
+</div>
+</td></tr>
+<tr><td><a href="UTop.html#VALget_show_box">get_show_box</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+Returns the value of <a href="UTop.html#VALshow_box"><code class="code"><span class="constructor">UTop</span>.show_box</code></a>.
+</div>
+</td></tr>
+<tr><td><a href="UTop.html#VALget_syntax">get_syntax</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+Returns the current value of <a href="UTop.html#VALsyntax"><code class="code"><span class="constructor">UTop</span>.syntax</code></a>.
+</div>
+</td></tr>
+<tr><td><a href="UTop.html#VALget_topfind_verbose">get_topfind_verbose</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+Returns the value of <a href="UTop.html#VALtopfind_verbose"><code class="code"><span class="constructor">UTop</span>.topfind_verbose</code></a>.
+</div>
+</td></tr>
+<tr><td><a href="UTop.html#VALget_ui">get_ui</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+Returns the user interface in use.
+</div>
+</td></tr>
+<tr><td align="left"><br>H</td></tr>
+<tr><td><a href="UTop.html#VALhide_reserved">hide_reserved</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+If <code class="code"><span class="keyword">true</span></code> (the default) identifiers starting with a '_' will be hidden from the
+      output.
+</div>
+</td></tr>
+<tr><td><a href="UTop.html#VALhistory">history</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+The history used by utop.
+</div>
+</td></tr>
+<tr><td><a href="UTop.html#VALhistory_file_max_entries">history_file_max_entries</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+Maximum entries to store in the history file.
+</div>
+</td></tr>
+<tr><td><a href="UTop.html#VALhistory_file_max_size">history_file_max_size</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+Maximum size of the history file.
+</div>
+</td></tr>
+<tr><td><a href="UTop.html#VALhistory_file_name">history_file_name</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+Name of the history file.
+</div>
+</td></tr>
+<tr><td align="left"><br>I</td></tr>
+<tr><td><a href="UTop.html#VALinput_name">input_name</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+The name you must use in location to let ocaml know that it is
+      from the toplevel.
+</div>
+</td></tr>
+<tr><td align="left"><br>K</td></tr>
+<tr><td><a href="UTop.html#VALkey_sequence">key_sequence</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+The current key sequence entered by the user.
+</div>
+</td></tr>
+<tr><td><a href="UTop.html#VALkeywords">keywords</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+The set of OCaml keywords.
+</div>
+</td></tr>
+<tr><td align="left"><br>L</td></tr>
+<tr><td><a href="UTop.html#VALlexbuf_of_string">lexbuf_of_string</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+<code class="code">lexbuf_of_string eof str</code> is the same as <code class="code"><span class="constructor">Lexing</span>.from_string
+      str</code> except that if the lexer reach the end of <code class="code">str</code> then <code class="code">eof</code> is
+      set to <code class="code"><span class="keyword">true</span></code>.
+</div>
+</td></tr>
+<tr><td align="left"><br>M</td></tr>
+<tr><td><a href="UTop_main.html#VALmain">main</a> [<a href="UTop_main.html">UTop_main</a>]</td>
+<td><div class="info">
+Start utop.
+</div>
+</td></tr>
+<tr><td align="left"><br>N</td></tr>
+<tr><td><a href="UTop.html#VALnew_command_hooks">new_command_hooks</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+Functions called before each new command.
+</div>
+</td></tr>
+<tr><td align="left"><br>P</td></tr>
+<tr><td><a href="UTop.html#VALparse_default">parse_default</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+The default parser.
+</div>
+</td></tr>
+<tr><td><a href="UTop.html#VALparse_toplevel_phrase">parse_toplevel_phrase</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+<code class="code">parse_toplevel_phrase</code> is the function used to parse a phrase
+      typed in the toplevel.
+</div>
+</td></tr>
+<tr><td><a href="UTop.html#VALparse_toplevel_phrase_default">parse_toplevel_phrase_default</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+The default parser for toplevel phrases.
+</div>
+</td></tr>
+<tr><td><a href="UTop.html#VALparse_use_file">parse_use_file</a> [<a href="UTop.html">UTop</a>]</td>
+<td></td></tr>
+<tr><td><a href="UTop.html#VALparse_use_file_default">parse_use_file_default</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+The default parser for toplevel regions.
+</div>
+</td></tr>
+<tr><td><a href="UTop.html#VALphrase_terminator">phrase_terminator</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+The phrase terminator.
+</div>
+</td></tr>
+<tr><td><a href="UTop.html#VALprofile">profile</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+The color profile.
+</div>
+</td></tr>
+<tr><td><a href="UTop.html#VALprompt">prompt</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+The prompt.
+</div>
+</td></tr>
+<tr><td align="left"><br>R</td></tr>
+<tr><td><a href="UTop.html#VALrequire">require</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+Load all the given findlib packages
+</div>
+</td></tr>
+<tr><td align="left"><br>S</td></tr>
+<tr><td><a href="UTop.html#VALset_auto_run_async">set_auto_run_async</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+Modifies <a href="UTop.html#VALauto_run_async"><code class="code"><span class="constructor">UTop</span>.auto_run_async</code></a>.
+</div>
+</td></tr>
+<tr><td><a href="UTop.html#VALset_auto_run_lwt">set_auto_run_lwt</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+Modifies <a href="UTop.html#VALauto_run_lwt"><code class="code"><span class="constructor">UTop</span>.auto_run_lwt</code></a>.
+</div>
+</td></tr>
+<tr><td><a href="UTop.html#VALset_hide_reserved">set_hide_reserved</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+Modifies <a href="UTop.html#VALhide_reserved"><code class="code"><span class="constructor">UTop</span>.hide_reserved</code></a>.
+</div>
+</td></tr>
+<tr><td><a href="UTop.html#VALset_phrase_terminator">set_phrase_terminator</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+Modifies <a href="UTop.html#VALphrase_terminator"><code class="code"><span class="constructor">UTop</span>.phrase_terminator</code></a>.
+</div>
+</td></tr>
+<tr><td><a href="UTop.html#VALset_profile">set_profile</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+Sets the color profile.
+</div>
+</td></tr>
+<tr><td><a href="UTop.html#VALset_show_box">set_show_box</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+Modifies <a href="UTop.html#VALshow_box"><code class="code"><span class="constructor">UTop</span>.show_box</code></a>.
+</div>
+</td></tr>
+<tr><td><a href="UTop.html#VALset_syntax">set_syntax</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+Changes the syntax used in utop.
+</div>
+</td></tr>
+<tr><td><a href="UTop.html#VALset_topfind_verbose">set_topfind_verbose</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+Modifies <a href="UTop.html#VALtopfind_verbose"><code class="code"><span class="constructor">UTop</span>.topfind_verbose</code></a>.
+</div>
+</td></tr>
+<tr><td><a href="UTop.html#VALshow_box">show_box</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+If <code class="code"><span class="keyword">true</span></code> (the default) the completion bar is displayed.
+</div>
+</td></tr>
+<tr><td><a href="UTop.html#VALsize">size</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+The current size of the terminal.
+</div>
+</td></tr>
+<tr><td><a href="UTop.html#VALsplit_words">split_words</a> [<a href="UTop.html">UTop</a>]</td>
+<td></td></tr>
+<tr><td><a href="UTop.html#VALsyntax">syntax</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+The syntax in use.
+</div>
+</td></tr>
+<tr><td align="left"><br>T</td></tr>
+<tr><td><a href="UTop.html#VALtime">time</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+The time of the beginning of the current command.
+</div>
+</td></tr>
+<tr><td><a href="UTop.html#VALtopfind_log">topfind_log</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+List of messages logged by findlib since the beginning of the session.
+</div>
+</td></tr>
+<tr><td><a href="UTop.html#VALtopfind_verbose">topfind_verbose</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+If <code class="code"><span class="keyword">false</span></code> (the default) messages from findlib are hidden.
+</div>
+</td></tr>
+<tr><td align="left"><br>V</td></tr>
+<tr><td><a href="UTop.html#VALversion">version</a> [<a href="UTop.html">UTop</a>]</td>
+<td><div class="info">
+Version of utop.
+</div>
+</td></tr>
+</table>
+</body>
+</html>
