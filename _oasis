@@ -89,6 +89,7 @@ Document "utop-api"
   BuildTools: ocamldoc
   XOCamlbuildPath: ./
   XOCamlbuildLibraries: utop
+  XOCamlbuildExtraArgs: "-docflag -t -docflag 'API reference for utop' -docflags '-colorize-code -short-functors -charset utf-8 -css-style style.css'"
 
 # +-------------------------------------------------------------------+
 # | Manual pages                                                      |

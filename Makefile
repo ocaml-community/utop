@@ -28,6 +28,7 @@ build: $(SETUP) setup.data
 
 doc: $(SETUP) setup.data build
 	./$(SETUP) -doc $(DOCFLAGS)
+	cp style.css _build/utop-api.docdir/
 
 test: $(SETUP) setup.data build
 	./$(SETUP) -test $(TESTFLAGS)
@@ -56,4 +57,15 @@ configure: $(SETUP)
 setup.data: $(SETUP)
 	./$(SETUP) -configure $(CONFIGUREFLAGS)
 
-.PHONY: default build doc test all install uninstall reinstall clean distclean configure
+gh-pages: doc
+	git clone `git config --get remote.origin.url` .gh-pages --reference .
+	git -C .gh-pages checkout --orphan gh-pages
+	git -C .gh-pages reset
+	git -C .gh-pages clean -dxf
+	cp -t .gh-pages/ _build/utop-api.docdir/*
+	git -C .gh-pages add .
+	git -C .gh-pages commit -m "Update Pages"
+	git -C .gh-pages push origin gh-pages -f
+	rm -rf .gh-pages
+
+.PHONY: default build doc test all install uninstall reinstall clean distclean configure gh-pages

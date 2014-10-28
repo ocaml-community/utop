@@ -104,6 +104,11 @@ this file by executing:
 
     $ man 5 lambda-term-inputrc
 
+### UTop API
+
+UTop exposes several more settings through its API; see
+[documentation](http://diml.github.io/utop).
+
 Integration with emacs
 ----------------------
 
