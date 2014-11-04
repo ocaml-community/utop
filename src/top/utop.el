@@ -1229,10 +1229,14 @@ Special keys for utop:
       (utop-query-arguments)
       ;; Create the buffer
       (setq buf (get-buffer-create utop-buffer-name))
-      ;; Jump to the buffer
-      (pop-to-buffer buf)
-      ;; Put it in utop mode
-      (with-current-buffer buf (utop-mode))))
+      ;; Jump to the buffer - If utop-command is used as a
+      ;; buffer-local variable we pass the value along to the utop
+      ;; buffer.
+      (let ((cmd utop-command))
+        (pop-to-buffer buf)
+        (setq utop-command cmd)
+        ;; Put it in utop mode
+        (with-current-buffer buf (utop-mode)))))
   buf))
 
 (provide 'utop)
