@@ -19,6 +19,22 @@ module String_set = Set.Make(String)
 
 let version = UTop_version.version
 
+external c_deps_checksum : unit -> string = "utop_c_deps_checksum"
+let () =
+  let c_deps_checksum = c_deps_checksum () in
+  if c_deps_checksum <> UTop_c_deps_checksum.checksum then
+    prerr_endline "\
+/!\\ WARNING /!\\
+
+It seems that utop is not using the runtime libraries it was compiled
+against. This might lead to a crash. This is generally due to an
+incorrectly setup environment. If you are using opam try to execute
+this before starting utop:
+
+  eval `opam config env`
+
+"
+
 (* +-----------------------------------------------------------------+
    | History                                                         |
    +-----------------------------------------------------------------+ *)

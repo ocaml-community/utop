@@ -10,6 +10,21 @@
 (* OASIS_START *)
 (* OASIS_STOP *)
 
+let c_deps_checksum_template_c : (_, _, _) format = "\
+#include <caml/mlvalues.h>
+#include <caml/alloc.h>
+
+CAMLprim value utop_c_deps_checksum()
+{
+  return caml_copy_string(%S);
+}
+"
+
+let c_deps_checksum_template_ml : (_, _, _) format = "\
+let checksum = %S
+"
+
+
 let () =
   dispatch
     (fun hook ->
@@ -47,6 +62,22 @@ let () =
              flag ["ocaml"; "compile"; "use_camlp5"] & S paths;
              flag ["ocaml"; "ocamldep"; "use_camlp5"] & S paths;
              flag ["ocaml"; "doc"; "use_camlp5"] & S paths;
+
+             let c_deps_checksum_exe    = "src/for_c_deps_checksum/main.byte" in
+             let c_deps_checksum_src_c  = "src/lib/utop_c_deps_checksum.c"    in
+             let c_deps_checksum_src_ml = "src/lib/uTop_c_deps_checksum.ml"   in
+             rule "C deps checksum"
+               ~dep:c_deps_checksum_exe
+               ~prods:[c_deps_checksum_src_c; c_deps_checksum_src_ml]
+               (fun _ _ ->
+                  let digest = Digest.to_hex (Digest.file c_deps_checksum_exe) in
+                  Seq [ Echo
+                          ([Printf.sprintf c_deps_checksum_template_c  digest],
+                           c_deps_checksum_src_c)
+                      ; Echo
+                          ([Printf.sprintf c_deps_checksum_template_ml digest],
+                           c_deps_checksum_src_ml)
+                      ]);
 
              (* Expunge compiler modules *)
              rule "toplevel expunge"

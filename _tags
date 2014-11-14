@@ -6,5 +6,7 @@
 # Use camlp5
 <src/camlp5/**/*.ml{,i}>: use_camlp5
 
+<src/for_c_deps_checksum/main.*>: custom, linkall
+
 # OASIS_START
 # OASIS_STOP

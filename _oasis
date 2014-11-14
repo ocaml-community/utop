@@ -33,6 +33,13 @@ Flag camlp4
   Description: camlp4 support
   Default: false
 
+Executable for_c_deps_checksum
+  Install: false
+  Path: src/for_c_deps_checksum
+  CompiledObject: byte
+  MainIs: main.ml
+  BuildDepends: threads, findlib, lambda-term
+
 Library utop
   Path: src/lib
   Modules:
@@ -44,7 +51,9 @@ Library utop
     UTop_lexer,
     UTop_token,
     UTop_complete,
-    UTop_styles
+    UTop_styles,
+    UTop_c_deps_checksum
+  CSources: utop_c_deps_checksum.c
   BuildDepends: threads, findlib, lambda-term (>= 1.2)
   XMETADescription: utop configuration
   XMETARequires: findlib, lambda-term
