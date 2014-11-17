@@ -1,9 +1,6 @@
 # -*- conf -*-
 
-# Use compiler interfaces
-<src/**/*.ml{,i}>: package(compiler-libs)
-
-# Use camlp5
+<src/**/*.ml{,i}>: cppo_V_OCAML, package(compiler-libs)
 <src/camlp5/**/*.ml{,i}>: use_camlp5
 
 # OASIS_START

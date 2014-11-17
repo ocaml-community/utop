@@ -13,7 +13,7 @@ open Camlp4.PreCast
 
 module Ast2pt = Camlp4.Struct.Camlp4Ast2OCamlAst.Make(Ast)
 
-#if OCAML_VERSION < 040200
+#if OCAML_VERSION < (4, 02, 0)
 external cast_toplevel_phrase : Camlp4_import.Parsetree.toplevel_phrase -> Parsetree.toplevel_phrase = "%identity"
 #else
 let cast_toplevel_phrase x = x

@@ -97,7 +97,7 @@ let parse_and_check input eos_is_error =
   let buf = Buffer.create 32 in
   let preprocess input =
     match input with
-#if OCAML_VERSION >= 040200
+#if OCAML_VERSION >= (4, 02, 0)
     | UTop.Value (Parsetree.Ptop_def pstr) ->
         begin try
           let pstr = Pparse.apply_rewriters ~tool_name:"ocaml"
@@ -269,13 +269,13 @@ let rec map_items unwrap wrap items =
       | Outcometree.Osig_class (_, name, _, _, rs)
       | Outcometree.Osig_class_type (_, name, _, _, rs)
       | Outcometree.Osig_module (name, _, rs)
-#if OCAML_VERSION >= 040200
+#if OCAML_VERSION >= (4, 02, 0)
       | Outcometree.Osig_type ({ Outcometree.otype_name = name }, rs) ->
 #else
       | Outcometree.Osig_type ((name, _, _, _, _), rs) ->
 #endif
         (name, rs)
-#if OCAML_VERSION >= 040200
+#if OCAML_VERSION >= (4, 02, 0)
       | Outcometree.Osig_typext ({ Outcometree.oext_name = name}, _)
 #else
       | Outcometree.Osig_exception (name, _)
@@ -316,7 +316,7 @@ let rec map_items unwrap wrap items =
               wrap (Outcometree.Osig_type (oty, Outcometree.Orec_first)) extra :: items'
             else
               items
-#if OCAML_VERSION >= 040200
+#if OCAML_VERSION >= (4, 02, 0)
           | Outcometree.Osig_typext _
 #else
           | Outcometree.Osig_exception _
@@ -379,7 +379,7 @@ let longident_async_thread_safe_block_on_async_exn =
   Longident.parse "Async.Std.Thread_safe.block_on_async_exn"
 let longident_unit = Longident.Lident "()"
 
-#if OCAML_VERSION < 040200
+#if OCAML_VERSION < (4, 02, 0)
 (* Wrap <expr> into: fun () -> <expr> *)
 let wrap_unit loc e =
   let i = with_loc loc longident_unit in
@@ -398,7 +398,7 @@ let () =
   Hashtbl.add rewrite_rules (Longident.Ldot (Longident.Lident "Lwt", "t")) {
     required_values = [longident_lwt_main_run];
     rewrite = (fun loc e ->
-#if OCAML_VERSION < 040200
+#if OCAML_VERSION < (4, 02, 0)
       { Parsetree.pexp_desc =
           Parsetree.Pexp_apply
             ({ Parsetree.pexp_desc = Parsetree.Pexp_ident (with_loc loc longident_lwt_main_run);
@@ -420,7 +420,7 @@ let () =
   let rule = {
     required_values = [longident_async_thread_safe_block_on_async_exn];
     rewrite = (fun loc e ->
-#if OCAML_VERSION < 040200
+#if OCAML_VERSION < (4, 02, 0)
       { Parsetree.pexp_desc =
           Parsetree.Pexp_apply
             ({ Parsetree.pexp_desc = Parsetree.Pexp_ident
@@ -494,7 +494,7 @@ let is_persistent_in_env longident =
   with Not_found ->
     false
 
-#if OCAML_VERSION < 040200
+#if OCAML_VERSION < (4, 02, 0)
 let rewrite_str_item pstr_item tstr_item =
   match pstr_item, tstr_item.Typedtree.str_desc with
     | ({ Parsetree.pstr_desc = Parsetree.Pstr_eval e;
@@ -688,7 +688,7 @@ let read_input_classic prompt buffer len =
     else
       Lwt_io.read_char_opt Lwt_io.stdin >>= function
         | Some c ->
-#if OCAML_VERSION >= 040200
+#if OCAML_VERSION >= (4, 02, 0)
             Bytes.set buffer i c;
 #else
             buffer.[i] <- c;
@@ -818,7 +818,7 @@ module Emacs(M : sig end) = struct
     (* Rewrite toplevel expressions. *)
     let phrase = rewrite phrase in
     try
-#if OCAML_VERSION > 040001
+#if OCAML_VERSION > (4, 00, 1)
       Env.reset_cache_toplevel ();
 #endif
       ignore (Toploop.execute_phrase true Format.std_formatter phrase);
@@ -1032,7 +1032,7 @@ let typeof sid =
       Some (Printtyp.tree_of_type_declaration id ty_decl Types.Trec_not)
     with Not_found ->
     try
-#if OCAML_VERSION < 040200
+#if OCAML_VERSION < (4, 02, 0)
       let (path, mod_typ) = Env.lookup_module id env in
 #else
       let path = Env.lookup_module id env ~load:true in
@@ -1049,7 +1049,7 @@ let typeof sid =
     try
       let cstr_desc = Env.lookup_constructor id env in
       match cstr_desc.Types.cstr_tag with
-#if OCAML_VERSION < 040200
+#if OCAML_VERSION < (4, 02, 0)
       | Types.Cstr_exception (_path, loc) ->
         let path, exn_decl = Typedecl.transl_exn_rebind env loc id in
         let id = Ident.create (Path.name path) in
@@ -1145,11 +1145,11 @@ let args = Arg.align [
   "-noassert", Arg.Set Clflags.noassert, " Do not compile assertion checks";
   "-nolabels", Arg.Set Clflags.classic, " Ignore non-optional labels in types";
   "-nostdlib", Arg.Set Clflags.no_std_include, " Do not add default directory to the list of include directories";
-#if OCAML_VERSION >= 040200
+#if OCAML_VERSION >= (4, 02, 0)
   "-ppx", Arg.String (fun ppx -> Clflags.all_ppx := ppx :: !Clflags.all_ppx), "<command> Pipe abstract syntax trees through preprocessor <command>";
 #endif
   "-principal", Arg.Set Clflags.principal, " Check principality of type inference";
-#if OCAML_VERSION >= 040200
+#if OCAML_VERSION >= (4, 02, 0)
   "-safe-string", Arg.Clear Clflags.unsafe_string, " Make strings immutable";
 #endif
   "-short-paths", Arg.Clear Clflags.real_paths, " Shorten paths in types (the default)";

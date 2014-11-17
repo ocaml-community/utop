@@ -249,7 +249,7 @@ let parse_default parse str eos_is_error =
       | Syntaxerr.Variable_in_scope (loc, var) ->
         Error ([mkloc loc],
                Printf.sprintf "In this scoped type, variable '%s is reserved for the local type %s." var var)
-#if OCAML_VERSION >= 040200
+#if OCAML_VERSION >= (4, 02, 0)
       | Syntaxerr.Not_expecting (loc, nonterm) ->
           Error ([mkloc loc],
                  Printf.sprintf "Syntax error: %s not expected" nonterm)
@@ -309,7 +309,7 @@ let check_phrase phrase =
         (* Construct "let _ () = let module _ = struct <items> end in ()" in order to test
            the typing and compilation of [items] without evaluating them. *)
         let unit = with_loc loc (Longident.Lident "()") in
-#if OCAML_VERSION < 040200
+#if OCAML_VERSION < (4, 02, 0)
         let structure = {
           pmod_loc = loc;
           pmod_desc = Pmod_structure (item :: items);

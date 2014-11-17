@@ -34,15 +34,6 @@ let () =
              let env = BaseEnvLight.load () in
              let stdlib = BaseEnvLight.var_get "standard_library" env in
 
-             let ocaml_version =
-               Scanf.sscanf Sys.ocaml_version "%d.%d.%d" (fun major minor patchlevel ->
-                  (* e.g. #define OCAML_VERSION 040201 *)
-                 Printf.sprintf "OCAML_VERSION %d" (major * 10000 + minor * 100 + patchlevel))
-             in
-
-             (* Cppo *)
-             flag ["cppo"] & S[A"-D"; A ocaml_version];
-
              let paths = [A "-I"; A "+camlp5"] in
              flag ["ocaml"; "compile"; "use_camlp5"] & S paths;
              flag ["ocaml"; "ocamldep"; "use_camlp5"] & S paths;

@@ -23,7 +23,7 @@ depends: [
   "lambda-term" {>= "1.2"}
   "lwt"
   "react"       {>= "1.0.0"}
-  "cppo"        {>= "1.0.1"}
+  "cppo"        {>= "1.1.2"}
   "oasis"       {>= "0.3.0"}
 ]
 depopts: [
