@@ -19,12 +19,14 @@ remove: [
   ["ocamlfind" "remove" "utop"]
 ]
 depends: [
-  "ocamlfind"   {>= "1.4.0"}
-  "lambda-term" {>= "1.2"}
+  "base-unix"
+  "base-threads"
+  "ocamlfind"    {>= "1.4.0"}
+  "lambda-term"  {>= "1.2"}
   "lwt"
-  "react"       {>= "1.0.0"}
-  "cppo"        {>= "1.1.2"}
-  "oasis"       {>= "0.3.0"}
+  "react"        {>= "1.0.0"}
+  "cppo"         {>= "1.1.2"}
+  "oasis"        {>= "0.3.0"}
 ]
 depopts: [
   "camlp4"
