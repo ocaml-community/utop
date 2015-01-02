@@ -207,13 +207,15 @@ before the end of prompt.")
   "The position of the cursor in the phrase sent to OCaml (where
 to add the newline character if it is not accepted).")
 
-(defvar utop-package-list nil
-  "List of packages to load when visiting OCaml buffer.
-Useful as file variable.")
+(make-variable-buffer-local
+ (defvar utop-package-list nil
+   "List of packages to load when visiting OCaml buffer.
+Useful as file variable."))
 
-(defvar utop-ocaml-preprocessor nil
-  "Name of preprocesor. Currently supported camlp4o, camlp4r.
-Useful as file variable.")
+(make-variable-buffer-local
+ (defvar utop-ocaml-preprocessor nil
+   "Name of preprocesor. Currently supported camlp4o, camlp4r.
+Useful as file variable."))
 
 ;; +-----------------------------------------------------------------+
 ;; | Compability                                                     |
@@ -881,42 +883,6 @@ when byte-compiling."
             ;; Send the phrase to complete
             (utop-complete-input input)))))))
 
-(defun utop-setup-ocaml-buffer ()
-  "Override caml/tuareg/typerex interactive functions by utop ones.
-
-You can call this function after loading the caml/tuareg/typerex
-mode to let it use utop instead of its builtin support for
-interactive toplevel.
-
-To automatically do that just add these lines to your .emacs:
-
-  (autoload 'utop-setup-ocaml-buffer \"utop\" \"Toplevel for OCaml\" t)
-  (add-hook 'caml-mode-hook 'utop-setup-ocaml-buffer)
-  (add-hook 'tuareg-mode-hook 'utop-setup-ocaml-buffer)
-  (add-hook 'typerex-mode-hook 'utop-setup-ocaml-buffer)"
-  (interactive)
-  ;; Redefine caml/tuareg/typerex functions
-  (utop-choose-defun "eval-phrase" () (interactive) (utop-eval-phrase))
-  (utop-choose-defun "eval-region" (start end) (interactive "r") (utop-eval-region start end))
-  (utop-choose-defun "eval-buffer" () (interactive) (utop-eval-buffer))
-  (utop-choose-defun "interrupt-caml" () (interactive) (utop-interrupt))
-  (utop-choose-defun "kill-caml" () (interactive) (utop-kill))
-  (utop-choose-defun "run-caml" () (interactive) (utop))
-
-  ;; Redefine this variable so menu will work
-  (set (utop-choose "interactive-buffer-name") utop-buffer-name)
-
-  ;; Package list for this file
-  (make-local-variable 'utop-package-list)
-
-  ;; Preprocessor to use
-  (make-local-variable 'utop-ocaml-preprocessor)
-
-  ;; Load local file variables
-  (add-hook 'hack-local-variables-hook 'utop-hack-local-variables)
-
-  nil)
-
 ;; +-----------------------------------------------------------------+
 ;; | Edition functions                                               |
 ;; +-----------------------------------------------------------------+
@@ -1163,6 +1129,19 @@ defaults to 0."
     (goto-char (point-max))
     (utop-insert "\nRestarting...\n\n")
     (utop-start arguments)))
+
+(define-minor-mode utop-minor-mode
+  "Minor mode for utop."
+  :lighter " utop"
+  :keymap (let ((map (make-sparse-keymap)))
+            (define-key map (kbd "C-c C-z") 'utop)
+            (define-key map (kbd "C-x C-e") 'utop-eval-phrase)
+            (define-key map (kbd "C-x C-r") 'utop-eval-region)
+            (define-key map (kbd "C-c C-b") 'utop-eval-buffer)
+            (define-key map (kbd "C-c C-k") 'utop-kill)
+            map)
+  ;; Load local file variables
+  (add-hook 'hack-local-variables-hook 'utop-hack-local-variables))
 
 (define-derived-mode utop-mode fundamental-mode "utop"
   "Set the buffer mode to utop."
