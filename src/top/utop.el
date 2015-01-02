@@ -217,6 +217,21 @@ Useful as file variable."))
    "Name of preprocesor. Currently supported camlp4o, camlp4r.
 Useful as file variable."))
 
+(defvar utop-skip-blank-and-comments 'tuareg-skip-blank-and-comments
+  "The function used to skip blanks and comments.")
+
+(defvar utop-skip-to-end-of-phrase 'tuareg-skip-to-end-of-phrase
+  "The function used to find the end of a phrase")
+
+(defvar utop-discover-phrase 'tuareg-discover-phrase
+  "The function used to discover a phrase")
+
+(defvar utop-skip-after-eval-phrase t
+  "Whether to skip to next phrase after evaluation.
+
+Non-nil means skip to the end of the phrase after evaluation in the
+Caml toplevel")
+
 ;; +-----------------------------------------------------------------+
 ;; | Compability                                                     |
 ;; +-----------------------------------------------------------------+
@@ -742,35 +757,8 @@ If ADD-TO-HISTORY is t then the input will be added to history."
      (buffer-substring-no-properties utop-prompt-max (point)))))
 
 ;; +-----------------------------------------------------------------+
-;; | Caml/Tuareg/Typerex integration                                 |
+;; | Eval                                                            |
 ;; +-----------------------------------------------------------------+
-
-(defun utop-choose (symbol)
-  "Be best at resolving caml, tuareg or typerex dependencies even
-when byte-compiling."
-  (cond
-   ((eq major-mode 'tuareg-mode)
-    (intern (concat "tuareg-" symbol)))
-   ((eq major-mode 'typerex-mode)
-    (intern (concat "typerex-" symbol)))
-   ((eq major-mode 'caml-mode)
-    (intern (concat "caml-" symbol)))
-   ((require 'tuareg nil t)
-    (intern (concat "tuareg-" symbol)))
-   ((require 'typerex nil t)
-    (intern (concat "typerex-" symbol)))
-   ((require 'caml nil t)
-    (intern (concat "caml-" symbol)))
-   (error (concat "unsupported mode: " (symbol-name major-mode) ", utop support only caml, tuareg and typerex modes"))))
-
-(defmacro utop-choose-symbol (symbol)
-  (utop-choose symbol))
-
-(defmacro utop-choose-call (symbol &rest args)
-  `(,(utop-choose symbol) ,@args))
-
-(defmacro utop-choose-defun (symbol &rest args)
-  `(defun ,(utop-choose symbol) ,@args))
 
 (defun utop-prepare-for-eval ()
   "Prepare utop for evaluation."
@@ -816,18 +804,15 @@ when byte-compiling."
 
 (defun utop-eval (start end &optional mode)
   "Eval the given region in utop."
-  ;; From tuareg
-  (unless (eq major-mode 'caml-mode)
-    (set (utop-choose "interactive-last-phrase-pos-in-source") start))
   ;; Select the text of the region
   (let ((text
          (save-excursion
            ;; Search the start and end of the current paragraph
            (goto-char start)
-           (utop-choose-call "skip-blank-and-comments")
+           (funcall utop-skip-blank-and-comments)
            (setq start (point))
            (goto-char end)
-           (utop-choose-call "skip-to-end-of-phrase")
+           (funcall utop-skip-to-end-of-phrase)
            (setq end (point))
            (buffer-substring-no-properties start end))))
     (utop-eval-string text mode)))
@@ -844,11 +829,11 @@ when byte-compiling."
   (utop-prepare-for-eval)
   (let ((end))
     (save-excursion
-      (let ((pair (utop-choose-call "discover-phrase")))
-	(setq end (nth 2 pair))
-	(utop-eval (nth 0 pair) (nth 1 pair))))
-    (if (utop-choose-symbol "skip-after-eval-phrase")
-	(goto-char end))))
+      (let ((pair (funcall utop-discover-phrase)))
+        (setq end (nth 2 pair))
+        (utop-eval (nth 0 pair) (nth 1 pair))))
+    (if utop-skip-after-eval-phrase
+        (goto-char end))))
 
 (defun utop-eval-buffer ()
   "Send the buffer to utop."
@@ -862,7 +847,7 @@ when byte-compiling."
   ;; Find the start of the current phrase
   (save-excursion
     (let* ((end (point))
-           (start (nth 0 (utop-choose-call "discover-phrase")))
+           (start (nth 0 (funcall utop-discover-phrase)))
            (input (buffer-substring-no-properties start end))
            (edit-buffer (current-buffer)))
       ;; Start utop if needed
@@ -964,7 +949,7 @@ defaults to 0."
 (define-derived-mode utop-list-packages-mode tabulated-list-mode "OCaml package list"
   "Major mode for listing the findlib OCaml packages."
   (setq tabulated-list-format [("Name" 32 t)
-			       ("Version" 32 t)])
+                               ("Version" 32 t)])
   (setq tabulated-list-sort-key (cons "Name" nil))
   (setq tabulated-list-printer 'utop-package-printer)
   (add-hook 'tabulated-list-revert-hook 'utop-list-packages--refresh nil t)
