@@ -1115,6 +1115,7 @@ defaults to 0."
     (utop-insert "\nRestarting...\n\n")
     (utop-start arguments)))
 
+;;;###autoload
 (define-minor-mode utop-minor-mode
   "Minor mode for utop."
   :lighter " utop"
@@ -1128,6 +1129,7 @@ defaults to 0."
   ;; Load local file variables
   (add-hook 'hack-local-variables-hook 'utop-hack-local-variables))
 
+;;;###autoload
 (define-derived-mode utop-mode fundamental-mode "utop"
   "Set the buffer mode to utop."
 
@@ -1203,6 +1205,7 @@ Special keys for utop:
         (with-current-buffer buf (utop-mode)))))
   buf))
 
+(provide 'utop-minor-mode)
 (provide 'utop)
 
 ;;; utop.el ends here
