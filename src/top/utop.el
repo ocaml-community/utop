@@ -217,13 +217,13 @@ Useful as file variable."))
    "Name of preprocesor. Currently supported camlp4o, camlp4r.
 Useful as file variable."))
 
-(defvar utop-skip-blank-and-comments 'tuareg-skip-blank-and-comments
+(defvar utop-skip-blank-and-comments 'compat-skip-blank-and-comments
   "The function used to skip blanks and comments.")
 
-(defvar utop-skip-to-end-of-phrase 'tuareg-skip-to-end-of-phrase
+(defvar utop-skip-to-end-of-phrase 'compat-skip-to-end-of-phrase
   "The function used to find the end of a phrase")
 
-(defvar utop-discover-phrase 'tuareg-discover-phrase
+(defvar utop-discover-phrase 'compat-discover-phrase
   "The function used to discover a phrase")
 
 (defvar utop-skip-after-eval-phrase t
@@ -233,7 +233,37 @@ Non-nil means skip to the end of the phrase after evaluation in the
 Caml toplevel")
 
 ;; +-----------------------------------------------------------------+
-;; | Compability                                                     |
+;; | Compability with different ocaml major modes                    |
+;; +-----------------------------------------------------------------+
+
+(defun utop-compat-resolve (symbol)
+  "Resolve a symbol based on the current major mode."
+  (cond
+   ((eq major-mode 'tuareg-mode)
+    (intern (concat "tuareg-" symbol)))
+   ((eq major-mode 'typerex-mode)
+    (intern (concat "typerex-" symbol)))
+   ((eq major-mode 'caml-mode)
+    (intern (concat "caml-" symbol)))
+   ((require 'tuareg nil t)
+    (intern (concat "tuareg-" symbol)))
+   ((require 'typerex nil t)
+    (intern (concat "typerex-" symbol)))
+   ((require 'caml nil t)
+    (intern (concat "caml-" symbol)))
+   (error (concat "unsupported mode: " (symbol-name major-mode) ", utop support only caml, tuareg and typerex modes"))))
+
+(defun compat-skip-blank-and-comments ()
+  (funcall (utop-compat-resolve "skip-blank-and-comments")))
+
+(defun compat-skip-to-end-of-phrase ()
+  (funcall (utop-compat-resolve "skip-to-end-of-phrase")))
+
+(defun compat-discover-phrase ()
+  (funcall (utop-compat-resolve "discover-phrase")))
+
+;; +-----------------------------------------------------------------+
+;; | Compability with previous emacs version                         |
 ;; +-----------------------------------------------------------------+
 
 (unless (featurep 'tabulated-list)
@@ -1115,12 +1145,16 @@ defaults to 0."
     (utop-insert "\nRestarting...\n\n")
     (utop-start arguments)))
 
+(defun utop-setup-ocaml-buffer ()
+  "Deprecated"
+  (error "This function is deprecated. See https://github.com/diml/utop for configuration information."))
+
 ;;;###autoload
 (define-minor-mode utop-minor-mode
   "Minor mode for utop."
   :lighter " utop"
   :keymap (let ((map (make-sparse-keymap)))
-            (define-key map (kbd "C-c C-z") 'utop)
+            (define-key map (kbd "C-c C-s") 'utop)
             (define-key map (kbd "C-x C-e") 'utop-eval-phrase)
             (define-key map (kbd "C-x C-r") 'utop-eval-region)
             (define-key map (kbd "C-c C-b") 'utop-eval-buffer)

@@ -139,7 +139,7 @@ utop also ships with a minor mode that has the following key-bindings
 
 | key-binding | function          | Description                  |
 |-------------|-------------------|------------------------------|
-| C-c C-z     | utop              | Start a utop buffer          |
+| C-c C-s     | utop              | Start a utop buffer          |
 | C-x C-e     | utop-eval-phrase  | Evaluate the current phrase  |
 | C-x C-r     | utop-eval-region  | Evaluate the selected region |
 | C-c C-b     | utop-eval-buffer  | Evaluate the current buffer  |
@@ -158,9 +158,6 @@ e.g. typerex, then you will need the following configuration instead
 
 ```scheme
 (autoload 'utop-minor-mode "utop" "Minor mode for utop" t)
-(setq utop-skip-blank-and-comments 'typerex-skip-blank-and-comments)
-(setq utop-skip-to-end-of-phrase 'typerex-skip-to-end-of-phrase)
-(setq utop-discover-phrase 'typerex-discover-phrase)
 (add-hook 'typerex-mode-hook 'utop-minor-mode)
 ```
 
