@@ -135,21 +135,35 @@ you can copy-paste this code into you `~/.emacs` file:
 
 Then you can execute utop inside emacs with: `M-x utop`.
 
-Integration with the tuareg/typerex mode
-----------------------------------------
+utop also ships with a minor mode that has the following key-bindings
 
-You can replace the default toplevel used by the tuareg or typerex
-mode by utop, for that add the following lines to your `~/.emacs` file:
+| key-binding | function          | Description                  |
+|-------------|-------------------|------------------------------|
+| C-c C-s     | utop              | Start a utop buffer          |
+| C-x C-e     | utop-eval-phrase  | Evaluate the current phrase  |
+| C-x C-r     | utop-eval-region  | Evaluate the selected region |
+| C-c C-b     | utop-eval-buffer  | Evaluate the current buffer  |
+| C-c C-k     | utop-kill         | Kill a running utop process  |
+
+You can enable the minor mode using `M-x utop-minor-mode`, or you can
+have it enabled by default with the following configuration
 
 ```scheme
-(autoload 'utop-setup-ocaml-buffer "utop" "Toplevel for OCaml" t)
-(add-hook 'tuareg-mode-hook 'utop-setup-ocaml-buffer)
-(add-hook 'typerex-mode-hook 'utop-setup-ocaml-buffer)
+(autoload 'utop-minor-mode "utop" "Minor mode for utop" t)
+(add-hook 'tuareg-mode-hook 'utop-minor-mode)
 ```
 
-You can also complete text in a tuareg or typerex buffer using the
-environment of the toplevel. For that bind the function
-`utop-edit-complete` to the key you want.
+If you plan to use utop with another major-mode than tuareg,
+e.g. typerex, then you will need the following configuration instead
+
+```scheme
+(autoload 'utop-minor-mode "utop" "Minor mode for utop" t)
+(add-hook 'typerex-mode-hook 'utop-minor-mode)
+```
+
+You can also complete text in a buffer using the environment of the
+toplevel. For that bind the function `utop-edit-complete` to the key
+you want.
 
 Common error
 ------------
