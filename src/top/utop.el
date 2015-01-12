@@ -217,13 +217,13 @@ Useful as file variable."))
    "Name of preprocesor. Currently supported camlp4o, camlp4r.
 Useful as file variable."))
 
-(defvar utop-skip-blank-and-comments 'compat-skip-blank-and-comments
+(defvar utop-skip-blank-and-comments 'utop-compat-skip-blank-and-comments
   "The function used to skip blanks and comments.")
 
-(defvar utop-skip-to-end-of-phrase 'compat-skip-to-end-of-phrase
+(defvar utop-skip-to-end-of-phrase 'utop-compat-skip-to-end-of-phrase
   "The function used to find the end of a phrase")
 
-(defvar utop-discover-phrase 'compat-discover-phrase
+(defvar utop-discover-phrase 'utop-compat-discover-phrase
   "The function used to discover a phrase")
 
 (defvar utop-skip-after-eval-phrase t
@@ -236,25 +236,40 @@ Caml toplevel")
 ;; | Compability with different ocaml major modes                    |
 ;; +-----------------------------------------------------------------+
 
-(defun utop-compat-resolve (symbol)
-  "Resolve a symbol based on the current major mode."
+(defun utop-compat-resolve (choices)
+  "Resolve a symbol based on the current major mode. CHOICES is a
+list of 3 function symbols: (tuareg-symbol typerex-symbol caml-symbol)."
   (cond
-   ((eq major-mode 'tuareg-mode)
-    (intern (concat "tuareg-" symbol)))
-   ((eq major-mode 'typerex-mode)
-    (intern (concat "typerex-" symbol)))
-   ((eq major-mode 'caml-mode)
-    (intern (concat "caml-" symbol)))
-   (error (concat "unsupported mode: " (symbol-name major-mode) ", utop support only caml, tuareg and typerex modes"))))
+   ((eq major-mode 'tuareg-mode  ) (nth 0 choices))
+   ((eq major-mode 'typerex-mode ) (nth 1 choices))
+   ((eq major-mode 'caml-mode    ) (nth 2 choices))
+   (t (error (format "utop doesn't support the major mode \"%s\". It
+supports caml, tuareg and typerex modes by default. For other
+modes you need to set these variables:
 
-(defun compat-skip-blank-and-comments ()
-  (funcall (utop-compat-resolve "skip-blank-and-comments")))
+- `utop-skip-blank-and-comments'
+- `utop-skip-to-end-of-phrase'
+- `utop-discover-phrase'
+"
+                     (symbol-name major-mode))))))
 
-(defun compat-skip-to-end-of-phrase ()
-  (funcall (utop-compat-resolve "skip-to-end-of-phrase")))
+(defun utop-compat-skip-blank-and-comments ()
+  (funcall
+   (utop-compat-resolve '(tuareg-skip-blank-and-comments
+                          typerex-skip-blank-and-comments
+                          caml-skip-blank-and-comments))))
 
-(defun compat-discover-phrase ()
-  (funcall (utop-compat-resolve "discover-phrase")))
+(defun utop-compat-skip-to-end-of-phrase ()
+  (funcall
+   (utop-compat-resolve '(tuareg-skip-to-end-of-phrase
+                          typerex-skip-to-end-of-phrase
+                          caml-skip-to-end-of-phrase))))
+
+(defun utop-compat-discover-phrase ()
+  (funcall
+   (utop-compat-resolve '(tuareg-discover-phrase
+                          typerex-discover-phrase
+                          caml-discover-phrase))))
 
 ;; +-----------------------------------------------------------------+
 ;; | Compability with previous emacs version                         |
