@@ -75,14 +75,13 @@ file:
 
 then you can run utop by pressing M-x and typing "utop". utop support
 completion in emacs mode. Just press Tab to complete a word. You can
-also integrate it with the tuareg or typerex mode. For that add the
-following lines to your
+also integrate it with the tuareg, caml or typerex mode. For that add
+the following lines to your
 .I ~/.emacs
 file:
 
-        (autoload 'utop-setup-ocaml-buffer "utop" "Toplevel for OCaml" t)
-        (add-hook 'tuareg-mode-hook 'utop-setup-ocaml-buffer)
-        (add-hook 'typerex-mode-hook 'utop-setup-ocaml-buffer)
+        (autoload 'utop-minor-mode "utop" "Minor mode for utop" t)
+        (add-hook 'tuareg-mode-hook 'utop-minor-mode)
 
 .SH OPTIONS
 Same as

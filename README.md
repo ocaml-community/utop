@@ -153,13 +153,15 @@ have it enabled by default with the following configuration
 (add-hook 'tuareg-mode-hook 'utop-minor-mode)
 ```
 
-If you plan to use utop with another major-mode than tuareg,
-e.g. typerex, then you will need the following configuration instead
+If you plan to use utop with another major-mode than tuareg, replace
+`tuareg-mode-hook` by the appropriate hook. The utop minor mode will
+work out of the box with these modes: `tuareg-mode`, `caml-mode` and
+`typerex-mode`. For other modes you will need to set the following
+three variables:
 
-```scheme
-(autoload 'utop-minor-mode "utop" "Minor mode for utop" t)
-(add-hook 'typerex-mode-hook 'utop-minor-mode)
-```
+- `utop-skip-blank-and-comments`
+- `utop-skip-to-end-of-phrase`
+- `utop-discover-phrase`
 
 You can also complete text in a buffer using the environment of the
 toplevel. For that bind the function `utop-edit-complete` to the key
