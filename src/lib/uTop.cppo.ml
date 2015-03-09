@@ -336,13 +336,24 @@ let check_phrase phrase =
                                       ppat_loc = loc }, func)]);
           pstr_loc = loc;
         } in
-#else
+#elif OCAML_VERSION < (4, 03, 0)
         let top_def =
           let open Ast_helper in
           with_default_loc loc
             (fun () ->
                Str.eval
                  (Exp.fun_ "" None (Pat.construct unit None)
+                   (Exp.letmodule (with_loc loc "_")
+                      (Mod.structure (item :: items))
+                      (Exp.construct unit None))))
+        in
+#else
+        let top_def =
+          let open Ast_helper in
+          with_default_loc loc
+            (fun () ->
+               Str.eval
+                 (Exp.fun_ Asttypes.Nolabel None (Pat.construct unit None)
                    (Exp.letmodule (with_loc loc "_")
                       (Mod.structure (item :: items))
                       (Exp.construct unit None))))

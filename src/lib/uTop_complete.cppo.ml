@@ -737,12 +737,23 @@ let rec labels_of_type acc type_expr =
     | Tpoly (te, _) ->
         labels_of_type acc te
     | Tarrow(label, _, te, _) ->
+#if OCAML_VERSION < (4, 03, 0)
         if label = "" then
           labels_of_type acc te
         else if label.[0] = '?' then
           labels_of_type (String_map.add (String.sub label 1 (String.length label - 1)) Optional acc) te
         else
           labels_of_type (String_map.add label Required acc) te
+#else
+        begin
+          match label with
+          | Asttypes.Nolabel -> labels_of_type acc te
+          | Asttypes.Optional label ->
+             labels_of_type (String_map.add label Optional acc) te
+          | Asttypes.Labelled label ->
+             labels_of_type (String_map.add label Required acc) te
+        end
+#endif
     | Tconstr(path, _, _) -> begin
         match lookup_env Env.find_type path !Toploop.toplevel_env with
           | None
