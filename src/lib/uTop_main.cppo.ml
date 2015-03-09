@@ -283,6 +283,9 @@ let rec map_items unwrap wrap items =
       | Outcometree.Osig_modtype (name, _)
       | Outcometree.Osig_value (name, _, _) ->
         (name, Outcometree.Orec_not)
+#if OCAML_VERSION >= (4, 03, 0)
+      | Outcometree.Osig_ellipsis -> assert false
+#endif
     in
     let keep = name = "" || name.[0] <> '_' in
     if keep then
@@ -322,8 +325,11 @@ let rec map_items unwrap wrap items =
           | Outcometree.Osig_exception _
 #endif
           | Outcometree.Osig_modtype _
-          | Outcometree.Osig_value _ ->
-            items
+          | Outcometree.Osig_value _
+#if OCAML_VERSION >= (4, 03, 0)
+          | Outcometree.Osig_ellipsis
+#endif
+           -> items
       in
       map_items unwrap wrap items
 
@@ -405,10 +411,16 @@ let () =
                Parsetree.pexp_loc = loc },
              [("", e)])
       ; Parsetree.pexp_loc = loc }
-#else
+#elif OCAML_VERSION < (4, 03, 0)
       let open Ast_helper in
       with_default_loc loc (fun () ->
         Exp.apply (Exp.ident (with_loc loc longident_lwt_main_run)) [("", e)]
+      )
+#else
+      let open Ast_helper in
+      with_default_loc loc (fun () ->
+        Exp.apply (Exp.ident (with_loc loc longident_lwt_main_run))
+          [(Asttypes.Nolabel, e)]
       )
 #endif
     );
@@ -428,13 +440,21 @@ let () =
                Parsetree.pexp_loc = loc },
              [("", wrap_unit loc e)])
       ; Parsetree.pexp_loc = loc }
-#else
+#elif OCAML_VERSION < (4, 03, 0)
       let open Ast_helper in
       let punit = Pat.construct (with_loc loc (Longident.Lident "()")) None in
       with_default_loc loc (fun () ->
         Exp.apply
           (Exp.ident (with_loc loc longident_async_thread_safe_block_on_async_exn))
           [("", Exp.fun_ "" None punit e)]
+      )
+#else
+      let open Ast_helper in
+      let punit = Pat.construct (with_loc loc (Longident.Lident "()")) None in
+      with_default_loc loc (fun () ->
+        Exp.apply
+          (Exp.ident (with_loc loc longident_async_thread_safe_block_on_async_exn))
+          [(Asttypes.Nolabel, Exp.fun_ Asttypes.Nolabel None punit e)]
       )
 #endif
     );
