@@ -288,6 +288,12 @@ let with_loc loc str = {
   Location.loc = loc;
 }
 
+#if OCAML_VERSION >= (4, 03, 0)
+let nolabel = Asttypes.Nolabel
+#else
+let nolabel = ""
+#endif
+
 (* Check that the given phrase can be evaluated without typing/compile
    errors. *)
 let check_phrase phrase =
@@ -342,7 +348,7 @@ let check_phrase phrase =
           with_default_loc loc
             (fun () ->
                Str.eval
-                 (Exp.fun_ "" None (Pat.construct unit None)
+                 (Exp.fun_ nolabel None (Pat.construct unit None)
                    (Exp.letmodule (with_loc loc "_")
                       (Mod.structure (item :: items))
                       (Exp.construct unit None))))

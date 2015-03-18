@@ -283,6 +283,9 @@ let rec map_items unwrap wrap items =
       | Outcometree.Osig_modtype (name, _)
       | Outcometree.Osig_value (name, _, _) ->
         (name, Outcometree.Orec_not)
+#if OCAML_VERSION >= (4, 03, 0)
+      | Outcometree.Osig_ellipsis -> ("", Outcometree.Orec_not)
+#endif
     in
     let keep = name = "" || name.[0] <> '_' in
     if keep then
@@ -320,6 +323,9 @@ let rec map_items unwrap wrap items =
           | Outcometree.Osig_typext _
 #else
           | Outcometree.Osig_exception _
+#endif
+#if OCAML_VERSION >= (4, 03, 0)
+          | Outcometree.Osig_ellipsis
 #endif
           | Outcometree.Osig_modtype _
           | Outcometree.Osig_value _ ->
@@ -393,6 +399,12 @@ let wrap_unit loc e =
   }
 #endif
 
+#if OCAML_VERSION >= (4, 03, 0)
+let nolabel = Asttypes.Nolabel
+#else
+let nolabel = ""
+#endif
+
 let () =
   (* Rewrite Lwt.t expressions to Lwt_main.run <expr> *)
   Hashtbl.add rewrite_rules (Longident.Ldot (Longident.Lident "Lwt", "t")) {
@@ -408,7 +420,7 @@ let () =
 #else
       let open Ast_helper in
       with_default_loc loc (fun () ->
-        Exp.apply (Exp.ident (with_loc loc longident_lwt_main_run)) [("", e)]
+        Exp.apply (Exp.ident (with_loc loc longident_lwt_main_run)) [(nolabel, e)]
       )
 #endif
     );
@@ -434,7 +446,7 @@ let () =
       with_default_loc loc (fun () ->
         Exp.apply
           (Exp.ident (with_loc loc longident_async_thread_safe_block_on_async_exn))
-          [("", Exp.fun_ "" None punit e)]
+          [(nolabel, Exp.fun_ nolabel None punit e)]
       )
 #endif
     );
