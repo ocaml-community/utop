@@ -154,6 +154,19 @@ val get_auto_run_async : unit -> bool
 val set_auto_run_async : bool -> unit
   (** Modifies {!auto_run_async}. *)
 
+val end_and_accept_current_phrase : LTerm_read_line.action
+ (** Action that add the phrase terminator at the end of the current phrase
+     and accepts it. For instance to avoid typing [;;], add this to your
+     ~/.ocamlinit:
+
+     {[
+       #require "lambda-term";;
+       LTerm_read_line.bind
+         [ { control = false; meta = false; shift = false; code = Enter } ]
+         [ UTop.end_and_accept_current_phrase ]
+     ]}
+ *)
+
 (** {6 History} *)
 
 val history : LTerm_history.t
@@ -234,7 +247,6 @@ type 'a result =
 exception Need_more
   (** Exception raised by a parser when it need more data. *)
 
-(*val parse_use_file : (string -> bool -> ((Camlp4.PreCast.Syntax.Ast.str_item list * Camlp4.PreCast.Syntax.Loc.t option) Camlp4.PreCast.Syntax.Gram.Entry.t) result) ref*)
 val parse_use_file : (string -> bool -> Parsetree.toplevel_phrase list result) ref
 
 val parse_use_file_default : string -> bool -> Parsetree.toplevel_phrase list result

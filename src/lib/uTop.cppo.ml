@@ -76,6 +76,10 @@ let auto_run_lwt, get_auto_run_lwt, set_auto_run_lwt = make_variable true
 let auto_run_async, get_auto_run_async, set_auto_run_async = make_variable true
 let topfind_verbose, get_topfind_verbose, set_topfind_verbose = make_variable false
 
+(* Ugly hack until the action system of lambda-term is improved *)
+let end_and_accept_current_phrase : LTerm_read_line.action =
+  Edit (Custom (fun () -> assert false))
+
 (* +-----------------------------------------------------------------+
    | Keywords                                                        |
    +-----------------------------------------------------------------+ *)
@@ -499,6 +503,18 @@ let () =
 module Bindings = Zed_input.Make (LTerm_key)
 module Keys_map = Map.Make (struct type t = LTerm_key.t list let compare = compare end)
 
+let name_of_action action =
+  if action == end_and_accept_current_phrase then
+    "end-and-accept-current-phrase"
+  else
+    LTerm_read_line.name_of_action action
+
+let doc_of_action action =
+  if action == end_and_accept_current_phrase then
+    "end the current phrase with the phrase terminator (;;) and evaluate it"
+  else
+    LTerm_read_line.doc_of_action action
+
 let () =
   Hashtbl.add Toploop.directive_table "utop_help"
     (Toploop.Directive_none
@@ -533,20 +549,29 @@ For a complete description of utop, look at the utop(1) manual page."));
                           loop
                             actions
                             (("",
-                              LTerm_read_line.name_of_action action,
-                              LTerm_read_line.doc_of_action action)
+                              name_of_action action,
+                              doc_of_action action)
                              :: acc)
                   in
                   loop
                     actions
                     ((String.concat " " (List.map LTerm_key.to_string_compact keys),
-                      LTerm_read_line.name_of_action action,
-                      LTerm_read_line.doc_of_action action)
+                      name_of_action action,
+                      doc_of_action action)
                      :: acc)
           in
-          let bindings = Bindings.fold (fun key actions map -> Keys_map.add key (List.map (fun action -> (LTerm_read_line.Edit action)) actions) map) !LTerm_edit.bindings Keys_map.empty in
+          let bindings =
+            Bindings.fold
+              (fun key actions map ->
+                 Keys_map.add key
+                   (List.map (fun action -> (LTerm_read_line.Edit action)) actions) map)
+              !LTerm_edit.bindings Keys_map.empty
+          in
           let bindings = Bindings.fold Keys_map.add !LTerm_read_line.bindings bindings in
-          let table = List.rev (Keys_map.fold (fun keys action acc -> make_lines keys action acc) bindings []) in
+          let table =
+            List.rev (Keys_map.fold (fun keys action acc -> make_lines keys action acc)
+                        bindings [])
+          in
           let size_key, size_name, size_doc =
             List.fold_left
               (fun (size_key, size_name, size_doc) (key, name, doc) ->
@@ -582,7 +607,7 @@ For a complete description of utop, look at the utop(1) manual page."));
           let macro = Zed_macro.contents LTerm_read_line.macro in
           List.iter
             (fun action ->
-               output_string stdout (LTerm_read_line.name_of_action action);
+               output_string stdout (name_of_action action);
                output_char stdout '\n')
             macro;
           flush stdout))

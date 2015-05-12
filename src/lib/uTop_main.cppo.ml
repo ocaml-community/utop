@@ -125,6 +125,17 @@ let parse_and_check input eos_is_error =
   in
   (result, Buffer.contents buf)
 
+let add_terminator s =
+  let terminator = UTop.get_phrase_terminator () in
+  if Zed_utf8.ends_with s terminator then
+    s
+  else
+    s ^ terminator
+
+let is_accept : LTerm_read_line.action -> bool = function
+  | Accept -> true
+  | action -> action == UTop.end_and_accept_current_phrase
+
 (* Read a phrase. If the result is a value, it is guaranteed to by a
    valid phrase (i.e. typable and compilable). It also returns
    warnings printed parsing. *)
@@ -136,20 +147,26 @@ class read_phrase ~term = object(self)
 
   method eval =
     match return_value with
-      | Some x ->
-          x
-      | None ->
-          assert false
+    | Some x ->
+      x
+    | None -> assert false
 
   method exec = function
-    | LTerm_read_line.Accept :: actions when !UTop.smart_accept && S.value self#mode = LTerm_read_line.Edition -> begin
-        Zed_macro.add self#macro LTerm_read_line.Accept;
-        (* Try to parse the input. *)
+    | action :: actions when S.value self#mode = LTerm_read_line.Edition &&
+                             is_accept action  -> begin
+        Zed_macro.add self#macro action;
         let input = Zed_rope.to_string (Zed_edit.text self#edit) in
+        let input =
+          if action == UTop.end_and_accept_current_phrase then
+            add_terminator input
+          else
+            input
+        in
         (* Toploop does that: *)
         Location.reset ();
+        let eos_is_error = not !UTop.smart_accept in
         try
-          let result = parse_and_check input false in
+          let result = parse_and_check input eos_is_error in
           return_value <- Some result;
           LTerm_history.add UTop.history input;
           return result
@@ -159,7 +176,7 @@ class read_phrase ~term = object(self)
           self#exec actions
       end
     | actions ->
-        super_term#exec actions
+      super_term#exec actions
 
   method stylise last =
     let styled, position = super#stylise last in
@@ -178,17 +195,17 @@ class read_phrase ~term = object(self)
       LTerm_text.stylise_parenthesis styled position styles.style_paren
     else begin
       match return_value with
-        | Some (UTop.Error (locs, _), _) ->
-            (* Highlight error locations. *)
-            List.iter
-              (fun (start, stop) ->
-                 for i = start to stop - 1 do
-                   let ch, style = styled.(i) in
-                   styled.(i) <- (ch, { style with LTerm_style.underline = Some true })
-                 done)
-              locs
-        | _ ->
-            ()
+      | Some (UTop.Error (locs, _), _) ->
+        (* Highlight error locations. *)
+        List.iter
+          (fun (start, stop) ->
+             for i = start to stop - 1 do
+               let ch, style = styled.(i) in
+               styled.(i) <- (ch, { style with LTerm_style.underline = Some true })
+             done)
+          locs
+      | _ ->
+        ()
     end;
 
     (styled, position)
