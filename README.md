@@ -23,7 +23,7 @@ Dependencies
 
 * [OCaml](http://caml.inria.fr/ocaml/) (>= 4.01.0)
 * [findlib](http://projects.camlcity.org/projects/findlib.html) (>= 1.4.0)
-* [cppo](mjambon.com/cppo.html) (>= 1.0.1)
+* [cppo](http://mjambon.com/cppo.html) (>= 1.0.1)
 * [react](http://erratique.ch/software/react)
 * [lwt](http://ocsigen.org/lwt/) (>= 2.4.0) built with react support
 * [Camomile](http://github.com/yoriyuki/Camomile) (>= 0.8)
