@@ -1,3 +1,20 @@
+1.18 (2015-06-23)
+-----------------
+
+* emace mode improvements (Mads Hartmann Jensen)
+  - add `utop-minor-mode` to make integration with major modes cleaner
+  - clean-up of the elisp code
+* add `UTop.end_and_accept_current_phrase` to avoid typing `;;` at the
+  end of every phrases
+* fix compatibility with OCaml trunk
+
+1.17 (2014-12-12)
+-----------------
+
+* re-export `Config.load_path` as `UTop.load_path` (Peter Zotov)
+* enable utop-command to be buffer-local (Mads Hartmann Jensen)
+* fix 4.01 compatibility (Peter Zotov)
+
 1.16 (2014-10-20)
 -----------------
 
