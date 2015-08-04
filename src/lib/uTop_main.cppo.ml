@@ -199,7 +199,7 @@ class read_phrase ~term = object(self)
         (* Highlight error locations. *)
         List.iter
           (fun (start, stop) ->
-             for i = start to stop - 1 do
+             for i = max 0 start to min (Array.length styled) stop - 1 do
                let ch, style = styled.(i) in
                styled.(i) <- (ch, { style with LTerm_style.underline = Some true })
              done)
