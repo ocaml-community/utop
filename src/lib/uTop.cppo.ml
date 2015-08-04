@@ -80,6 +80,8 @@ let topfind_verbose, get_topfind_verbose, set_topfind_verbose = make_variable fa
 let end_and_accept_current_phrase : LTerm_read_line.action =
   Edit (Custom (fun () -> assert false))
 
+let set_margin_function f = UTop_private.set_margin_function f
+
 (* +-----------------------------------------------------------------+
    | Keywords                                                        |
    +-----------------------------------------------------------------+ *)
@@ -104,7 +106,7 @@ let add_keyword kwd = keywords := String_set.add kwd !keywords
 let get_message func x =
   let buffer = Buffer.create 1024 in
   let pp = Format.formatter_of_buffer buffer in
-  Format.pp_set_margin pp (S.value size).cols;
+  UTop_private.set_margin pp;
   func pp x;
   Format.pp_print_flush pp ();
   Buffer.contents buffer
@@ -112,7 +114,7 @@ let get_message func x =
 let get_ocaml_error_message exn =
   let buffer = Buffer.create 1024 in
   let pp = Format.formatter_of_buffer buffer in
-  Format.pp_set_margin pp (S.value size).cols;
+  UTop_private.set_margin pp;
   Errors.report_error pp exn;
   Format.pp_print_flush pp ();
   let str = Buffer.contents buffer in
@@ -143,10 +145,9 @@ let collect_formatters buf pps f =
   and out_spaces n = for i = 1 to n do Buffer.add_char buf ' ' done in
   let out_functions = { Format.out_string; out_flush; out_newline; out_spaces } in
   (* Replace formatter functions. *)
-  let cols = (S.value size).cols in
   List.iter
     (fun pp ->
-       Format.pp_set_margin pp cols;
+       UTop_private.set_margin pp;
        Format.pp_set_formatter_out_functions pp out_functions)
     pps;
   try

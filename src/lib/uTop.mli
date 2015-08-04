@@ -73,6 +73,16 @@ val get_show_box : unit -> bool
 val set_show_box : bool -> unit
   (** Modifies {!show_box}. *)
 
+val set_margin_function : (LTerm_geom.size -> int option) -> unit
+  (** Margin of the standard and error formatters as a function of the screen size.
+
+      The default is:
+
+      {[
+        fun size -> Some (max 80 size.cols)
+      ]}
+  *)
+
 (** Syntax. *)
 type syntax =
   | Normal

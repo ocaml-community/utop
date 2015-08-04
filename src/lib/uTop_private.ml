@@ -29,3 +29,13 @@ let error_style = ref LTerm_style.none
 
 (* Config from ~/.utoprc *)
 let autoload = ref true
+
+let margin_function, set_margin_function =
+  S.create ~eq:( == ) (fun (size : LTerm_geom.size) -> Some (min 80 size.cols))
+
+let margin = S.app margin_function size
+
+let set_margin pp =
+  match S.value margin with
+  | None   -> ()
+  | Some n -> if Format.pp_get_margin pp () <> n then Format.pp_set_margin pp n

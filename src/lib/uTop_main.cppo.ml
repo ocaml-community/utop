@@ -585,10 +585,6 @@ let rec read_phrase term =
       read_phrase term
     | exn -> Lwt.fail exn)
 
-let update_margin pp cols =
-  if Format.pp_get_margin pp () <> cols then
-    Format.pp_set_margin pp cols
-
 let print_error term msg =
   LTerm.set_style term styles.style_error >>= fun () ->
   Lwt_io.print msg >>= fun () ->
@@ -628,13 +624,12 @@ let rec loop term =
         (* Rewrite toplevel expressions. *)
         let phrase = rewrite phrase in
         (* Set the margin of standard formatters. *)
-        let cols = (LTerm.size term).cols in
-        update_margin Format.std_formatter cols;
-        update_margin Format.err_formatter cols;
+        UTop_private.set_margin Format.std_formatter;
+        UTop_private.set_margin Format.err_formatter;
         (* Formatter to get the output phrase. *)
         let buffer = Buffer.create 1024 in
         let pp = Format.formatter_of_buffer buffer in
-        Format.pp_set_margin pp (LTerm.size term).cols;
+        UTop_private.set_margin pp;
         (try
            Env.reset_cache_toplevel ();
            if !Clflags.dump_parsetree then Printast.top_phrase pp phrase;
