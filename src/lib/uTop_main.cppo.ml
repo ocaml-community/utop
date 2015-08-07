@@ -151,7 +151,16 @@ class read_phrase ~term = object(self)
       x
     | None -> assert false
 
-  method exec = function
+  method! send_action action =
+    let action : LTerm_read_line.action =
+      if is_accept action && S.value self#mode <> LTerm_read_line.Edition then
+        Accept
+      else
+        action
+    in
+    super#send_action action
+
+  method! exec = function
     | action :: actions when S.value self#mode = LTerm_read_line.Edition &&
                              is_accept action  -> begin
         Zed_macro.add self#macro action;
@@ -178,7 +187,7 @@ class read_phrase ~term = object(self)
     | actions ->
       super_term#exec actions
 
-  method stylise last =
+  method! stylise last =
     let styled, position = super#stylise last in
 
     (* Syntax highlighting *)
@@ -210,7 +219,7 @@ class read_phrase ~term = object(self)
 
     (styled, position)
 
-  method completion =
+  method! completion =
     let pos, words =
       UTop_complete.complete
         ~syntax:(UTop.get_syntax ())
@@ -219,7 +228,7 @@ class read_phrase ~term = object(self)
     in
     self#set_completion pos words
 
-  method show_box = S.value self#mode <> LTerm_read_line.Edition || UTop.get_show_box ()
+  method! show_box = S.value self#mode <> LTerm_read_line.Edition || UTop.get_show_box ()
 
   initializer
     (* Set the source signal for the size of the terminal. *)
