@@ -478,8 +478,15 @@ let () =
     );
     enabled = UTop.auto_run_async;
   } in
-  Hashtbl.add rewrite_rules (Longident.parse "Async_core.Ivar.Deferred.t") rule;
-  Hashtbl.add rewrite_rules (Longident.parse "Async_kernel.Ivar.Deferred.t") rule
+  let deferred_aliases =
+    [ "Async_core.Ivar.Deferred.t"
+    ; "Async_kernel.Ivar.Deferred.t"
+    ; "Async_kernel.Deferred0.t"
+    ]
+  in
+  List.iter (fun s ->
+    Hashtbl.add rewrite_rules (Longident.parse s) rule)
+    deferred_aliases
 
 (* Returns whether the argument is a toplevel expression. *)
 let is_eval = function
