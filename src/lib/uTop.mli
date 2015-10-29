@@ -177,6 +177,11 @@ val end_and_accept_current_phrase : LTerm_read_line.action
      ]}
  *)
 
+(** External editor command. [None] for default. *)
+val external_editor : string signal
+val set_external_editor : string -> unit
+val get_external_editor : unit -> string
+
 (** {6 History} *)
 
 val history : LTerm_history.t

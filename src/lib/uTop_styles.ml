@@ -87,6 +87,9 @@ let load () =
          | str -> raise (LTerm_resources.Error (Printf.sprintf "invalid profile %S" str)));
       UTop_private.error_style := styles.style_error;
       UTop_private.autoload := LTerm_resources.get_bool "autoload" res <> Some false;
+      (match LTerm_resources.get "external-editor" res with
+       | "" -> ()
+       | s  -> UTop.set_external_editor s);
       return ())
     (function
     | Unix.Unix_error(Unix.ENOENT, _, _) ->

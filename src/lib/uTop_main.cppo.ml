@@ -146,6 +146,8 @@ class read_phrase ~term = object(self)
   method create_temporary_file_for_external_editor =
     Filename.temp_file "utop" ".ml"
 
+  method external_editor = UTop.get_external_editor ()
+
   val mutable return_value = None
 
   method eval =
