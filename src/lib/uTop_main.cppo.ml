@@ -143,6 +143,9 @@ class read_phrase ~term = object(self)
   inherit [Parsetree.toplevel_phrase UTop.result * string] LTerm_read_line.engine ~history:(LTerm_history.contents UTop.history) () as super
   inherit [Parsetree.toplevel_phrase UTop.result * string] LTerm_read_line.term term as super_term
 
+  method create_temporary_file_for_external_editor =
+    Filename.temp_file "utop" ".ml"
+
   val mutable return_value = None
 
   method eval =
