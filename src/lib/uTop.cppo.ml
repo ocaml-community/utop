@@ -756,7 +756,7 @@ let () =
   (* "utop" is an internal library so it is not passed as "-package"
      to "ocamlfind ocamlmktop". *)
   Topfind.don't_load ["utop"];
-  Topfind.add_predicates ["pkg_utop"];
+  Topfind.add_predicates ["byte"; "toploop"];
   (* Add findlib path so Topfind is available and it won't be
      initialized twice if the user does [#use "topfind"]. *)
   Topdirs.dir_directory (Findlib.package_directory "findlib");
