@@ -5,7 +5,7 @@
 OASISFormat: 0.4
 OCamlVersion: >= 4.01
 Name: utop
-Version: 1.18
+Version: 1.18.1
 LicenseFile: LICENSE
 License: BSD-3-clause
 Authors: Jeremie Dimino
