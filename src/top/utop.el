@@ -409,8 +409,8 @@ it is started."
     (save-excursion
       (goto-char utop-prompt-min)
       (forward-line -1)
-      (let ((line (replace-in-string (thing-at-point 'line) "\n" "")))
-        (set-text-properties 0 (length line) nil line)
+      (let ((line (buffer-substring-no-properties
+                   (line-beginning-position) (line-end-position))))
         (message line)))))
 
 ;; Poor man's identifier at point
