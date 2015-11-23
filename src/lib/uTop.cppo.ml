@@ -618,6 +618,11 @@ For a complete description of utop, look at the utop(1) manual page."));
             macro;
           flush stdout))
 
+let () =
+  Hashtbl.add Toploop.directive_table "pwd"
+    (Toploop.Directive_none
+       (fun () -> print_endline (Sys.getcwd ())))
+
 (* +-----------------------------------------------------------------+
    | Camlp4                                                          |
    +-----------------------------------------------------------------+ *)
