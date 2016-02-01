@@ -257,7 +257,7 @@ let fix_string str =
     let buf = Buffer.create (len + 128) in
     if ofs > 0 then Buffer.add_substring buf str 0 ofs;
     let rec loop ofs =
-      Printf.bprintf buf "\\y%02x" (Char.code (String.unsafe_get str ofs));
+      Zed_utf8.add buf (UChar.of_char str.[ofs]);
       let ofs1 = ofs + 1 in
       let ofs2, _, _ = Zed_utf8.next_error str ofs1 in
       if ofs1 < ofs2 then
