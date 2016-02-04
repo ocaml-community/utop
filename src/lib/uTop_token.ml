@@ -30,8 +30,8 @@ type t =
   | Uident of string
   | Constant of string
   | Char
-  | String of bool
-      (** [String terminated]. *)
+  | String of int * bool
+      (** [String (quote_size, terminated)]. *)
   | Comment of comment_kind * bool
       (** [Comment (kind, terminated)]. *)
   | Blanks

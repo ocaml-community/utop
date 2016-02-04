@@ -74,7 +74,7 @@ let parse_longident tokens =
              | l -> Some (longident_of_list l))
   in
   match tokens with
-    | ((Comment (_, false) | String false | Quotation (_, false)), _) :: _ ->
+    | ((Comment (_, false) | String (_, false) | Quotation (_, false)), _) :: _ ->
         (* An unterminated command, string, or quotation. *)
         None
     | ((Uident id | Lident id), { idx1 = start }) :: tokens ->
@@ -847,23 +847,23 @@ let complete ~syntax ~phrase_terminator ~input =
         (start, lookup_assoc src (list_directives phrase_terminator))
 
     (* Complete with ";;" when possible. *)
-    | [(Symbol "#", _); ((Lident _ | Uident _), _); (String true, { idx2 = stop })]
-    | [(Symbol "#", _); ((Lident _ | Uident _), _); (String true, _); (Blanks, { idx2 = stop })] ->
+    | [(Symbol "#", _); ((Lident _ | Uident _), _); (String (_, true), { idx2 = stop })]
+    | [(Symbol "#", _); ((Lident _ | Uident _), _); (String (_, true), _); (Blanks, { idx2 = stop })] ->
         (stop, [(phrase_terminator, "")])
-    | [(Symbol "#", _); ((Lident _ | Uident _), _); (String true, _); (Symbol sym, { idx1 = start })] ->
+    | [(Symbol "#", _); ((Lident _ | Uident _), _); (String (_, true), _); (Symbol sym, { idx1 = start })] ->
         if Zed_utf8.starts_with phrase_terminator sym then
           (start, [(phrase_terminator, "")])
         else
           (0, [])
 
     (* Completion on #require. *)
-    | [(Symbol "#", _); (Lident "require", _); (String false, loc)] ->
-        let pkg = String.sub input (loc.ofs1 + 1) (String.length input - loc.ofs1 - 1) in
+    | [(Symbol "#", _); (Lident "require", _); (String (tlen, false), loc)] ->
+        let pkg = String.sub input (loc.ofs1 + tlen) (String.length input - loc.ofs1 - tlen) in
         let pkgs = lookup pkg (Fl_package_base.list_packages ()) in
         (loc.idx1 + 1, List.map (fun pkg -> (pkg, "\"" ^ phrase_terminator)) (List.sort compare pkgs))
 
-    | [(Symbol "#", _); (Lident "typeof", _); (String false, loc)] ->
-      let prefix = String.sub input (loc.ofs1 + 1) (String.length input - loc.ofs1 - 1) in
+    | [(Symbol "#", _); (Lident "typeof", _); (String (tlen, false), loc)] ->
+      let prefix = String.sub input (loc.ofs1 + tlen) (String.length input - loc.ofs1 - tlen) in
       begin match Longident.parse prefix with
       | Longident.Ldot (lident, last_prefix) ->
         let set = names_of_module lident in
@@ -877,8 +877,8 @@ let complete ~syntax ~phrase_terminator ~input =
       end
 
     (* Completion on #load. *)
-    | [(Symbol "#", _); (Lident ("load" | "load_rec"), _); (String false, loc)] ->
-        let file = String.sub input (loc.ofs1 + 1) (String.length input - loc.ofs1 - 1) in
+    | [(Symbol "#", _); (Lident ("load" | "load_rec"), _); (String (tlen, false), loc)] ->
+        let file = String.sub input (loc.ofs1 + tlen) (String.length input - loc.ofs1 - tlen) in
         let filter name = Filename.check_suffix name ".cma" || Filename.check_suffix name ".cmo" in
         let map =
           if Filename.is_relative file then
@@ -898,8 +898,8 @@ let complete ~syntax ~phrase_terminator ~input =
 
 #if OCAML_VERSION >= (4, 02, 0)
     (* Completion on #ppx. *)
-    | [(Symbol "#", _); (Lident ("ppx"), _); (String false, loc)] ->
-        let file = String.sub input (loc.ofs1 + 1) (String.length input - loc.ofs1 - 1) in
+    | [(Symbol "#", _); (Lident ("ppx"), _); (String (tlen, false), loc)] ->
+        let file = String.sub input (loc.ofs1 + tlen) (String.length input - loc.ofs1 - tlen) in
         let filter ~dir_ok name =
           try
             Unix.access name [Unix.X_OK];
@@ -928,8 +928,8 @@ let complete ~syntax ~phrase_terminator ~input =
 #endif
 
     (* Completion on #use. *)
-    | [(Symbol "#", _); (Lident "use", _); (String false, loc)] ->
-        let file = String.sub input (loc.ofs1 + 1) (String.length input - loc.ofs1 - 1) in
+    | [(Symbol "#", _); (Lident "use", _); (String (tlen, false), loc)] ->
+        let file = String.sub input (loc.ofs1 + tlen) (String.length input - loc.ofs1 - tlen) in
         let filter name =
           match try Some (String.rindex name '.') with Not_found -> None with
             | None ->
@@ -955,8 +955,8 @@ let complete ~syntax ~phrase_terminator ~input =
          List.map (function (w, Directory) -> (w, "") | (w, File) -> (w, "\"" ^ phrase_terminator)) result)
 
     (* Completion on #directory and #cd. *)
-    | [(Symbol "#", _); (Lident ("cd" | "directory"), _); (String false, loc)] ->
-        let file = String.sub input (loc.ofs1 + 1) (String.length input - loc.ofs1 - 1) in
+    | [(Symbol "#", _); (Lident ("cd" | "directory"), _); (String (tlen, false), loc)] ->
+        let file = String.sub input (loc.ofs1 + tlen) (String.length input - loc.ofs1 - tlen) in
         let list = list_directories (Filename.dirname file) in
         let name = basename file in
         let result = lookup name list in

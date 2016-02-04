@@ -117,7 +117,13 @@ rule tokens syntax context idx acc = parse
       { let ofs = lexeme_start lexbuf in
         let idx2, terminated = string (idx + 1) lexbuf in
         let loc = mkloc idx idx2 ofs (lexeme_end lexbuf) in
-        tokens syntax context idx2 ((String terminated, loc) :: acc) lexbuf }
+        tokens syntax context idx2 ((String (1, terminated), loc) :: acc) lexbuf }
+  | '{' (lowercase* as tag) '|'
+      { let ofs = lexeme_start lexbuf in
+        let delim_len = String.length tag + 2 in
+        let idx2, terminated = quoted_string (idx + delim_len) tag lexbuf in
+        let loc = mkloc idx idx2 ofs (lexeme_end lexbuf) in
+        tokens syntax context idx2 ((String (delim_len, terminated), loc) :: acc) lexbuf }
   | "'" [^'\'' '\\'] "'"
   | "'\\" ['\\' '"' 'n' 't' 'b' 'r' ' ' '\'' 'x' '0'-'9'] eof
   | "'\\" ['\\' '"' 'n' 't' 'b' 'r' ' ' '\''] "'"
@@ -216,6 +222,18 @@ and string idx = parse
       { string (idx + 1) lexbuf }
   | eof
       { (idx, false) }
+
+and quoted_string idx tag = parse
+    | '|' (lowercase* as tag2) '}'
+        { let idx = idx + 2 + String.length tag2 in
+          if tag = tag2 then
+            (idx, true)
+          else
+            quoted_string idx tag lexbuf }
+    | eof
+        { (idx, false) }
+    | uchar
+        { quoted_string (idx + 1) tag lexbuf }
 
 and quotation syntax depth idx1 idx2 ofs1 = parse
   | '<' (':' ident)? ('@' lident)? '<'
