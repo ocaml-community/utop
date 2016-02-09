@@ -112,9 +112,38 @@ UTop exposes several more settings through its API; see
 Integration with emacs
 ----------------------
 
+### Main setup
+
 To use utop in emacs, first you need to make sure emacs can find the
-command `utop` and the file `utop.el`. If you installed utop via opam
-you can copy-paste this code into you `~/.emacs` file:
+command `utop` and the file `utop.el`. `utop.el` is available through
+[melpa](https://melpa.org/), so `M-x package-install RET utop RET`
+should do.
+
+If this doesn't work and you installed utop via opam, you can add this
+to your `~/.emacs`:
+
+```scheme
+;; Add the opam lisp dir to the emacs load path
+(add-to-list
+ 'load-path
+ (replace-regexp-in-string
+  "\n" "/share/emacs/site-lisp"
+  (shell-command-to-string "opam config var prefix")))
+
+;; Automatically load utop.el
+(autoload 'utop "utop" "Toplevel for OCaml" t)
+```
+
+In any case, if you installed utop via opam you should add this to
+your `~/.emacs`:
+
+```scheme
+;; Use the opam installed utop
+(setq utop-command "opam config exec -- utop -emacs")
+```
+
+This was tested with opam 1.2. For older versions of opam, you can
+copy&paste this to your `~/.emacs`:
 
 ```scheme
 ;; Setup environment variables using opam
@@ -133,6 +162,8 @@ you can copy-paste this code into you `~/.emacs` file:
 (autoload 'utop "utop" "Toplevel for OCaml" t)
 ```
 
+### Usage
+
 Then you can execute utop inside emacs with: `M-x utop`.
 
 utop also ships with a minor mode that has the following key-bindings
@@ -146,7 +177,7 @@ utop also ships with a minor mode that has the following key-bindings
 | C-c C-k     | utop-kill         | Kill a running utop process  |
 
 You can enable the minor mode using `M-x utop-minor-mode`, or you can
-have it enabled by default with the following configuration
+have it enabled by default with the following configuration:
 
 ```scheme
 (autoload 'utop-minor-mode "utop" "Minor mode for utop" t)
