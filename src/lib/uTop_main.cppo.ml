@@ -1249,9 +1249,11 @@ let load_init_files dir =
     files
 ;;
 
-let common_init () =
+let common_init ~initial_env =
   (* Initializes toplevel environment. *)
-  Toploop.initialize_toplevel_env ();
+  (match initial_env with
+   | None -> Toploop.initialize_toplevel_env ()
+   | Some env -> Toploop.toplevel_env := env);
   (* Set the global input name. *)
   Location.input_name := UTop.input_name;
   (* Make sure SIGINT is catched while executing OCaml code. *)
@@ -1305,14 +1307,14 @@ let load_inputrc () =
       Lwt_log.error_f "error in key bindings file %S, line %d: %s" fname line msg
     | exn -> Lwt.fail exn)
 
-let main_aux () =
+let main_aux ~initial_env =
   Arg.parse args file_argument usage;
   if not (prepare ()) then exit 2;
   if !emacs_mode then begin
     UTop_private.set_ui UTop_private.Emacs;
     let module Emacs = Emacs (struct end) in
     Printf.printf "Welcome to utop version %s (using OCaml version %s)!\n\n%!" UTop.version Sys.ocaml_version;
-    common_init ();
+    common_init ~initial_env;
     Emacs.loop ()
   end else begin
     UTop_private.set_ui UTop_private.Console;
@@ -1325,7 +1327,7 @@ let main_aux () =
       (* Display a welcome message. *)
       Lwt_main.run (welcome term);
       (* Common initialization. *)
-      common_init ();
+      common_init ~initial_env;
       (* Print help message. *)
       print_string "\nType #utop_help for help about using utop.\n\n";
       flush stdout;
@@ -1344,9 +1346,9 @@ let main_aux () =
   (* Don't let the standard toplevel run... *)
   exit 0
 
-let main () =
+let main_internal ~initial_env =
   try
-    main_aux ()
+    main_aux ~initial_env
   with exn ->
     (match exn with
        | Unix.Unix_error (error, func, "") ->
@@ -1358,3 +1360,58 @@ let main () =
     Printexc.print_backtrace stderr;
     flush stderr;
     exit 2
+
+let main () = main_internal ~initial_env:None
+
+type value = V : string * _ -> value
+
+exception Found of Env.t
+
+let interact ~search_path ~unit ~loc:(fname, lnum, cnum, _) ~values =
+  let fname = Misc.find_in_path_uncap search_path (unit ^ ".cmt") in
+  let cmt_infos = Cmt_format.read_cmt fname in
+  let search = object(self)
+    inherit [unit] UTop_cmt_lifter.lifter as super
+
+    method! lift_Typedtree_expression e =
+      super#lift_Typedtree_expression e;
+      match e.exp_desc with
+      | Texp_apply (_, args) -> begin
+        match
+          List.find (fun (lab, _, _) -> lab = "loc"   ) args,
+          List.find (fun (lab, _, _) -> lab = "values") args
+        with
+        | (_, Some l, Required), (_, Some v, Required) ->
+          let pos = l.exp_loc.loc_start in
+          if pos.pos_fname = fname &&
+             pos.pos_lnum = lnum   &&
+             pos.pos_cnum - pos.pos_bol = cnum then
+            raise (Found v.exp_env)
+        | _ -> ()
+        | exception Not_found -> ()
+        end
+      | _ -> ()
+
+    method tuple _ = ()
+    method string _ = ()
+    method record _ _ = ()
+    method nativeint _ = ()
+    method list _ = ()
+    method lift_Types_Vars_t _ _ = ()
+    method lift_Types_Variance_t _ = ()
+    method lift_Types_Meths_t _ _ = ()
+    method lift_Types_Concr_t _ = ()
+    method lift_Env_t _ = ()
+    method int64 _ = ()
+    method int32 _ = ()
+    method int _ = ()
+    method constr _ _ = ()
+    method char _ = ()
+    method array _ = ()
+  end in
+  match search#lift_Cmt_format_cmt_infos cmt_infos with
+  | () -> failwith "Couldn't find location in cmt file"
+  | exception (Found env) ->
+    List.iter (fun (V (name, v)) -> Toploop.setvalue name (Obj.repr v)) values;
+    main_internal ~initial_env:(Some env)
+;;

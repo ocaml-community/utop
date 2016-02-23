@@ -44,7 +44,8 @@ Library utop
     UTop_lexer,
     UTop_token,
     UTop_complete,
-    UTop_styles
+    UTop_styles,
+    UTop_cmt_lifter
   BuildDepends: threads, findlib, lambda-term (>= 1.2)
   XMETADescription: utop configuration
   XMETARequires: findlib, lambda-term

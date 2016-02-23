@@ -15,3 +15,12 @@ exception Term of int
       is received. The argument is the signal number.
 
       utop raises this exception for SIGHUP and SIGTERM by default. *)
+
+type value = V : string * _ -> value
+
+val interact
+  :  search_path:string list
+  -> unit:string
+  -> loc:(string * int * int * int)
+  -> values:value list
+  -> unit

@@ -87,6 +87,18 @@ let () =
              rule "full toplevel (not expunged)"
                ~dep:"src/top/uTop_top.top"
                ~prod:"src/top/uTop_top_full.byte"
-               (fun _ _ -> cp "src/top/uTop_top.top" "src/top/uTop_top_full.byte")
+               (fun _ _ -> cp "src/top/uTop_top.top" "src/top/uTop_top_full.byte");
+
+             rule "format lifter"
+               ~prod:"src/lib/uTop_cmt_lifter.ml"
+               (fun _ _ ->
+                  Cmd (S [ P "ocamlfind"
+                         ; A "ppx_tools/genlifter"
+                         ; A "-I"
+                         ; A "+compiler-libs"
+                         ; A "Cmt_format.cmt_infos"
+                         ; Sh ">"
+                         ; A "src/lib/uTop_cmt_lifter.ml"
+                         ]))
          | _ ->
              ())
