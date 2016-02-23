@@ -1,0 +1,1 @@
+true: thread, linkall, predicate(create_toploop), warn(-40), bin_annot

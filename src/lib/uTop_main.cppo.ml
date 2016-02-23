@@ -1368,8 +1368,13 @@ type value = V : string * _ -> value
 exception Found of Env.t
 
 let interact ~search_path ~unit ~loc:(fname, lnum, cnum, _) ~values =
-  let fname = Misc.find_in_path_uncap search_path (unit ^ ".cmt") in
-  let cmt_infos = Cmt_format.read_cmt fname in
+  let cmt_fname =
+    try
+      Misc.find_in_path_uncap search_path (unit ^ ".cmt")
+    with Not_found ->
+      Printf.ksprintf failwith "%s.cmt not found in search path!" fname
+  in
+  let cmt_infos = Cmt_format.read_cmt cmt_fname in
   let search = object(self)
     inherit [unit] UTop_cmt_lifter.lifter as super
 
@@ -1383,6 +1388,11 @@ let interact ~search_path ~unit ~loc:(fname, lnum, cnum, _) ~values =
         with
         | (_, Some l, Required), (_, Some v, Required) ->
           let pos = l.exp_loc.loc_start in
+          Printf.eprintf "%s:%d:%d %s:%d:%d\n%!"
+            fname lnum cnum
+             pos.pos_fname
+             pos.pos_lnum
+             (pos.pos_cnum - pos.pos_bol);
           if pos.pos_fname = fname &&
              pos.pos_lnum = lnum   &&
              pos.pos_cnum - pos.pos_bol = cnum then
@@ -1412,6 +1422,8 @@ let interact ~search_path ~unit ~loc:(fname, lnum, cnum, _) ~values =
   match search#lift_Cmt_format_cmt_infos cmt_infos with
   | () -> failwith "Couldn't find location in cmt file"
   | exception (Found env) ->
+    Clflags.include_dirs := cmt_infos.cmt_loadpath @ !Clflags.include_dirs;
+    let env = Env.env_of_only_summary Envaux.env_from_summary env in
     List.iter (fun (V (name, v)) -> Toploop.setvalue name (Obj.repr v)) values;
     main_internal ~initial_env:(Some env)
 ;;
