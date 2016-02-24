@@ -1422,8 +1422,12 @@ let interact ~search_path ~unit ~loc:(fname, lnum, cnum, _) ~values =
   match search#lift_Cmt_format_cmt_infos cmt_infos with
   | () -> failwith "Couldn't find location in cmt file"
   | exception (Found env) ->
-    Clflags.include_dirs := cmt_infos.cmt_loadpath @ !Clflags.include_dirs;
-    let env = Env.env_of_only_summary Envaux.env_from_summary env in
-    List.iter (fun (V (name, v)) -> Toploop.setvalue name (Obj.repr v)) values;
-    main_internal ~initial_env:(Some env)
+    try
+      Clflags.include_dirs := cmt_infos.cmt_loadpath @ !Clflags.include_dirs;
+      let env = Env.env_of_only_summary Envaux.env_from_summary env in
+      List.iter (fun (V (name, v)) -> Toploop.setvalue name (Obj.repr v)) values;
+      main_internal ~initial_env:(Some env)
+    with exn ->
+      Location.report_exception Format.err_formatter exn;
+      exit 2
 ;;
