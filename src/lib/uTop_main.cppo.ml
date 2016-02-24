@@ -1423,7 +1423,7 @@ let interact ~search_path ~unit ~loc:(fname, lnum, cnum, _) ~values =
   | () -> failwith "Couldn't find location in cmt file"
   | exception (Found env) ->
     try
-      Clflags.include_dirs := cmt_infos.cmt_loadpath @ !Clflags.include_dirs;
+      List.iter Topdirs.dir_directory (search_path @ cmt_infos.cmt_loadpath);
       let env = Envaux.env_of_only_summary env in
       List.iter (fun (V (name, v)) -> Toploop.setvalue name (Obj.repr v)) values;
       main_internal ~initial_env:(Some env)
