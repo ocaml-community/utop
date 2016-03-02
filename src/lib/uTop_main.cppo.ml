@@ -312,9 +312,12 @@ let rec map_items unwrap wrap items =
       | Outcometree.Osig_exception (name, _)
 #endif
       | Outcometree.Osig_modtype (name, _)
+#if OCAML_VERSION < (4, 03, 0)
       | Outcometree.Osig_value (name, _, _) ->
         (name, Outcometree.Orec_not)
-#if OCAML_VERSION >= (4, 03, 0)
+#else
+      | Outcometree.Osig_value { oval_name = name; _ } ->
+        (name, Outcometree.Orec_not)
       | Outcometree.Osig_ellipsis -> ("", Outcometree.Orec_not)
 #endif
     in
