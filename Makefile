@@ -20,7 +20,7 @@ setup-dev.exe: _oasis setup.ml
 
 # Setup for the release
 setup.exe: setup.ml
-	ocamlopt.opt -o $@ $< || ocamlopt -o $@ $< || ocamlc -o $@ $<
+	ocamlopt.opt -w -3 -o $@ $< || ocamlopt -w -3 -o $@ $< || ocamlc -w -3 -o $@ $<
 	rm -f setup.cmx setup.cmi setup.o setup.obj setup.cmo
 
 build: $(SETUP) setup.data
