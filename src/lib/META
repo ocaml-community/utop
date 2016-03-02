@@ -1,6 +1,6 @@
 # OASIS_START
-# DO NOT EDIT (digest: d5407b28da284a1a240556b9815af7f0)
-version = "1.18.1"
+# DO NOT EDIT (digest: 540f483cd99856ec4b99dfb59598c6c8)
+version = "1.18.2"
 description = "utop configuration"
 requires = "findlib lambda-term"
 archive(byte) = "utop.cma"
@@ -9,7 +9,7 @@ archive(native) = "utop.cmxa"
 archive(native, plugin) = "utop.cmxs"
 exists_if = "utop.cma"
 package "camlp4" (
- version = "1.18.1"
+ version = "1.18.2"
  description = "Camlp4 integration"
  requires = "utop camlp4"
  archive(syntax, preprocessor) = "utop-camlp4.cma"
