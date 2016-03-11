@@ -1405,6 +1405,9 @@ let interact ~search_path ~unit ~loc:(fname, lnum, cnum, _) ~values =
         end
       | _ -> ()
 
+    method! lift_Types_label_description _ = ()
+    method! lift_Types_type_declaration _ = ()
+
     method tuple _ = ()
     method string _ = ()
     method record _ _ = ()
