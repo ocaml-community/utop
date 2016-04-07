@@ -1,3 +1,19 @@
+1.19 (2016-04-07)
+-----------------
+
+* allow to configure the external editor with `UTop.set_external_editor`
+* add `UTop.set_margin_function` to allow users to set
+  the margin for the toplevel outcome. It is 80 by default
+* better for quoted strings (`{|...|}`)
+* add a `#pwd` directive
+* experimental support for running utop in the middle of a program
+  with `UTop_main.interact`
+* fix Async integration (automatic waiting of `_ Deferred.t` value).
+  The new version is more robust against future change in Async
+* fix use of the non-existing `replace-in-string` function in the
+  emacs mode (Syohei Yoshida)
+* fallback to Latin-1 for invalid UTF-8 sequences in the compiler output
+
 1.18.2 (2016-03-02)
 -------------------
 
