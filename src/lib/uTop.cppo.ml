@@ -77,9 +77,10 @@ let auto_run_async, get_auto_run_async, set_auto_run_async = make_variable true
 let topfind_verbose, get_topfind_verbose, set_topfind_verbose = make_variable false
 let external_editor, get_external_editor, set_external_editor =
   make_variable
-    (match Sys.getenv "EDITOR" with
-     | exception Not_found -> "vi"
-     | s                   -> s)
+    (try
+       Sys.getenv "EDITOR"
+     with Not_found ->
+       "vi")
 
 (* Ugly hack until the action system of lambda-term is improved *)
 let end_and_accept_current_phrase : LTerm_read_line.action =
