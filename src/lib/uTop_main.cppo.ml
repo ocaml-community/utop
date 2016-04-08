@@ -1368,6 +1368,13 @@ let main () = main_internal ~initial_env:None
 
 type value = V : string * _ -> value
 
+#if OCAML_VERSION < (4, 02, 0)
+
+let interact ~search_path ~unit ~loc:(fname, lnum, cnum, _) ~values =
+  failwith "UTop_main.interact is not supported on OCaml 4.01"
+
+#else
+
 exception Found of Env.t
 
 let interact ~search_path ~unit ~loc:(fname, lnum, cnum, _) ~values =
@@ -1385,23 +1392,19 @@ let interact ~search_path ~unit ~loc:(fname, lnum, cnum, _) ~values =
       super#lift_Typedtree_expression e;
       match e.exp_desc with
       | Texp_apply (_, args) -> begin
-        match
-          List.find (fun (lab, _, _) -> lab = "loc"   ) args,
-          List.find (fun (lab, _, _) -> lab = "values") args
-        with
-        | (_, Some l, Required), (_, Some v, Required) ->
-          let pos = l.exp_loc.loc_start in
-          Printf.eprintf "%s:%d:%d %s:%d:%d\n%!"
-            fname lnum cnum
-             pos.pos_fname
-             pos.pos_lnum
-             (pos.pos_cnum - pos.pos_bol);
-          if pos.pos_fname = fname &&
-             pos.pos_lnum = lnum   &&
-             pos.pos_cnum - pos.pos_bol = cnum then
-            raise (Found v.exp_env)
-        | _ -> ()
-        | exception Not_found -> ()
+          try
+            match
+              List.find (fun (lab, _, _) -> lab = "loc"   ) args,
+              List.find (fun (lab, _, _) -> lab = "values") args
+            with
+            | (_, Some l, Required), (_, Some v, Required) ->
+              let pos = l.exp_loc.loc_start in
+              if pos.pos_fname = fname &&
+                 pos.pos_lnum = lnum   &&
+                 pos.pos_cnum - pos.pos_bol = cnum then
+                raise (Found v.exp_env)
+            | _ -> ()
+          with Not_found -> ()
         end
       | _ -> ()
 
@@ -1425,17 +1428,18 @@ let interact ~search_path ~unit ~loc:(fname, lnum, cnum, _) ~values =
     method char _ = ()
     method array _ = ()
   end in
-  match search#lift_Cmt_format_cmt_infos cmt_infos with
-  | () -> failwith "Couldn't find location in cmt file"
-  | exception (Found env) ->
-    try
-      List.iter Topdirs.dir_directory (search_path @ cmt_infos.cmt_loadpath);
-      let env = Envaux.env_of_only_summary env in
-      List.iter (fun (V (name, v)) -> Toploop.setvalue name (Obj.repr v)) values;
-      main_internal ~initial_env:(Some env)
-    with exn ->
-      Location.report_exception Format.err_formatter exn;
-      exit 2
+  try
+    search#lift_Cmt_format_cmt_infos cmt_infos;
+    failwith "Couldn't find location in cmt file"
+  with Found env ->
+  try
+    List.iter Topdirs.dir_directory (search_path @ cmt_infos.cmt_loadpath);
+    let env = Envaux.env_of_only_summary env in
+    List.iter (fun (V (name, v)) -> Toploop.setvalue name (Obj.repr v)) values;
+    main_internal ~initial_env:(Some env)
+  with exn ->
+    Location.report_exception Format.err_formatter exn;
+    exit 2
 
 let () =
   Location.register_error_of_exn
@@ -1444,3 +1448,5 @@ let () =
         Some (Location.error_of_printer_file Envaux.report_error err)
       | _ -> None
     )
+
+#endif

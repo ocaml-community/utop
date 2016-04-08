@@ -713,13 +713,20 @@ let () =
              rule "format lifter"
                ~prod:"src/lib/uTop_cmt_lifter.ml"
                (fun _ _ ->
-                  Cmd (S [ P "ocamlfind"
-                         ; A "ppx_tools/genlifter"
-                         ; A "-I"
-                         ; A "+compiler-libs"
-                         ; A "Cmt_format.cmt_infos"
-                         ; Sh ">"
-                         ; A "src/lib/uTop_cmt_lifter.ml"
-                         ]))
+                  let ocaml_version =
+                    Scanf.sscanf (BaseEnvLight.var_get "ocaml_version" env)
+                      "%u.%u" (fun a b -> (a, b))
+                  in
+                  if ocaml_version < (4, 02) then
+                    Echo ([], "src/lib/uTop_cmt_lifter.ml")
+                  else
+                    Cmd (S [ P "ocamlfind"
+                           ; A "ppx_tools/genlifter"
+                           ; A "-I"
+                           ; A "+compiler-libs"
+                           ; A "Cmt_format.cmt_infos"
+                           ; Sh ">"
+                           ; A "src/lib/uTop_cmt_lifter.ml"
+                           ]))
          | _ ->
-             ())
+           ())
