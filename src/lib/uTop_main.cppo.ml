@@ -1394,10 +1394,19 @@ let interact ~search_path ~unit ~loc:(fname, lnum, cnum, _) ~values =
       | Texp_apply (_, args) -> begin
           try
             match
+#if OCAML_VERSION >= (4, 03, 0)
+              List.find (fun (lab, _) -> lab = Asttypes.Labelled "loc"   ) args,
+              List.find (fun (lab, _) -> lab = Asttypes.Labelled "values") args
+#else
               List.find (fun (lab, _, _) -> lab = "loc"   ) args,
               List.find (fun (lab, _, _) -> lab = "values") args
+#endif
             with
+#if OCAML_VERSION >= (4, 03, 0)
+            | (Asttypes.Labelled _, Some l), (Asttypes.Labelled _, Some v) ->
+#else
             | (_, Some l, Required), (_, Some v, Required) ->
+#endif
               let pos = l.exp_loc.loc_start in
               if pos.pos_fname = fname &&
                  pos.pos_lnum = lnum   &&
