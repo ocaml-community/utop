@@ -33,6 +33,10 @@ Flag camlp4
   Description: camlp4 support
   Default: false
 
+Flag interact
+  Description: enable UTop_main.interact (requires ppx_tools)
+  Default: false
+
 Library utop
   Path: src/lib
   Modules:

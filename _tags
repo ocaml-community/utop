@@ -1,6 +1,6 @@
 # -*- conf -*-
 
-<src/**/*.ml{,i}>: cppo_V_OCAML, package(compiler-libs)
+<src/**/*.ml{,i}>: cppo_V_OCAML, cppo_interact, package(compiler-libs)
 <src/camlp5/**/*.ml{,i}>: use_camlp5
 
 <**/*.ml>: warn(-3-40)
