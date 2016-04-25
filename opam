@@ -6,7 +6,10 @@ homepage: "https://github.com/diml/utop"
 bug-reports: "https://github.com/diml/utop/issues"
 dev-repo: "git://github.com/diml/utop.git"
 build: [
-  ["./configure" "--prefix" prefix "--%{camlp4:enable}%-camlp4"]
+  ["./configure"
+     "--prefix" prefix
+     "--%{camlp4:enable}%-camlp4"
+     "--%{ppx_tools:enable}-interact"]
   [make]
 ]
 install: [
