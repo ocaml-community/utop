@@ -9,7 +9,7 @@ build: [
   ["./configure"
      "--prefix" prefix
      "--%{camlp4:enable}%-camlp4"
-     "--%{ppx_tools:enable}-interact"]
+     "--%{ppx_tools:enable}%-interact"]
   [make]
 ]
 install: [
