@@ -89,6 +89,14 @@ let () =
                ~prod:"src/top/uTop_top_full.byte"
                (fun _ _ -> cp "src/top/uTop_top.top" "src/top/uTop_top_full.byte");
 
+
+             let interact_enabled = BaseEnvLight.var_get "interact" env = "true" in
+             flag ["cppo"; "cppo_interact"] (
+               if interact_enabled then
+                 S [A "-D"; A "ENABLE_INTERACT"]
+               else
+                 N);
+
              rule "format lifter"
                ~prod:"src/lib/uTop_cmt_lifter.ml"
                (fun _ _ ->
@@ -96,7 +104,7 @@ let () =
                     Scanf.sscanf (BaseEnvLight.var_get "ocaml_version" env)
                       "%u.%u" (fun a b -> (a, b))
                   in
-                  if ocaml_version < (4, 02) then
+                  if ocaml_version < (4, 02) || not interact_enabled then
                     Echo ([], "src/lib/uTop_cmt_lifter.ml")
                   else
                     Cmd (S [ P "ocamlfind"

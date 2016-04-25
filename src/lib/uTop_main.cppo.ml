@@ -1373,6 +1373,15 @@ type value = V : string * _ -> value
 let interact ~search_path ~unit ~loc:(fname, lnum, cnum, _) ~values =
   failwith "UTop_main.interact is not supported on OCaml 4.01"
 
+#elif not defined ENABLE_INTERACT
+
+let interact ~search_path ~unit ~loc:(fname, lnum, cnum, _) ~values =
+  failwith "\
+UTop_main.interact wasn't enabled at compile time.
+If you installed utop through opam, just do this to enable this feature:
+
+  $ opam install ppx_tools"
+
 #else
 
 exception Found of Env.t
