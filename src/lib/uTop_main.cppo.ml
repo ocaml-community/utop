@@ -182,7 +182,11 @@ class read_phrase ~term = object(self)
         try
           let result = parse_and_check input eos_is_error in
           return_value <- Some result;
-          LTerm_history.add UTop.history input;
+          ignore(match result with
+            | UTop.Value _, _ ->
+                LTerm_history.add UTop.history input;
+                ignore(LTerm_history.add UTop.stashable_session_history input)
+            | _, _ -> ());
           return result
         with UTop.Need_more ->
           (* Input not finished, continue. *)
