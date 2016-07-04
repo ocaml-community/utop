@@ -640,7 +640,7 @@ let () =
         let () =
           Printf.printf
             "Stashing %d entries in %s... "
-            (List.length entries)
+            (List.length entries / 2) (* because half are comments *)
             fname
         in
         let entries = List.rev entries in
