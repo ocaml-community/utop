@@ -136,7 +136,7 @@ let is_accept : LTerm_read_line.action -> bool = function
   | Accept -> true
   | action -> action == UTop.end_and_accept_current_phrase
 
-(* Read a phrase. If the result is a value, it is guaranteed to by a
+(* Read a phrase. If the result is a value, it is guaranteed to be a
    valid phrase (i.e. typable and compilable). It also returns
    warnings printed parsing. *)
 class read_phrase ~term = object(self)
