@@ -636,8 +636,7 @@ let () =
       (fun fname ->
         let _ :: entries = LTerm_history.contents stashable_session_history in
         (* getting and then reversing the entries instead of using
-         * [LTerm_history.save] because the latter has to be integrated
-         * into an LWT program flow. *)
+           [LTerm_history.save] because the latter escapes newline characters *)
         let () =
           Printf.printf
             "Stashing %d entries in %s... "
@@ -648,12 +647,10 @@ let () =
         try
           let oc = open_out fname in
           try
-            let ls = ref entries in
-            for i = 1 to List.length entries do
-              let e :: _ = !ls in
-              let () = output_string oc (e ^ "\n") in
-              ls := List.tl !ls;
-            done;
+            List.iter
+              (fun e ->
+                output_string oc (e ^ "\n"))
+              entries;
             close_out oc;
             Printf.printf "Done.\n";
           with exn ->
