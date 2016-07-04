@@ -185,7 +185,6 @@ class read_phrase ~term = object(self)
           LTerm_history.add UTop.history input;
           ignore(match result with
             | UTop.Value _, _ ->
-                LTerm_history.add UTop.history input;
                 ignore(LTerm_history.add UTop.stashable_session_history input)
             | _, _ -> ());
           return result
@@ -671,6 +670,8 @@ let rec loop term =
            (* Get the string printed. *)
            Format.pp_print_flush pp ();
            let string = Buffer.contents buffer in
+           let string' = "(* " ^ (String.trim string) ^ " *)\n" in
+           let _ = LTerm_history.add UTop.stashable_session_history string' in
            match phrase with
              | Parsetree.Ptop_def _ ->
                  (* The string is an output phrase, colorize it. *)
