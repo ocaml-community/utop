@@ -116,11 +116,7 @@ let parse_and_check input eos_is_error =
       (fun () ->
          match preprocess (!UTop.parse_toplevel_phrase input eos_is_error) with
            | UTop.Error (locs, msg) ->
-               let stashable_input = "(* " ^ (String.trim input) ^ " *)" in
-               let _ = LTerm_history.add UTop.stashable_session_history stashable_input in
                let msg = "Error: " ^ msg in
-               let stashable_msg = "(* " ^ msg ^ " *)\n" in
-               let _ = LTerm_history.add UTop.stashable_session_history stashable_msg in
                UTop.Error (convert_locs input locs, msg ^ "\n")
            | UTop.Value phrase ->
                match UTop.check_phrase phrase with
@@ -186,7 +182,6 @@ class read_phrase ~term = object(self)
         Location.reset ();
         let eos_is_error = not !UTop.smart_accept in
         try
-          (*let _ = LTerm_history.add UTop.stashable_session_history input in*)
           let result = parse_and_check input eos_is_error in
           return_value <- Some result;
           LTerm_history.add UTop.history input;
@@ -194,7 +189,11 @@ class read_phrase ~term = object(self)
             match result with
             | UTop.Value _, _ ->
                 LTerm_history.add UTop.stashable_session_history input
-            | _, _ -> ());
+            | (UTop.Error (_, msg)), _ ->
+                let input = "(* " ^ (String.trim input) ^ " *)" in
+                LTerm_history.add UTop.stashable_session_history input;
+                let stash_msg = "(* " ^ (String.trim msg) ^ " *)\n" in
+                LTerm_history.add UTop.stashable_session_history stash_msg);
           return result
         with UTop.Need_more ->
           (* Input not finished, continue. *)
