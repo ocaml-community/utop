@@ -105,7 +105,8 @@ let parse_and_check input eos_is_error =
           UTop.Value (Parsetree.Ptop_def pstr)
         with Pparse.Error error ->
           Pparse.report_error Format.str_formatter error;
-          UTop.Error ([], Format.flush_str_formatter ())
+          let err_string = Format.flush_str_formatter () in
+          UTop.Error ([], err_string)
         end
 #endif
     | _ -> input
@@ -115,7 +116,12 @@ let parse_and_check input eos_is_error =
       (fun () ->
          match preprocess (!UTop.parse_toplevel_phrase input eos_is_error) with
            | UTop.Error (locs, msg) ->
-               UTop.Error (convert_locs input locs, "Error: " ^ msg ^ "\n")
+               let stashable_input = "(* " ^ (String.trim input) ^ " *)" in
+               let _ = LTerm_history.add UTop.stashable_session_history stashable_input in
+               let msg = "Error: " ^ msg in
+               let stashable_msg = "(* " ^ msg ^ " *)\n" in
+               let _ = LTerm_history.add UTop.stashable_session_history stashable_msg in
+               UTop.Error (convert_locs input locs, msg ^ "\n")
            | UTop.Value phrase ->
                match UTop.check_phrase phrase with
                  | None ->
@@ -180,12 +186,14 @@ class read_phrase ~term = object(self)
         Location.reset ();
         let eos_is_error = not !UTop.smart_accept in
         try
+          (*let _ = LTerm_history.add UTop.stashable_session_history input in*)
           let result = parse_and_check input eos_is_error in
           return_value <- Some result;
           LTerm_history.add UTop.history input;
-          ignore(match result with
+          ignore(
+            match result with
             | UTop.Value _, _ ->
-                ignore(LTerm_history.add UTop.stashable_session_history input)
+                LTerm_history.add UTop.stashable_session_history input
             | _, _ -> ());
           return result
         with UTop.Need_more ->
@@ -639,13 +647,12 @@ let rec loop term =
           match result with
             | UTop.Value phrase ->
                 return (Some phrase)
-            | UTop.Error (_, msg) ->
+            | UTop.Error (locs, msg) ->
                 print_error term msg >>= fun () ->
                 return None)
         (fun () -> LTerm.flush term)
     )
   in
-
   match phrase_opt with
     | Some phrase ->
         (* Rewrite toplevel expressions. *)
