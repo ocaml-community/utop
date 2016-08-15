@@ -37,12 +37,14 @@ all: $(SETUP)
 	./$(SETUP) -all $(ALLFLAGS)
 
 install: $(SETUP) setup.data
+	ocamlfind remove utop 2>/dev/null || true
 	./$(SETUP) -install $(INSTALLFLAGS)
 
 uninstall: $(SETUP) setup.data
 	./$(SETUP) -uninstall $(UNINSTALLFLAGS)
 
 reinstall: $(SETUP) setup.data
+	ocamlfind remove utop 2>/dev/null || true
 	./$(SETUP) -reinstall $(REINSTALLFLAGS)
 
 clean: $(SETUP)
