@@ -432,7 +432,7 @@ let add_names_of_type decl acc =
 let path_of_mty_alias = function
   | Mty_alias (_, path) -> path
   | _ -> assert false
-#else
+#elif OCAML_VERSION >= (4, 02, 0)
 let path_of_mty_alias = function
   | Mty_alias path -> path
   | _ -> assert false
