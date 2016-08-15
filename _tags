@@ -3,7 +3,7 @@
 <src/**/*.ml{,i}>: cppo_V_OCAML, cppo_interact, package(compiler-libs)
 <src/camlp5/**/*.ml{,i}>: use_camlp5
 
-<**/*.ml>: warn(-3-40)
+<**/*.ml>: warn(-3-40@8)
 
 # OASIS_START
 # OASIS_STOP

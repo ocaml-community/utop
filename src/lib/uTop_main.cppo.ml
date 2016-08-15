@@ -93,6 +93,12 @@ let parse_input_multi input =
   in
   (result, Buffer.contents buf)
 
+#if OCAML_VERSION >= (4, 04, 0)
+let ast_impl_kind = Pparse.Structure
+#elif OCAML_VERSION >= (4, 02, 0)
+let ast_impl_kind = Config.ast_impl_magic_number
+#endif
+
 let parse_and_check input eos_is_error =
   let buf = Buffer.create 32 in
   let preprocess input =
@@ -101,7 +107,7 @@ let parse_and_check input eos_is_error =
     | UTop.Value (Parsetree.Ptop_def pstr) ->
         begin try
           let pstr = Pparse.apply_rewriters ~tool_name:"ocaml"
-                                Config.ast_impl_magic_number pstr in
+                                ast_impl_kind pstr in
           UTop.Value (Parsetree.Ptop_def pstr)
         with Pparse.Error error ->
           Pparse.report_error Format.str_formatter error;
@@ -490,6 +496,14 @@ let rewrite_rules = [
   }
 ]
 
+#if OCAML_VERSION >= (4, 04, 0)
+let lookup_type longident env =
+  let path = Env.lookup_type longident env in
+  (path, Env.find_type path env)
+#else
+let lookup_type = Env.lookup_type
+#endif
+
 let rule_path rule =
   match rule.path_to_rewrite with
   | Some _ as x -> x
@@ -497,7 +511,7 @@ let rule_path rule =
     try
       let env = !Toploop.toplevel_env in
       let path =
-        match Env.lookup_type rule.type_to_rewrite env with
+        match lookup_type rule.type_to_rewrite env with
         | path, { Types.type_kind     = Types.Type_abstract
                 ; Types.type_private  = Asttypes.Public
                 ; Types.type_manifest = Some ty
@@ -1063,7 +1077,7 @@ let typeof sid =
   in
   let out_sig_item =
     try
-      let (path, ty_decl) = Env.lookup_type id env in
+      let (path, ty_decl) = lookup_type id env in
       let id = Ident.create (Path.name path) in
       Some (Printtyp.tree_of_type_declaration id ty_decl Types.Trec_not)
     with Not_found ->

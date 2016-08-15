@@ -428,6 +428,16 @@ let add_names_of_type decl acc =
         acc
 #endif
 
+#if OCAML_VERSION >= (4, 04, 0)
+let path_of_mty_alias = function
+  | Mty_alias (_, path) -> path
+  | _ -> assert false
+#else
+let path_of_mty_alias = function
+  | Mty_alias path -> path
+  | _ -> assert false
+#endif
+
 let rec names_of_module_type = function
   | Mty_signature decls ->
       List.fold_left
@@ -458,7 +468,8 @@ let rec names_of_module_type = function
         | None -> String_set.empty
     end
 #if OCAML_VERSION >= (4, 02, 0)
-  | Mty_alias path -> begin
+  | Mty_alias _ as mty_alias -> begin
+      let path = path_of_mty_alias mty_alias in
       match lookup_env Env.find_module path !Toploop.toplevel_env with
         | None -> String_set.empty
         | Some { md_type = module_type } -> names_of_module_type module_type
@@ -497,7 +508,8 @@ let rec fields_of_module_type = function
         | None -> String_set.empty
     end
 #if OCAML_VERSION >= (4, 02, 0)
-  | Mty_alias path -> begin
+  | Mty_alias _ as mty_alias -> begin
+      let path = path_of_mty_alias mty_alias in
       match lookup_env Env.find_module path !Toploop.toplevel_env with
         | None -> String_set.empty
         | Some { md_type = module_type } -> fields_of_module_type module_type
@@ -569,6 +581,10 @@ let list_global_names () =
     | Env.Env_functor_arg(summary, id) ->
         loop (add (Ident.name id) acc) summary
 #endif
+#if OCAML_VERSION >= (4, 04, 0)
+    | Env.Env_constraints (summary, _) ->
+        loop acc summary
+#endif
     | Env.Env_open(summary, path) ->
         match try Some (Path_map.find path !local_names_by_path) with Not_found -> None with
           | Some names ->
@@ -634,6 +650,10 @@ let list_global_fields () =
         loop (add (Ident.name id) acc) summary
     | Env.Env_cltype(summary, id, _) ->
         loop (add (Ident.name id) acc) summary
+#if OCAML_VERSION >= (4, 04, 0)
+    | Env.Env_constraints (summary, _) ->
+        loop acc summary
+#endif
     | Env.Env_open(summary, path) ->
         match try Some (Path_map.find path !local_fields_by_path) with Not_found -> None with
           | Some fields ->
