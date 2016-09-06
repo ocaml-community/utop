@@ -6834,7 +6834,7 @@ let setup_t =
      BaseSetup.configure = InternalConfigurePlugin.configure;
      build =
        OCamlbuildPlugin.build
-         ["-use-ocamlfind"; "-plugin-tags"; "'package(cppo_ocamlbuild)'"];
+         ["-use-ocamlfind"; "-plugin-tags"; "package(cppo_ocamlbuild)"];
      test = [];
      doc =
        [
