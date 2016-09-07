@@ -1312,7 +1312,10 @@ let common_init ~initial_env =
   (* We lost the terminal. *)
   catch Sys.sighup;
   (* Termination request. *)
-  catch Sys.sigterm
+  if Sys.win32 && !emacs_mode then
+    Sys.set_signal Sys.sigterm Sys.Signal_ignore
+  else
+    catch Sys.sigterm
 
 let load_inputrc () =
   Lwt.catch
