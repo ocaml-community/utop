@@ -29,8 +29,9 @@ depends: [
   "lwt"
   "react"        {>= "1.0.0"}
   "cppo"         {>= "1.1.2"}
-  "oasis"        {build & >= "0.3.0" & <= "0.4.6"}
+  "oasis"        {build & >= "0.3.0"}
 ]
+conflicts: [ "oasis" {= "0.4.7"} ]
 depopts: [
   "camlp4"
   "ppx_tools"
