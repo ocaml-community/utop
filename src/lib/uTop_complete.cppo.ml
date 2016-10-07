@@ -947,8 +947,9 @@ let complete ~syntax ~phrase_terminator ~input =
          List.map (function (w, Directory) -> (w, "") | (w, File) -> (w, "\"" ^ phrase_terminator)) result)
 #endif
 
-    (* Completion on #use. *)
-    | [(Symbol "#", _); (Lident "use", _); (String (tlen, false), loc)] ->
+    (* Completion on #use and #mod_use *)
+    | [(Symbol "#", _); (Lident "use", _); (String (tlen, false), loc)]
+    | [(Symbol "#", _); (Lident "mod_use", _); (String (tlen, false), loc)] ->
         let file = String.sub input (loc.ofs1 + tlen) (String.length input - loc.ofs1 - tlen) in
         let filter name =
           match try Some (String.rindex name '.') with Not_found -> None with
