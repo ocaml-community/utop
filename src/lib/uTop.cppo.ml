@@ -535,6 +535,7 @@ let () =
 
 utop defines the following directives:
 
+#help            : list all directives
 #utop_bindings   : list all the current key bindings
 #utop_macro      : display the currently recorded macro
 #topfind_log     : display messages recorded from findlib since the beginning of the session
