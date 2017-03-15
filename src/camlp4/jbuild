@@ -1,9 +1,0 @@
-(jbuild_version 1)
-
-(library
- ((name uTop_camlp4)
-  (public_name utop.camlp4)
-  (optional)
-  (modes (byte))
-  (libraries (utop camlp4.lib))
-  (preprocess (action (run ${bin:cppo} -V OCAML:${ocaml_version} ${<})))))
