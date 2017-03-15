@@ -1,0 +1,35 @@
+(* -*- tuareg -*- *)
+
+module J = Jbuild_plugin.V1
+
+let version =
+  let ic = open_in_bin "../../utop.opam" in
+  let rec loop ic =
+    let line = input_line ic in
+    try
+      Scanf.sscanf line "version: %S" (fun x -> x)
+    with _ ->
+      loop ic
+  in
+  let v = loop ic in
+  close_in ic;
+  v
+
+let () =
+  Printf.ksprintf J.send {|
+(jbuild_version 1)
+
+(library
+ ((name uTop)
+  (public_name utop)
+  (wrapped false)
+  (modes (byte))
+  (libraries (compiler-libs.toplevel findlib_top lambda-term threads))
+  (preprocess (action (run ${bin:cppo} -V OCAML:${ocaml_version} ${<})))))
+
+(ocamllex (uTop_lexer))
+
+(rule
+ ((targets (uTop_version.ml))
+  (action  (with-stdout-to ${@} (echo "let version = \"%s\"")))))
+|} version

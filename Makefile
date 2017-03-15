@@ -1,64 +1,41 @@
-# Makefile
-# --------
-# Copyright : (c) 2012, Jeremie Dimino <jeremie@dimino.org>
-# Licence   : BSD3
-#
-# Generic Makefile for oasis project
+INSTALL_ARGS := $(if $(PREFIX),--prefix $(PREFIX),)
 
-# Set to setup.exe for the release
-SETUP := setup-dev.exe
+.PHONY: all
+all:
+	jbuilder build @install
 
-# Default rule
-default: build
+.PHONY: install
+install:
+	jbuilder install $(INSTALL_ARGS)
 
-# Setup for the development version
-setup-dev.exe: _oasis setup.ml
-	sed '/^#/D' setup.ml > setup_dev.ml
-	ocamlfind ocamlopt -o $@ -linkpkg -package ocamlbuild,oasis.dynrun setup_dev.ml || \
-	  ocamlfind ocamlc -o $@ -linkpkg -package ocamlbuild,oasis.dynrun setup_dev.ml || true
-	rm -f setup_dev.*
+.PHONY: uninstall
+uninstall:
+	jbuilder uninstall $(INSTALL_ARGS)
 
-# Setup for the release
-setup.exe: setup.ml
-	ocamlopt.opt -w -3 -o $@ $< || ocamlopt -w -3 -o $@ $< || ocamlc -w -3 -o $@ $<
-	rm -f setup.cmx setup.cmi setup.o setup.obj setup.cmo
+.PHONY: reinstall
+reinstall:
+	$(MAKE) uninstall
+	$(MAKE) install
 
-build: $(SETUP) setup.data
-	./$(SETUP) -build $(BUILDFLAGS)
+.PHONY: test
+test:
+	jbuilder runtest
 
-doc: $(SETUP) setup.data build
-	./$(SETUP) -doc $(DOCFLAGS)
-	cp style.css _build/utop-api.docdir/
+.PHONY: all-supported-ocaml-versions
+all-supported-ocaml-versions:
+	jbuilder runtest --workspace jbuild-workspace.dev
 
-test: $(SETUP) setup.data build
-	./$(SETUP) -test $(TESTFLAGS)
+.PHONY: cinaps
+cinaps:
+	cinaps -styler ocp-indent -i src/migrate_parsetree_versions.ml*
+	cinaps -styler ocp-indent -i src/migrate_parsetree_40?_40?.ml*
 
-all: $(SETUP)
-	./$(SETUP) -all $(ALLFLAGS)
+.PHONY: clean
+clean:
+	rm -rf _build *.install
+	find . -name .merlin -delete
 
-install: $(SETUP) setup.data
-	ocamlfind remove utop 2>/dev/null || true
-	./$(SETUP) -install $(INSTALLFLAGS)
-
-uninstall: $(SETUP) setup.data
-	./$(SETUP) -uninstall $(UNINSTALLFLAGS)
-
-reinstall: $(SETUP) setup.data
-	ocamlfind remove utop 2>/dev/null || true
-	./$(SETUP) -reinstall $(REINSTALLFLAGS)
-
-clean: $(SETUP)
-	./$(SETUP) -clean $(CLEANFLAGS)
-
-distclean: $(SETUP)
-	./$(SETUP) -distclean $(DISTCLEANFLAGS)
-
-configure: $(SETUP)
-	./$(SETUP) -configure $(CONFIGUREFLAGS)
-
-setup.data: $(SETUP)
-	./$(SETUP) -configure $(CONFIGUREFLAGS)
-
+.PHONY: gh-pages
 gh-pages: doc
 	git clone `git config --get remote.origin.url` .gh-pages --reference .
 	git -C .gh-pages checkout --orphan gh-pages
@@ -69,5 +46,3 @@ gh-pages: doc
 	git -C .gh-pages commit -m "Update Pages"
 	git -C .gh-pages push origin gh-pages -f
 	rm -rf .gh-pages
-
-.PHONY: default build doc test all install uninstall reinstall clean distclean configure gh-pages

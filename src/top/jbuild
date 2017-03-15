@@ -1,0 +1,9 @@
+(jbuild_version 1)
+
+(executables
+ ((names (utop))
+  (libraries (utop))))
+
+(install
+ ((section bin)
+  (files ((utop.bc as utop-full)))))
