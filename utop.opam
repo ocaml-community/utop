@@ -7,20 +7,7 @@ homepage: "https://github.com/diml/utop"
 bug-reports: "https://github.com/diml/utop/issues"
 dev-repo: "git://github.com/diml/utop.git"
 build: [
-  ["./configure"
-     "--prefix" prefix
-     "--%{camlp4:enable}%-camlp4"
-     "--%{ppx_tools:enable}%-interact"]
-  [make]
-]
-install: [
-  [make "install"]
-]
-build-doc: [
-  ["ocaml" "setup.ml" "-doc"]
-]
-remove: [
-  ["ocamlfind" "remove" "utop"]
+  ["jbuilder" "build" "@install" "--root" "." "--only" "utop" "-j" jobs]
 ]
 depends: [
   "base-unix"
@@ -29,12 +16,9 @@ depends: [
   "lambda-term"  {>= "1.2"}
   "lwt"
   "react"        {>= "1.0.0"}
-  "cppo"         {>= "1.1.2"}
-  "oasis"        {build & >= "0.3.0"}
+  "cppo"         {build & >= "1.1.2"}
 ]
-conflicts: [ "oasis" {= "0.4.7"} ]
 depopts: [
-  "camlp4"
   "ppx_tools"
 ]
-available: [ ocaml-version >= "4.01" ]
+available: [ ocaml-version >= "4.02.3" ]
