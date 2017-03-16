@@ -23,7 +23,8 @@ dependencies listed in the next section.
 Dependencies
 ------------
 
-* [OCaml](http://caml.inria.fr/ocaml/) (>= 4.01.0)
+* [OCaml](http://caml.inria.fr/ocaml/) (>= 4.02.3)
+* [Jbuilder](http://github.com/janestreet/jbuilder)
 * [findlib](http://projects.camlcity.org/projects/findlib.html) (>= 1.4.0)
 * [cppo](http://mjambon.com/cppo.html) (>= 1.0.1)
 * [react](http://erratique.ch/software/react)
@@ -31,27 +32,18 @@ Dependencies
 * [Camomile](http://github.com/yoriyuki/Camomile) (>= 0.8)
 * [zed](http://github.com/diml/zed) (>= 1.2)
 * [lambda-term](http://github.com/diml/lambda-term) (>= 1.2)
-* [camlp4](http://github.com/ocaml/camlp4) (optional)
-
-For building the development version, you also need to install
-[oasis](http://oasis.forge.ocamlcore.org/) (>= 0.4.0).
 
 Installation from sources
 -------------------------
 
 To build and install utop:
 
-    $ ./configure
     $ make
     $ make install
 
-If you want to be able to use camlp4, rather use:
-
-    $ ./configure --enable-camlp4
-
 ### Documentation and manual pages _(optional)_
 
-To build the documentation:
+To build the documentation (currently broken):
 
     $ make doc
 
@@ -59,9 +51,8 @@ It will then be installed by `make install`.
 
 ### Tests _(optional)_
 
-To build and execute tests:
+To build and execute tests (currently broken):
 
-    $ ./configure --enable-tests
     $ make test
 
 Usage
