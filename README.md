@@ -2,7 +2,7 @@ utop - a universal toplevel for OCaml
 =====================================
 
 utop is an improved toplevel for OCaml. It can run in a terminal or
-in Emacs. It supports line edition, history, real-time and context
+in Emacs. It supports line editing, history, real-time and context
 sensitive completion, colors, and more.
 
 It integrates with the tuareg and typerex modes in Emacs.
