@@ -27,6 +27,11 @@ let history = LTerm_history.create []
 let history_file_name = ref (Some (Filename.concat LTerm_resources.home ".utop-history"))
 let history_file_max_size = ref None
 let history_file_max_entries = ref None
+let stashable_session_history =
+  (LTerm_history.create
+    ~max_size:max_int
+    ~max_entries:max_int
+    [])
 
 (* +-----------------------------------------------------------------+
    | Hooks                                                           |
@@ -538,6 +543,7 @@ utop defines the following directives:
 #help            : list all directives
 #utop_bindings   : list all the current key bindings
 #utop_macro      : display the currently recorded macro
+#utop_stash      : store all the valid commands from your current session in a file
 #topfind_log     : display messages recorded from findlib since the beginning of the session
 #topfind_verbose : enable/disable topfind verbosity
 
@@ -629,6 +635,34 @@ let () =
   Hashtbl.add Toploop.directive_table "pwd"
     (Toploop.Directive_none
        (fun () -> print_endline (Sys.getcwd ())))
+
+let () =
+  Hashtbl.add Toploop.directive_table "utop_stash"
+    (Toploop.Directive_string
+      (fun fname ->
+        let _ :: entries = LTerm_history.contents stashable_session_history in
+        (* getting and then reversing the entries instead of using
+           [LTerm_history.save] because the latter escapes newline characters *)
+        let () =
+          Printf.printf
+            "Stashing %d entries in %s... "
+            (List.length entries / 2) (* because half are comments *)
+            fname
+        in
+        let entries = List.rev entries in
+        try
+          let oc = open_out fname in
+          try
+            List.iter
+              (fun e ->
+                output_string oc (e ^ "\n"))
+              entries;
+            close_out oc;
+            Printf.printf "Done.\n";
+          with exn ->
+            close_out oc;
+            Printf.printf "Done.\n";
+        with exn -> Printf.printf "Error with file %s.\n" fname))
 
 (* +-----------------------------------------------------------------+
    | Camlp4                                                          |
