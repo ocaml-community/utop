@@ -35,6 +35,7 @@ clean:
 	rm -rf _build *.install
 	find . -name .merlin -delete
 
+# This needs to be updated
 .PHONY: gh-pages
 gh-pages: doc
 	git clone `git config --get remote.origin.url` .gh-pages --reference .
