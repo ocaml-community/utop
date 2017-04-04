@@ -1,0 +1,5 @@
+(jbuild_version 1)
+
+(install
+ ((section share)
+  (files (utoprc-dark utoprc-light))))
