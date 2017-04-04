@@ -17,6 +17,7 @@ depends: [
   "lwt"
   "react"        {>= "1.0.0"}
   "cppo"         {build & >= "1.1.2"}
+  "findlib_top"
 ]
 depopts: [
   "ppx_tools"
