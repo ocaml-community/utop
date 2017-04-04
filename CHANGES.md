@@ -1,3 +1,12 @@
+1.20 (2017-04-04)
+-----------------
+
+* Add tab completion for `#mod_use` (#181, Leonid Rozenberg)
+* Mention `#help` in `#utop_help` (#190, Fabian (github user copy))
+* Drop support for camlp4/camlp5
+* Drop support for OCaml <= 4.01
+* Switch the build system to jbuilder
+
 1.19.3 (2016-08-15)
 -------------------
 
