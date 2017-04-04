@@ -4,7 +4,7 @@ install: wget https://raw.githubusercontent.com/ocaml/ocaml-ci-scripts/master/.t
 script: bash -ex .travis-opam.sh
 env:
   global:
-  - PACKAGE=jbuilder
+  - PACKAGE=utop
   matrix:
   - OCAML_VERSION=4.02
   - OCAML_VERSION=4.03
