@@ -145,11 +145,10 @@ let collect_formatters buf pps f =
       pps save
   in
   (* Output functions. *)
-  let out_string str ofs len = Buffer.add_substring buf str ofs len
-  and out_flush = ignore
-  and out_newline () = Buffer.add_char buf '\n'
-  and out_spaces n = for i = 1 to n do Buffer.add_char buf ' ' done in
-  let out_functions = { Format.out_string; out_flush; out_newline; out_spaces } in
+  let out_functions =
+    let ppb = Format.formatter_of_buffer buf in
+    Format.pp_get_formatter_out_functions ppb ()
+  in
   (* Replace formatter functions. *)
   List.iter
     (fun pp ->
