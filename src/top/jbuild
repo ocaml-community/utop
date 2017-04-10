@@ -2,7 +2,8 @@
 
 (executables
  ((names (utop))
-  (libraries (utop))))
+  (libraries (utop))
+  (link_flags (-linkall))))
 
 (rule
  ((targets (utop-expunged.bc))
