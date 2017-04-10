@@ -191,15 +191,17 @@ class read_phrase ~term = object(self)
           let result = parse_and_check input eos_is_error in
           return_value <- Some result;
           LTerm_history.add UTop.history input;
-          ignore(
-            match result with
-            | UTop.Value _, _ ->
-                LTerm_history.add UTop.stashable_session_history input
-            | (UTop.Error (_, msg)), _ ->
-                let input = "(* " ^ (String.trim input) ^ " *)" in
-                LTerm_history.add UTop.stashable_session_history input;
-                let stash_msg = "(* " ^ (String.trim msg) ^ " *)\n" in
-                LTerm_history.add UTop.stashable_session_history stash_msg);
+          let out, warnings = result in
+          begin
+            match out with
+            | UTop.Value _ ->
+              UTop_history.add_input UTop.stashable_session_history input;
+              UTop_history.add_warnings UTop.stashable_session_history warnings;
+            | (UTop.Error (_, msg)) ->
+              UTop_history.add_bad_input UTop.stashable_session_history input;
+              UTop_history.add_warnings UTop.stashable_session_history warnings;
+              UTop_history.add_error UTop.stashable_session_history msg;
+          end;
           return result
         with UTop.Need_more ->
           (* Input not finished, continue. *)
@@ -690,8 +692,7 @@ let rec loop term =
            (* Get the string printed. *)
            Format.pp_print_flush pp ();
            let string = Buffer.contents buffer in
-           let string' = "(* " ^ (String.trim string) ^ " *)\n" in
-           let _ = LTerm_history.add UTop.stashable_session_history string' in
+           UTop_history.add_output UTop.stashable_session_history string;
            match phrase with
              | Parsetree.Ptop_def _ ->
                  (* The string is an output phrase, colorize it. *)
