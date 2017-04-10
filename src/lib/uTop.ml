@@ -27,11 +27,7 @@ let history = LTerm_history.create []
 let history_file_name = ref (Some (Filename.concat LTerm_resources.home ".utop-history"))
 let history_file_max_size = ref None
 let history_file_max_entries = ref None
-let stashable_session_history =
-  (LTerm_history.create
-    ~max_size:max_int
-    ~max_entries:max_int
-    [])
+let stashable_session_history = UTop_history.create ()
 
 (* +-----------------------------------------------------------------+
    | Hooks                                                           |
@@ -543,6 +539,7 @@ utop defines the following directives:
 #utop_bindings   : list all the current key bindings
 #utop_macro      : display the currently recorded macro
 #utop_stash      : store all the valid commands from your current session in a file
+#utop_save       : store the current session with a simple prompt in a file
 #topfind_log     : display messages recorded from findlib since the beginning of the session
 #topfind_verbose : enable/disable topfind verbosity
 
@@ -635,33 +632,51 @@ let () =
     (Toploop.Directive_none
        (fun () -> print_endline (Sys.getcwd ())))
 
+let make_stash_directive entry_formatter fname =
+  if get_ui () = Emacs then
+    print_endline "Stashing is currently not supported in Emacs"
+  else
+  let entries = UTop_history.contents stashable_session_history in
+  (* remove the stash directive from its output *)
+  let entries = match entries with [] -> [] | _ :: e -> e in
+  let entries = List.rev entries in
+  Printf.printf "Stashing %d entries in %s ... " (List.length entries) fname;
+  try
+    let oc = open_out fname in
+    try
+      List.iter
+        (fun e ->
+           let line = entry_formatter e in
+           output_string oc line;
+           output_char oc '\n')
+        entries;
+      close_out oc;
+      Printf.printf "Done.\n";
+    with exn ->
+      close_out oc;
+      raise exn
+  with exn ->
+    Printf.printf "Error with file %s: %s\n" fname @@ Printexc.to_string exn
+
 let () =
-  Hashtbl.add Toploop.directive_table "utop_stash"
-    (Toploop.Directive_string
-      (fun fname ->
-        let _ :: entries = LTerm_history.contents stashable_session_history in
-        (* getting and then reversing the entries instead of using
-           [LTerm_history.save] because the latter escapes newline characters *)
-        let () =
-          Printf.printf
-            "Stashing %d entries in %s... "
-            (List.length entries / 2) (* because half are comments *)
-            fname
-        in
-        let entries = List.rev entries in
-        try
-          let oc = open_out fname in
-          try
-            List.iter
-              (fun e ->
-                output_string oc (e ^ "\n"))
-              entries;
-            close_out oc;
-            Printf.printf "Done.\n";
-          with exn ->
-            close_out oc;
-            Printf.printf "Done.\n";
-        with exn -> Printf.printf "Error with file %s.\n" fname))
+  let fn = make_stash_directive begin function
+  | UTop_history.Input i ->
+    i
+  | Output out | Error out | Bad_input out | Warnings out ->
+    Printf.sprintf "(* %s *)" out
+  end
+  in
+  Hashtbl.add Toploop.directive_table "utop_stash" (Toploop.Directive_string fn)
+
+let () =
+  let fn = make_stash_directive begin function
+  | UTop_history.Input i | Bad_input i ->
+    Printf.sprintf "# %s" i
+  | Output out | Error out | Warnings out ->
+    out
+  end
+  in
+  Hashtbl.add Toploop.directive_table "utop_save_session" (Toploop.Directive_string fn)
 
 (* +-----------------------------------------------------------------+
    | Camlp4                                                          |

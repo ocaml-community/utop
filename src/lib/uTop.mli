@@ -210,14 +210,13 @@ val history_file_max_entries : int option ref
       default) the maximum number of entries if [history] will be
       used. *)
 
-val stashable_session_history : LTerm_history.t
-  (** A history consisting only of expressions successfully evaluated
-      during the current session. Because stashing is supposed to
-      produce a valid OCaml file which will behave roughly the same as
-      the console, it is best if this history never gets truncated, so
-      its maximum size is set at [max_int]. While this will certainly
-      lead to a slight memory leaking problem, UTop sessions are
-      rarely long enough to make it a serious issue. *)
+val stashable_session_history : UTop_history.t
+  (** A history consisting of inputs and resulting values or errors of the
+      current session. Because stashing is supposed to produce a valid OCaml
+      file which will behave roughly the same as the console, it is best if
+      this history never gets truncated. While this will certainly lead to a
+      slight memory leaking problem, UTop sessions are rarely long enough to
+      make it a serious issue. *)
 
 (** {6 Console specific configuration} *)
 
