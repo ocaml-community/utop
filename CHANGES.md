@@ -1,8 +1,10 @@
-1.20 (2017-04-04)
------------------
+1.20 (in preparation)
+---------------------
 
 * Add tab completion for `#mod_use` (#181, Leonid Rozenberg)
-* Mention `#help` in `#utop_help` (#190, Fabian (github user copy))
+* Mention `#help` in `#utop_help` (#190, Fabian Hemmer)
+* Add `#utop_stash` and `#utop_save` to save the session to a file
+  (#169, #199, Christopher Mcalpine and Fabian Hemmer)
 * Drop support for camlp4/camlp5
 * Drop support for OCaml <= 4.01
 * Switch the build system to jbuilder
