@@ -676,7 +676,7 @@ let () =
     out
   end
   in
-  Hashtbl.add Toploop.directive_table "utop_save_session" (Toploop.Directive_string fn)
+  Hashtbl.add Toploop.directive_table "utop_save" (Toploop.Directive_string fn)
 
 (* +-----------------------------------------------------------------+
    | Camlp4                                                          |
