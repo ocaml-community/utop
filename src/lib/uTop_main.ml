@@ -555,7 +555,35 @@ let rewrite phrase =
         let tstr, _, _ = Typemod.type_structure !Toploop.toplevel_env pstr Location.none in
         Parsetree.Ptop_def (List.map2 rewrite_str_item pstr tstr.Typedtree.str_items)
       else
-        Parsetree.Ptop_def pstr
+        phrase
+    | Parsetree.Ptop_dir _ ->
+      phrase
+
+let add_let binding_name def =
+  let open Parsetree in
+  match def with
+  | { pstr_desc = Pstr_eval (expr, attr); pstr_loc } ->
+    {
+      pstr_loc;
+      pstr_desc = Pstr_value (Asttypes.Nonrecursive, [
+        {
+        pvb_pat = {
+          ppat_desc = Ppat_var { txt = binding_name; loc = pstr_loc; };
+          ppat_loc = pstr_loc;
+          ppat_attributes = [];
+        };
+        pvb_expr = expr;
+        pvb_attributes = attr;
+        pvb_loc = pstr_loc;
+      }]);
+    }
+  | _ ->
+    def
+
+let bind_expressions name phrase =
+  match phrase with
+    | Parsetree.Ptop_def pstr ->
+      Parsetree.Ptop_def (List.map (add_let name) pstr)
     | Parsetree.Ptop_dir _ ->
       phrase
 
@@ -608,7 +636,9 @@ let rec loop term =
   match phrase_opt with
     | Some phrase ->
         (* Rewrite toplevel expressions. *)
-        let phrase = rewrite phrase in
+        let count = S.value UTop_private.count in
+        let binding_name = Printf.sprintf "_%d" count in
+        let phrase = bind_expressions binding_name @@ rewrite phrase in
         (* Set the margin of standard formatters. *)
         UTop_private.set_margin Format.std_formatter;
         UTop_private.set_margin Format.err_formatter;
