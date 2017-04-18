@@ -50,6 +50,24 @@ val get_hide_reserved : unit -> bool
 val set_hide_reserved : bool -> unit
   (** Modifies {!hide_reserved}. *)
 
+val create_implicits : bool signal
+  (** If [true] (not the default) expressions entered in the toplevel are
+      automatically bound, for example:
+
+      {[
+        # 3 + 4;;
+        _0 : int = 7
+        # _0 + 10;;
+        _1 : int = 17
+      ]}
+  *)
+
+val get_create_implicits : unit -> bool
+  (** Returns the value of {!create_implicits}. *)
+
+val set_create_implicits : bool -> unit
+  (** Modifies {!create_implicits}. *)
+
 val topfind_verbose : bool signal
   (** If [false] (the default) messages from findlib are hidden. This is only effective
       with findlib >= 1.4. *)
