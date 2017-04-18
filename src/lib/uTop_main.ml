@@ -307,6 +307,15 @@ let render_out_phrase term string =
 let orig_print_out_signature = !Toploop.print_out_signature
 let orig_print_out_phrase = !Toploop.print_out_phrase
 
+let is_implicit_name name =
+  name <> "" &&
+  name.[0] = '_' &&
+  try
+    let _ = int_of_string @@ String.sub name 1 (String.length name - 1) in
+    true
+  with
+    Failure _ -> false
+
 let rec map_items unwrap wrap items =
   match items with
   | [] ->
@@ -331,7 +340,11 @@ let rec map_items unwrap wrap items =
       | Outcometree.Osig_ellipsis -> ("", Outcometree.Orec_not)
 #endif
     in
-    let keep = name = "" || name.[0] <> '_' in
+
+    let keep =
+      name = "" || name.[0] <> '_' ||
+      (UTop.get_create_implicits () && is_implicit_name name)
+    in
     if keep then
       item :: map_items unwrap wrap items
     else
@@ -567,15 +580,15 @@ let add_let binding_name def =
       pstr_loc;
       pstr_desc = Pstr_value (Asttypes.Nonrecursive, [
         {
-        pvb_pat = {
-          ppat_desc = Ppat_var { txt = binding_name; loc = pstr_loc; };
-          ppat_loc = pstr_loc;
-          ppat_attributes = [];
-        };
-        pvb_expr = expr;
-        pvb_attributes = attr;
-        pvb_loc = pstr_loc;
-      }]);
+          pvb_pat = {
+            ppat_desc = Ppat_var { txt = binding_name; loc = pstr_loc; };
+            ppat_loc = pstr_loc;
+            ppat_attributes = [];
+          };
+          pvb_expr = expr;
+          pvb_attributes = attr;
+          pvb_loc = pstr_loc;
+        }]);
     }
   | _ ->
     def
@@ -637,8 +650,14 @@ let rec loop term =
     | Some phrase ->
         (* Rewrite toplevel expressions. *)
         let count = S.value UTop_private.count in
-        let binding_name = Printf.sprintf "_%d" count in
-        let phrase = bind_expressions binding_name @@ rewrite phrase in
+        let phrase = rewrite phrase in
+        let phrase =
+          if UTop.get_create_implicits () then
+            let binding_name = Printf.sprintf "_%d" count in
+            bind_expressions binding_name phrase
+          else
+            phrase
+        in
         (* Set the margin of standard formatters. *)
         UTop_private.set_margin Format.std_formatter;
         UTop_private.set_margin Format.err_formatter;
@@ -1203,6 +1222,10 @@ let args = Arg.align [
   " Hide identifiers starting with a '_' (the default)";
   "-show-reserved", Arg.Unit (fun () -> UTop.set_hide_reserved false),
   " Show identifiers starting with a '_'";
+  "-no-implicit-bindings", Arg.Unit (fun () -> UTop.set_create_implicits false),
+  " Don't add implicit bindings for expressions (the default)";
+  "-implicit-bindings", Arg.Unit (fun () -> UTop.set_create_implicits true),
+  " Add implicit bindings: <expr>;; -> let _0 = <expr>;;";
   "-no-autoload", Arg.Clear autoload,
   " Disable autoloading of files in $OCAML_TOPLEVEL_PATH/autoload";
   "-require", Arg.String (fun s -> preload := `Packages (UTop.split_words s) :: !preload),
