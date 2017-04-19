@@ -80,6 +80,21 @@ let convert_locs str locs = List.map (fun (a, b) -> (index_of_offset str a, inde
    | The read-line class                                             |
    +-----------------------------------------------------------------+ *)
 
+#if OCAML_VERSION >= (4, 04, 0)
+let ast_impl_kind = Pparse.Structure
+#elif OCAML_VERSION >= (4, 02, 0)
+let ast_impl_kind = Config.ast_impl_magic_number
+#endif
+
+let preprocess input =
+  match input with
+#if OCAML_VERSION >= (4, 02, 0)
+    | Parsetree.Ptop_def pstr ->
+        Parsetree.Ptop_def
+          (Pparse.apply_rewriters ~tool_name:"ocaml" ast_impl_kind pstr)
+#endif
+    | _ -> input
+
 let parse_input_multi input =
   let buf = Buffer.create 32 in
   let result =
@@ -89,47 +104,33 @@ let parse_input_multi input =
            | UTop.Error (locs, msg) ->
                UTop.Error (convert_locs input locs, "Error: " ^ msg ^ "\n")
            | UTop.Value phrases ->
-               (UTop.Value phrases))
+               try
+                 UTop.Value (List.map preprocess phrases)
+               with Pparse.Error error ->
+                 Pparse.report_error Format.str_formatter error;
+                 UTop.Error ([], "Error: " ^ Format.flush_str_formatter () ^ "\n"))
   in
   (result, Buffer.contents buf)
 
-#if OCAML_VERSION >= (4, 04, 0)
-let ast_impl_kind = Pparse.Structure
-#elif OCAML_VERSION >= (4, 02, 0)
-let ast_impl_kind = Config.ast_impl_magic_number
-#endif
-
 let parse_and_check input eos_is_error =
   let buf = Buffer.create 32 in
-  let preprocess input =
-    match input with
-#if OCAML_VERSION >= (4, 02, 0)
-    | UTop.Value (Parsetree.Ptop_def pstr) ->
-        begin try
-          let pstr = Pparse.apply_rewriters ~tool_name:"ocaml"
-                                ast_impl_kind pstr in
-          UTop.Value (Parsetree.Ptop_def pstr)
-        with Pparse.Error error ->
-          Pparse.report_error Format.str_formatter error;
-          let err_string = Format.flush_str_formatter () in
-          UTop.Error ([], err_string)
-        end
-#endif
-    | _ -> input
-  in
   let result =
     UTop.collect_formatters buf [Format.err_formatter]
       (fun () ->
-         match preprocess (!UTop.parse_toplevel_phrase input eos_is_error) with
+         match !UTop.parse_toplevel_phrase input eos_is_error with
            | UTop.Error (locs, msg) ->
-               let msg = "Error: " ^ msg in
-               UTop.Error (convert_locs input locs, msg ^ "\n")
+               UTop.Error (convert_locs input locs, "Error: " ^ msg ^ "\n")
            | UTop.Value phrase ->
-               match UTop.check_phrase phrase with
-                 | None ->
-                     UTop.Value phrase
-                 | Some (locs, msg) ->
-                     UTop.Error (convert_locs input locs, msg))
+               try
+                 let phrase = preprocess phrase in
+                 match UTop.check_phrase phrase with
+                   | None ->
+                       UTop.Value phrase
+                   | Some (locs, msg) ->
+                       UTop.Error (convert_locs input locs, msg)
+               with Pparse.Error error ->
+                 Pparse.report_error Format.str_formatter error;
+                 UTop.Error ([], "Error: " ^ Format.flush_str_formatter () ^ "\n"))
   in
   (result, Buffer.contents buf)
 
