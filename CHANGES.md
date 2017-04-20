@@ -5,6 +5,8 @@
 * Mention `#help` in `#utop_help` (#190, Fabian Hemmer)
 * Add `#utop_stash` and `#utop_save` to save the session to a file
   (#169, #199, Christopher Mcalpine and Fabian Hemmer)
+* Fix a bug where utop wouldn't apply ppx rewriters when running in
+  emacs (Bug report: #192, fix: #202, Deokhwan Kim)
 * Drop support for camlp4/camlp5
 * Drop support for OCaml <= 4.01
 * Switch the build system to jbuilder
