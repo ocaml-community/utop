@@ -217,14 +217,13 @@ Useful as file variable."))
    "Name of preprocesor. Currently supported camlp4o, camlp4r.
 Useful as file variable."))
 
-(defvar utop-skip-blank-and-comments 'utop-compat-skip-blank-and-comments
-  "The function used to skip blanks and comments.")
-
-(defvar utop-skip-to-end-of-phrase 'utop-compat-skip-to-end-of-phrase
-  "The function used to find the end of a phrase")
+(defvar utop-next-phrase-beginning 'utop-compat-next-phrase-beginning
+  "The function used to find the beginning of the next phrase.")
 
 (defvar utop-discover-phrase 'utop-compat-discover-phrase
-  "The function used to discover a phrase")
+  "The function used to discover a phrase.
+It should return a triple (begin-pos, end-pos,
+end-pos-with-comments)." )
 
 (defvar utop-skip-after-eval-phrase t
   "Whether to skip to next phrase after evaluation.
@@ -247,21 +246,14 @@ list of 3 function symbols: (tuareg-symbol typerex-symbol caml-symbol)."
 supports caml, tuareg and typerex modes by default. For other
 modes you need to set these variables:
 
-- `utop-skip-blank-and-comments'
-- `utop-skip-to-end-of-phrase'
+- `utop-next-phrase-beginning'
 - `utop-discover-phrase'
 "
                      (symbol-name major-mode))))))
 
-(defun utop-compat-skip-blank-and-comments ()
+(defun utop-compat-next-phrase-beginning ()
   (funcall
-   (utop-compat-resolve '(tuareg-skip-blank-and-comments
-                          typerex-skip-blank-and-comments
-                          caml-skip-blank-and-comments))))
-
-(defun utop-compat-skip-to-end-of-phrase ()
-  (funcall
-   (utop-compat-resolve '(tuareg-skip-to-end-of-phrase
+   (utop-compat-resolve '(tuareg-next-phrase
                           typerex-skip-to-end-of-phrase
                           caml-skip-to-end-of-phrase))))
 
@@ -844,17 +836,7 @@ If ADD-TO-HISTORY is t then the input will be added to history."
 (defun utop-eval (start end &optional mode)
   "Eval the given region in utop."
   ;; Select the text of the region
-  (let ((text
-         (save-excursion
-           ;; Search the start and end of the current paragraph
-           (goto-char start)
-           (funcall utop-skip-blank-and-comments)
-           (setq start (point))
-           (goto-char end)
-           (funcall utop-skip-to-end-of-phrase)
-           (setq end (point))
-           (buffer-substring-no-properties start end))))
-    (utop-eval-string text mode)))
+  (utop-eval-string (buffer-substring-no-properties start end) mode))
 
 (defun utop-eval-region (start end)
   "Eval the current region in utop."
@@ -871,8 +853,9 @@ If ADD-TO-HISTORY is t then the input will be added to history."
       (let ((pair (funcall utop-discover-phrase)))
         (setq end (nth 2 pair))
         (utop-eval (nth 0 pair) (nth 1 pair))))
-    (if utop-skip-after-eval-phrase
-        (goto-char end))))
+    (when utop-skip-after-eval-phrase
+      (goto-char end)
+      (funcall utop-next-phrase-beginning))))
 
 (defun utop-eval-buffer ()
   "Send the buffer to utop."
@@ -1106,7 +1089,7 @@ defaults to 0."
 ;; +-----------------------------------------------------------------+
 
 (defun utop-arguments ()
-  "Get argument list from the given command line of utop"
+  "Get argument list from the given command line of utop."
   ;; Split the command line
   (let ((arguments (split-string-and-unquote utop-command)))
     ;; Ensure it contains at least one argument
@@ -1114,14 +1097,14 @@ defaults to 0."
     arguments))
 
 (defun utop-query-arguments ()
-  "Returns the arguments of the utop command to run."
+  "Return the arguments of the utop command to run."
   ;; Read the command to run
   (when utop-edit-command
     (setq utop-command (read-shell-command "utop command line: " utop-command))
     (utop-arguments)))
 
 (defun utop-start (arguments)
-  "Start utop."
+  "Start utop given ARGUMENTS."
   ;; Reset variables
   (setq utop-prompt-min (point-max))
   (setq utop-prompt-max (point-max))
