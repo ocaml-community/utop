@@ -260,14 +260,12 @@ let parse_default parse str eos_is_error =
       | Syntaxerr.Variable_in_scope (loc, var) ->
         Error ([mkloc loc],
                Printf.sprintf "In this scoped type, variable '%s is reserved for the local type %s." var var)
-#if OCAML_VERSION >= (4, 02, 0)
       | Syntaxerr.Not_expecting (loc, nonterm) ->
           Error ([mkloc loc],
                  Printf.sprintf "Syntax error: %s not expected" nonterm)
       | Syntaxerr.Ill_formed_ast (loc, s) ->
           Error ([mkloc loc],
                  Printf.sprintf "Error: broken invariant in parsetree: %s" s)
-#endif
 #if OCAML_VERSION >= (4, 03, 0)
       | Syntaxerr.Invalid_package_type (loc, s) ->
           Error ([mkloc loc],
@@ -331,34 +329,6 @@ let check_phrase phrase =
         (* Construct "let _ () = let module _ = struct <items> end in ()" in order to test
            the typing and compilation of [items] without evaluating them. *)
         let unit = with_loc loc (Longident.Lident "()") in
-#if OCAML_VERSION < (4, 02, 0)
-        let structure = {
-          pmod_loc = loc;
-          pmod_desc = Pmod_structure (item :: items);
-        } in
-        let unit_expr = {
-          pexp_desc = Pexp_construct (unit, None, false);
-          pexp_loc = loc;
-        } in
-        let unit_patt = {
-          ppat_desc = Ppat_construct (unit, None, false);
-          ppat_loc = loc;
-        } in
-        let letmodule = {
-          pexp_desc = Pexp_letmodule (with_loc loc "_", structure, unit_expr);
-          pexp_loc = loc;
-        } in
-        let func = {
-          pexp_desc = Pexp_function ("", None, [(unit_patt, letmodule)]);
-          pexp_loc = loc;
-        } in
-        let top_def = {
-          pstr_desc = Pstr_value (Asttypes.Nonrecursive,
-                                  [({ ppat_desc = Ppat_var (with_loc loc "_");
-                                      ppat_loc = loc }, func)]);
-          pstr_loc = loc;
-        } in
-#else
         let top_def =
           let open Ast_helper in
           with_default_loc loc
@@ -369,7 +339,6 @@ let check_phrase phrase =
                       (Mod.structure (item :: items))
                       (Exp.construct unit None))))
         in
-#endif
         let check_phrase = Ptop_def [top_def] in
         try
           let _ =
