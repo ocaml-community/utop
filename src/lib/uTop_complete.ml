@@ -302,7 +302,6 @@ let list_directories dir =
        String_set.empty
        (try Sys.readdir (if dir = "" then Filename.current_dir_name else dir) with Sys_error _ -> [||]))
 
-#if OCAML_VERSION >= (4, 02, 0)
 let path () =
   let path_separator =
     match Sys.os_type with
@@ -325,7 +324,6 @@ let path () =
   try
     split (Sys.getenv "PATH") path_separator
   with Not_found -> []
-#endif
 
 (* +-----------------------------------------------------------------+
    | Names listing                                                   |
@@ -394,13 +392,8 @@ let visible_modules () =
             acc)
         String_set.empty !Config.load_path)
 
-#if OCAML_VERSION >= (4, 02, 0)
 let field_name { ld_id = id } = Ident.name id
 let constructor_name { cd_id = id } = Ident.name id
-#else
-let field_name (id, _, _) = Ident.name id
-let constructor_name (id, _, _) = Ident.name id
-#endif
 
 let add_fields_of_type decl acc =
   match decl.type_kind with
@@ -410,10 +403,8 @@ let add_fields_of_type decl acc =
         List.fold_left (fun acc field -> add (field_name field) acc) acc fields
     | Type_abstract ->
         acc
-#if OCAML_VERSION >= (4, 02, 0)
     | Type_open ->
         acc
-#endif
 
 let add_names_of_type decl acc =
   match decl.type_kind with
@@ -423,16 +414,14 @@ let add_names_of_type decl acc =
         List.fold_left (fun acc field -> add (field_name field) acc) acc fields
     | Type_abstract ->
         acc
-#if OCAML_VERSION >= (4, 02, 0)
     | Type_open ->
         acc
-#endif
 
 #if OCAML_VERSION >= (4, 04, 0)
 let path_of_mty_alias = function
   | Mty_alias (_, path) -> path
   | _ -> assert false
-#elif OCAML_VERSION >= (4, 02, 0)
+#else
 let path_of_mty_alias = function
   | Mty_alias path -> path
   | _ -> assert false
@@ -443,11 +432,7 @@ let rec names_of_module_type = function
       List.fold_left
         (fun acc decl -> match decl with
            | Sig_value (id, _)
-#if OCAML_VERSION >= (4, 02, 0)
            | Sig_typext (id, _, _)
-#else
-           | Sig_exception (id, _)
-#endif
            | Sig_module (id, _, _)
            | Sig_modtype (id, _)
            | Sig_class (id, _, _)
@@ -458,23 +443,16 @@ let rec names_of_module_type = function
         String_set.empty decls
   | Mty_ident path -> begin
       match lookup_env Env.find_modtype path !Toploop.toplevel_env with
-#if OCAML_VERSION < (4, 02, 0)
-        | Some Modtype_abstract -> String_set.empty
-        | Some Modtype_manifest module_type -> names_of_module_type module_type
-#else
         | Some { mtd_type = None } -> String_set.empty
         | Some { mtd_type = Some module_type } -> names_of_module_type module_type
-#endif
         | None -> String_set.empty
     end
-#if OCAML_VERSION >= (4, 02, 0)
   | Mty_alias _ as mty_alias -> begin
       let path = path_of_mty_alias mty_alias in
       match lookup_env Env.find_module path !Toploop.toplevel_env with
         | None -> String_set.empty
         | Some { md_type = module_type } -> names_of_module_type module_type
     end
-#endif
   | _ ->
       String_set.empty
 
@@ -483,11 +461,7 @@ let rec fields_of_module_type = function
       List.fold_left
         (fun acc decl -> match decl with
            | Sig_value (id, _)
-#if OCAML_VERSION >= (4, 02, 0)
            | Sig_typext (id, _, _)
-#else
-           | Sig_exception (id, _)
-#endif
            | Sig_module (id, _, _)
            | Sig_modtype (id, _)
            | Sig_class (id, _, _)
@@ -498,35 +472,23 @@ let rec fields_of_module_type = function
         String_set.empty decls
   | Mty_ident path -> begin
       match lookup_env Env.find_modtype path !Toploop.toplevel_env with
-#if OCAML_VERSION < (4, 02, 0)
-        | Some Modtype_abstract -> String_set.empty
-        | Some Modtype_manifest module_type -> fields_of_module_type module_type
-#else
         | Some { mtd_type = None } -> String_set.empty
         | Some { mtd_type = Some module_type } -> fields_of_module_type module_type
-#endif
         | None -> String_set.empty
     end
-#if OCAML_VERSION >= (4, 02, 0)
   | Mty_alias _ as mty_alias -> begin
       let path = path_of_mty_alias mty_alias in
       match lookup_env Env.find_module path !Toploop.toplevel_env with
         | None -> String_set.empty
         | Some { md_type = module_type } -> fields_of_module_type module_type
   end
-#endif
   | _ ->
       String_set.empty
 
-#if OCAML_VERSION < (4, 02, 0)
-let lookup_module = Env.lookup_module
-let find_module = Env.find_module
-#else
 let lookup_module id env =
   let path = Env.lookup_module id env ~load:true in
   (path, (Env.find_module path env).md_type)
 let find_module path env = (Env.find_module path env).md_type
-#endif
 
 let names_of_module longident =
   try
@@ -563,11 +525,7 @@ let list_global_names () =
         loop (add (Ident.name id) acc) summary
     | Env.Env_type(summary, id, decl) ->
         loop (add_names_of_type decl (add (Ident.name id) acc)) summary
-#if OCAML_VERSION >= (4, 02, 0)
     | Env.Env_extension(summary, id, _) ->
-#else
-    | Env.Env_exception(summary, id, _) ->
-#endif
         loop (add (Ident.name id) acc) summary
     | Env.Env_module(summary, id, _) ->
         loop (add (Ident.name id) acc) summary
@@ -577,10 +535,8 @@ let list_global_names () =
         loop (add (Ident.name id) acc) summary
     | Env.Env_cltype(summary, id, _) ->
         loop (add (Ident.name id) acc) summary
-#if OCAML_VERSION >= (4, 02, 0)
     | Env.Env_functor_arg(summary, id) ->
         loop (add (Ident.name id) acc) summary
-#endif
 #if OCAML_VERSION >= (4, 04, 0)
     | Env.Env_constraints (summary, _) ->
         loop acc summary
@@ -632,18 +588,12 @@ let list_global_fields () =
         loop (add (Ident.name id) acc) summary
     | Env.Env_type(summary, id, decl) ->
         loop (add_fields_of_type decl (add (Ident.name id) acc)) summary
-#if OCAML_VERSION >= (4, 02, 0)
     | Env.Env_extension(summary, id, _) ->
-#else
-    | Env.Env_exception(summary, id, _) ->
-#endif
         loop (add (Ident.name id) acc) summary
     | Env.Env_module(summary, id, _) ->
         loop (add (Ident.name id) acc) summary
-#if OCAML_VERSION >= (4, 02, 0)
     | Env.Env_functor_arg(summary, id) ->
         loop (add (Ident.name id) acc) summary
-#endif
     | Env.Env_modtype(summary, id, _) ->
         loop (add (Ident.name id) acc) summary
     | Env.Env_class(summary, id, _) ->
@@ -916,7 +866,6 @@ let complete ~syntax ~phrase_terminator ~input =
         (loc.idx2 - Zed_utf8.length name,
          List.map (function (w, Directory) -> (w, "") | (w, File) -> (w, "\"" ^ phrase_terminator)) result)
 
-#if OCAML_VERSION >= (4, 02, 0)
     (* Completion on #ppx. *)
     | [(Symbol "#", _); (Lident ("ppx"), _); (String (tlen, false), loc)] ->
         let file = String.sub input (loc.ofs1 + tlen) (String.length input - loc.ofs1 - tlen) in
@@ -945,7 +894,6 @@ let complete ~syntax ~phrase_terminator ~input =
         let result = lookup_assoc name list in
         (loc.idx2 - Zed_utf8.length name,
          List.map (function (w, Directory) -> (w, "") | (w, File) -> (w, "\"" ^ phrase_terminator)) result)
-#endif
 
     (* Completion on #use and #mod_use *)
     | [(Symbol "#", _); (Lident "use", _); (String (tlen, false), loc)]
