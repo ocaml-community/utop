@@ -1,6 +1,9 @@
 1.20 (in preparation)
 ---------------------
 
+* Add `-implicit-bindings` option to automatically bind expressions to names
+  `_0`, `_1` and so on. For example, `3 + 4;;` becomes `let _0 = 3 + 4;;`
+  (#161, #193, Fabian Hemmer)
 * Add tab completion for `#mod_use` (#181, Leonid Rozenberg)
 * Mention `#help` in `#utop_help` (#190, Fabian Hemmer)
 * Add `#utop_stash` and `#utop_save` to save the session to a file
