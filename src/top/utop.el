@@ -242,6 +242,7 @@ list of 3 function symbols: (tuareg-symbol typerex-symbol caml-symbol)."
    ((eq major-mode 'tuareg-mode  ) (nth 0 choices))
    ((eq major-mode 'typerex-mode ) (nth 1 choices))
    ((eq major-mode 'caml-mode    ) (nth 2 choices))
+   ((eq major-mode 'reason-mode  ) (nth 3 choices))
    (t (error (format "utop doesn't support the major mode \"%s\". It
 supports caml, tuareg and typerex modes by default. For other
 modes you need to set these variables:
@@ -255,13 +256,15 @@ modes you need to set these variables:
   (funcall
    (utop-compat-resolve '(tuareg-next-phrase
                           typerex-skip-to-end-of-phrase
-                          caml-skip-to-end-of-phrase))))
+                          caml-skip-to-end-of-phrase
+                          reason-next-phrase))))
 
 (defun utop-compat-discover-phrase ()
   (funcall
    (utop-compat-resolve '(tuareg-discover-phrase
                           typerex-discover-phrase
-                          caml-discover-phrase))))
+                          caml-find-phrase
+                          reason-discover-phrase))))
 
 ;; +-----------------------------------------------------------------+
 ;; | Compability with previous emacs version                         |
@@ -850,9 +853,9 @@ If ADD-TO-HISTORY is t then the input will be added to history."
   (utop-prepare-for-eval)
   (let ((end))
     (save-excursion
-      (let ((pair (funcall utop-discover-phrase)))
-        (setq end (nth 2 pair))
-        (utop-eval (nth 0 pair) (nth 1 pair))))
+      (let ((triple (funcall utop-discover-phrase)))
+        (setq end (nth 2 triple))
+        (utop-eval (nth 0 triple) (nth 1 triple))))
     (when utop-skip-after-eval-phrase
       (goto-char end)
       (funcall utop-next-phrase-beginning))))
