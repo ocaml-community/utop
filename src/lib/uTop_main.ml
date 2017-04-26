@@ -420,7 +420,7 @@ type rewrite_rule = {
 
 let longident_lwt_main_run = Longident.Ldot (Longident.Lident "Lwt_main", "run")
 let longident_async_thread_safe_block_on_async_exn =
-  Longident.parse "Async.Std.Thread_safe.block_on_async_exn"
+  Longident.parse "Async.Thread_safe.block_on_async_exn"
 let longident_unit = Longident.Lident "()"
 
 #if OCAML_VERSION >= (4, 03, 0)
@@ -444,10 +444,10 @@ let rewrite_rules = [
     enabled = UTop.auto_run_lwt;
   };
 
-  (* Rewrite Async.Std.Defered.t expressions to
-     Async.Std.Thread_safe.block_on_async_exn (fun () -> <expr>). *)
+  (* Rewrite Async.Defered.t expressions to
+     Async.Thread_safe.block_on_async_exn (fun () -> <expr>). *)
   {
-    type_to_rewrite = Longident.parse "Async.Std.Deferred.t";
+    type_to_rewrite = Longident.parse "Async.Deferred.t";
     path_to_rewrite = None;
     required_values = [longident_async_thread_safe_block_on_async_exn];
     rewrite = (fun loc e ->
