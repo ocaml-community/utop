@@ -97,7 +97,7 @@ val set_margin_function : (LTerm_geom.size -> int option) -> unit
       The default is:
 
       {[
-        fun size -> Some (max 80 size.cols)
+        fun size -> Some (min 80 size.cols)
       ]}
   *)
 
