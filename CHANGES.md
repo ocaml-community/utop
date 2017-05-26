@@ -1,5 +1,5 @@
-1.20 (in preparation)
----------------------
+2.0.0 (2016-05-26)
+------------------
 
 * Add `-implicit-bindings` option to automatically bind expressions to names
   `_0`, `_1` and so on. For example, `3 + 4;;` becomes `let _0 = 3 + 4;;`
