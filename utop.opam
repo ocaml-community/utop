@@ -12,12 +12,11 @@ build: [
 depends: [
   "base-unix"
   "base-threads"
-  "ocamlfind"    {>= "1.4.0"}
+  "ocamlfind"    {>= "1.7.2"}
   "lambda-term"  {>= "1.2"}
   "lwt"
   "react"        {>= "1.0.0"}
   "cppo"         {build & >= "1.1.2"}
-  "findlib"      {>= "1.7.2"}
   "jbuilder"     {build & >= "1.0+beta9"}
 ]
 available: [ ocaml-version >= "4.02.3" & ocaml-version < "4.06.0"]
