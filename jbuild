@@ -3,3 +3,8 @@
 (install
  ((section share)
   (files (utoprc-dark utoprc-light))))
+
+(alias
+ ((name examples)
+  (deps (examples/custom-utop/myutop.bc
+         examples/interact/test_program.bc))))

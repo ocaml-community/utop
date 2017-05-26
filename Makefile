@@ -17,6 +17,11 @@ reinstall:
 	$(MAKE) uninstall
 	$(MAKE) install
 
+
+.PHONY: examples
+examples:
+	jbuilder build @examples
+
 .PHONY: test
 test:
 	jbuilder runtest
