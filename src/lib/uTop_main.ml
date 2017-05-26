@@ -1365,81 +1365,71 @@ let main () = main_internal ~initial_env:None
 
 type value = V : string * _ -> value
 
-#if not defined ENABLE_INTERACT
-
-let interact ~search_path ~unit ~loc:(fname, lnum, cnum, _) ~values =
-  failwith "\
-UTop_main.interact wasn't enabled at compile time.
-If you installed utop through opam, just do this to enable this feature:
-
-  $ opam install ppx_tools"
-
-#else
-
 exception Found of Env.t
 
-let interact ~search_path ~unit ~loc:(fname, lnum, cnum, _) ~values =
+#if OCAML_VERSION >= (4, 03, 0)
+let get_required_label name args =
+  match List.find (fun (lab, _) -> lab = Asttypes.Labelled name) args with
+  | _, x -> x
+  | exception Not_found -> None
+#else
+let get_required_label name args =
+  match List.find (fun (lab, _, k) -> lab = "loc" && k = Typedtree.Required) args with
+  | _, x, _ -> x
+  | _ -> None
+  | exception Not_found -> None
+#endif
+
+let walk dir ~init ~f =
+  let rec loop dir acc =
+    let acc = f dir acc in
+    ArrayLabels.fold_left (Sys.readdir dir) ~init:acc ~f:(fun acc fn ->
+      let fn = Filename.concat dir fn in
+      match Unix.lstat fn with
+      | { st_kind = S_DIR; _ } -> loop fn acc
+      | _                      -> acc)
+  in
+  match Unix.lstat dir with
+  | exception Unix.Unix_error(ENOENT, _, _) -> init
+  | _ -> loop dir init
+
+let interact ?(search_path=[]) ?(build_dir="_build") ~unit ~loc:(fname, lnum, cnum, _)
+      ~values =
+  let search_path = walk build_dir ~init:search_path ~f:(fun dir acc -> dir :: acc) in
   let cmt_fname =
     try
       Misc.find_in_path_uncap search_path (unit ^ ".cmt")
     with Not_found ->
-      Printf.ksprintf failwith "%s.cmt not found in search path!" fname
+      Printf.ksprintf failwith "%s.cmt not found in search path!" unit
   in
   let cmt_infos = Cmt_format.read_cmt cmt_fname in
-  let search = object(self)
-    inherit [unit] UTop_cmt_lifter.lifter as super
+  let module Search =
+    TypedtreeIter.MakeIterator(struct
+      include TypedtreeIter.DefaultIteratorArgument
 
-    method! lift_Typedtree_expression e =
-      super#lift_Typedtree_expression e;
-      match e.exp_desc with
-      | Texp_apply (_, args) -> begin
-          try
-            match
-#if OCAML_VERSION >= (4, 03, 0)
-              List.find (fun (lab, _) -> lab = Asttypes.Labelled "loc"   ) args,
-              List.find (fun (lab, _) -> lab = Asttypes.Labelled "values") args
-#else
-              List.find (fun (lab, _, _) -> lab = "loc"   ) args,
-              List.find (fun (lab, _, _) -> lab = "values") args
-#endif
-            with
-#if OCAML_VERSION >= (4, 03, 0)
-            | (Asttypes.Labelled _, Some l), (Asttypes.Labelled _, Some v) ->
-#else
-            | (_, Some l, Required), (_, Some v, Required) ->
-#endif
-              let pos = l.exp_loc.loc_start in
-              if pos.pos_fname = fname &&
-                 pos.pos_lnum = lnum   &&
-                 pos.pos_cnum - pos.pos_bol = cnum then
-                raise (Found v.exp_env)
-            | _ -> ()
-          with Not_found -> ()
-        end
-      | _ -> ()
-
-    method! lift_Types_label_description _ = ()
-    method! lift_Types_type_declaration _ = ()
-
-    method tuple _ = ()
-    method string _ = ()
-    method record _ _ = ()
-    method nativeint _ = ()
-    method list _ = ()
-    method lift_Types_Vars_t _ _ = ()
-    method lift_Types_Variance_t _ = ()
-    method lift_Types_Meths_t _ _ = ()
-    method lift_Types_Concr_t _ = ()
-    method lift_Env_t _ = ()
-    method int64 _ = ()
-    method int32 _ = ()
-    method int _ = ()
-    method constr _ _ = ()
-    method char _ = ()
-    method array _ = ()
-  end in
+      let enter_expression (e : Typedtree.expression) =
+        match e.exp_desc with
+        | Texp_apply (_, args) -> begin
+            try
+              match get_required_label "loc"    args,
+                    get_required_label "values" args
+              with
+              | Some l, Some v ->
+                let pos = l.exp_loc.loc_start in
+                if pos.pos_fname = fname &&
+                   pos.pos_lnum = lnum   &&
+                   pos.pos_cnum - pos.pos_bol = cnum then
+                  raise (Found v.exp_env)
+              | _ -> ()
+            with Not_found -> ()
+          end
+        | _ -> ()
+     end) in
   try
-    search#lift_Cmt_format_cmt_infos cmt_infos;
+    begin match cmt_infos.cmt_annots with
+    | Implementation st -> Search.iter_structure st
+    | _ -> ()
+    end;
     failwith "Couldn't find location in cmt file"
   with Found env ->
   try
@@ -1458,5 +1448,3 @@ let () =
         Some (Location.error_of_printer_file Envaux.report_error err)
       | _ -> None
     )
-
-#endif

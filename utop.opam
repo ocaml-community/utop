@@ -20,7 +20,4 @@ depends: [
   "findlib.top"  {>= "1.7.2"}
   "jbuilder"     {build & >= "1.0+beta9"}
 ]
-depopts: [
-  "ppx_tools"
-]
-available: [ ocaml-version >= "4.02.3" ]
+available: [ ocaml-version >= "4.02.3" & ocaml-version < "4.06.0"]

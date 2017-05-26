@@ -19,8 +19,10 @@ exception Term of int
 type value = V : string * _ -> value
 
 val interact
-  :  search_path:string list
+  :  ?search_path:string list
+  -> ?build_dir:string
   -> unit:string
   -> loc:(string * int * int * int)
   -> values:value list
+  -> unit
   -> unit

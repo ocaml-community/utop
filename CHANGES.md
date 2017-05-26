@@ -13,6 +13,7 @@
 * Drop support for camlp4/camlp5
 * Drop support for OCaml <= 4.01
 * Switch the build system to jbuilder
+* Resurect `UTop_main.interact`
 
 1.19.3 (2016-08-15)
 -------------------

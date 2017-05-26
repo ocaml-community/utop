@@ -28,7 +28,7 @@ test:
 
 .PHONY: all-supported-ocaml-versions
 all-supported-ocaml-versions:
-	jbuilder runtest --workspace jbuild-workspace.dev
+	jbuilder build --workspace jbuild-workspace.dev
 
 .PHONY: cinaps
 cinaps:
