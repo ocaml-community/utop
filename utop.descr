@@ -1,0 +1,6 @@
+Universal toplevel for OCaml
+utop is an improved toplevel for OCaml. It can run in a terminal or in
+Emacs. It supports line edition, history, real-time and context
+sensitive completion, colors, and more.
+
+It integrates with the tuareg mode in Emacs.
