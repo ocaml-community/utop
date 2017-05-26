@@ -1,5 +1,4 @@
 opam-version: "1.2"
-version: "1.20"
 maintainer: "jeremie@dimino.org"
 authors: ["Jérémie Dimino"]
 license: "BSD3"
@@ -7,6 +6,7 @@ homepage: "https://github.com/diml/utop"
 bug-reports: "https://github.com/diml/utop/issues"
 dev-repo: "git://github.com/diml/utop.git"
 build: [
+  ["jbuilder" "subst"] {pinned}
   ["jbuilder" "build" "-p" name "-j" jobs]
 ]
 depends: [
@@ -17,8 +17,8 @@ depends: [
   "lwt"
   "react"        {>= "1.0.0"}
   "cppo"         {build & >= "1.1.2"}
-  "findlib_top"
-  "jbuilder"     {build & >= "1.0+beta7"}
+  "findlib.top"  {>= "1.7.2"}
+  "jbuilder"     {build & >= "1.0+beta9"}
 ]
 depopts: [
   "ppx_tools"

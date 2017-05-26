@@ -17,7 +17,7 @@ let (>>=) = Lwt.(>>=)
 
 module String_set = Set.Make(String)
 
-let version = UTop_version.version
+let version = "%%VERSION%%"
 
 (* +-----------------------------------------------------------------+
    | History                                                         |
