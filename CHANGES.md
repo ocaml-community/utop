@@ -8,8 +8,11 @@
 * Mention `#help` in `#utop_help` (#190, Fabian Hemmer)
 * Add `#utop_stash` and `#utop_save` to save the session to a file
   (#169, #199, Christopher Mcalpine and Fabian Hemmer)
+* Add support for reason in the emacs mode (#206, Andrea Richiardi)
 * Fix a bug where utop wouldn't apply ppx rewriters when running in
   emacs (Bug report: #192, fix: #202, Deokhwan Kim)
+* Refactor the use of hooks to support the various OCaml emacs mode
+  (#201, Andrea Richiardi)
 * Drop support for camlp4/camlp5
 * Drop support for OCaml <= 4.01
 * Switch the build system to jbuilder
