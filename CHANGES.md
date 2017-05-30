@@ -1,3 +1,8 @@
+2.0.1 (2016-05-30)
+------------------
+
+* Fix: restore the installation of `utop.el` (#210, Louis Gesbert)
+
 2.0.0 (2016-05-26)
 ------------------
 
