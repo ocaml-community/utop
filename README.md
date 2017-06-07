@@ -206,6 +206,57 @@ It shall point to the directory `stublibs` inside your ocaml installation.
 Creating a custom utop-enabled toplevel
 ---------------------------------------
 
+### With jbuilder
+
+The recommended way to build a custom utop toplevel is via
+[jbuilder][jbuilder]. The entry point of the custom utop must call
+`UTop_main.main`. For instance write the following `myutop.ml` file:
+
+```ocaml
+let () = UTop_main.main ()
+```
+
+and the following jbuild file:
+
+```scheme
+(executable
+ ((name myutop)
+  (link_flags (-linkall))
+  (libraries (utop))))
+```
+
+then to build the toplevel, run:
+
+```
+$ jbuilder myutop.bc
+```
+
+Note the `-linkall` in the link flags. By default OCaml doesn't link
+unused modules, however for a toplevel you don't know in advance what
+the user is going to use so you must link everything.
+
+If you want to include more libraries in your custom utop, simply add
+them to the `(libraries ...)` field.
+
+Additionally, if you want to install this topevel, add the two
+following fields to the executable stanza:
+
+```scheme
+  (public_name myutop)
+  (modes (byte))
+```
+
+The `(modes ...)` field is to tell jbuilder to install the byte-code
+version of the executable, as currently native toplevels are not fully
+suported.
+
+[jbuilder]: https://github.com/janestreet/jbuilder
+
+### Manually, with ocamlfind
+
+This section describe methods using ocamlfind. These are no longer
+tested, so there is no guarantee they still work.
+
 If you want to create a custom toplevel with utop instead of the
 classic one you need to link it with utop and its dependencies and
 call `UTop_main.main` in the last linked unit. You also need to pass
