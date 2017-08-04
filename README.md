@@ -2,14 +2,15 @@
 
 See the last announcement for more details: https://sympa.inria.fr/sympa/arc/caml-list/2017-05/msg00124.html
 
-utop - a universal toplevel for OCaml
-=====================================
+utop — a universal toplevel (i.e., REPL) for OCaml
+==================================================
 
-utop is an improved toplevel for OCaml. It can run in a terminal or
+utop is an improved toplevel (i.e., Read-Eval-Print Loop) for
+OCaml. It can run in a terminal or
 in Emacs. It supports line editing, history, real-time and context
 sensitive completion, colors, and more.
 
-It integrates with the tuareg and typerex modes in Emacs.
+It integrates with the Tuareg and typerex modes in Emacs.
 
 [![Travis build Status](https://travis-ci.org/diml/utop.svg?branch=master)](https://travis-ci.org/diml/utop)
 
