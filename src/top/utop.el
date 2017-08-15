@@ -18,6 +18,7 @@
 ;;; Code:
 
 (require 'easymenu)
+(require 'pcase)
 
 ;; tabulated-list is a part of Emacs 24
 (require 'tabulated-list nil t)
@@ -238,19 +239,20 @@ Caml toplevel")
 (defun utop-compat-resolve (choices)
   "Resolve a symbol based on the current major mode. CHOICES is a
 list of 3 function symbols: (tuareg-symbol typerex-symbol caml-symbol)."
-  (cond
-   ((eq major-mode 'tuareg-mode  ) (nth 0 choices))
-   ((eq major-mode 'typerex-mode ) (nth 1 choices))
-   ((eq major-mode 'caml-mode    ) (nth 2 choices))
-   ((eq major-mode 'reason-mode  ) (nth 3 choices))
-   (t (error (format "utop doesn't support the major mode \"%s\". It
+  (nth
+   (pcase major-mode
+     ('tuareg-mode 0)
+     ('typerex-mode 1)
+     ('caml-mode 2)
+     ('reason-mode 3)
+     (major-mode (error (format "utop doesn't support the major mode \"%s\". It
 supports caml, tuareg, typerex and reason modes by default. For other
 modes you need to set these variables:
 
 - `utop-next-phrase-beginning'
 - `utop-discover-phrase'
-"
-                     (symbol-name major-mode))))))
+" major-mode))))
+   choices))
 
 (defun utop-compat-next-phrase-beginning ()
   (funcall
