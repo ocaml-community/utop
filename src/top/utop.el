@@ -27,7 +27,7 @@
 ;; +-----------------------------------------------------------------+
 
 (defconst utop-license "BSD3"
-"Copyright (c) 2011, Jeremie Dimino <jeremie@dimino.org>
+  "Copyright (c) 2011, Jeremie Dimino <jeremie@dimino.org>
 All rights reserved.
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -285,34 +285,34 @@ modes you need to set these variables:
     (make-local-variable 'tabulated-list-printer)
     (set (make-local-variable 'revert-buffer-function) 'tabulated-list-revert)
 
-  (defun tabulated-list-init-header ()
-    (save-excursion
-      (let ((inhibit-read-only t))
-            (mapc
-             (lambda (entry)
-               (let* ((name (nth 0 entry))
-                      (size (length name))
-                      (padding (- (nth 1 entry) size)))
-                 (insert name)
-                 (insert-char ?\s padding)
-                 )) tabulated-list-format)
-            (insert "\n"))))
+    (defun tabulated-list-init-header ()
+      (save-excursion
+        (let ((inhibit-read-only t))
+          (mapc
+           (lambda (entry)
+             (let* ((name (nth 0 entry))
+                    (size (length name))
+                    (padding (- (nth 1 entry) size)))
+               (insert name)
+               (insert-char ?\s padding)
+               )) tabulated-list-format)
+          (insert "\n"))))
 
-  (defun tabulated-list-print (dummy)
-    (save-excursion
-      (let ((inhibit-read-only t))
-        (mapc (lambda (entry)
-                (goto-char (point-max))
-                (apply tabulated-list-printer entry))
-              tabulated-list-entries))
-      t))
+    (defun tabulated-list-print (dummy)
+      (save-excursion
+        (let ((inhibit-read-only t))
+          (mapc (lambda (entry)
+                  (goto-char (point-max))
+                  (apply tabulated-list-printer entry))
+                tabulated-list-entries))
+        t))
 
-  (defun tabulated-list-revert (ignore-auto noconfirm)
-    (let ((inhibit-read-only t))
-      (delete-region (point-min) (point-max))
-      (tabulated-list-init-header)
-      (tabulated-list-print t))))
-)
+    (defun tabulated-list-revert (ignore-auto noconfirm)
+      (let ((inhibit-read-only t))
+        (delete-region (point-min) (point-max))
+        (tabulated-list-init-header)
+        (tabulated-list-print t))))
+  )
 
 ;; +-----------------------------------------------------------------+
 ;; | Utils                                                           |
@@ -426,7 +426,7 @@ it is started."
             (left-word 1)
             (setq iterating (not (save-excursion
                                    (search-forward-regexp "[ \t\r\n].*" start-pos t)))))))
-          end-pos)))
+      end-pos)))
 
 (defun utop-ident-at-point ()
   "Identifier at point"
@@ -434,14 +434,14 @@ it is started."
         (end-pos (utop-ident-looking nil)))
     (buffer-substring-no-properties start-pos end-pos)))
 
-; Currently not working - the communication is asynchronous so how to
-; make sure without implementing another state that the type
-; information has been already printed?
+;; Currently not working - the communication is asynchronous so how to
+;; make sure without implementing another state that the type
+;; information has been already printed?
 (defun utop-type-at-point ()
   "Find type of an identifier at point from uTop"
-  (utop-eval-string (utop-ident-at-point))
-  ;  (utop-last-type)
-  )
+  (utop-eval-string (utop-ident-at-point)))
+;;  (utop-last-type)
+
 
 ;; +-----------------------------------------------------------------+
 ;; | Edition control                                                 |
@@ -651,16 +651,16 @@ it is started."
       (progn
         (cond
          ((eq utop-state 'copy)
-           (kill-new utop-pending-entry))
-          (t
-           (goto-char utop-prompt-max)
-           ;; Delete current input
-           (delete-region utop-prompt-max (point-max))
-           ;; Insert entry
-           (insert utop-pending-entry)))
-           ;; Resume edition
+          (kill-new utop-pending-entry))
+         (t
+          (goto-char utop-prompt-max)
+          ;; Delete current input
+          (delete-region utop-prompt-max (point-max))
+          ;; Insert entry
+          (insert utop-pending-entry)))
+        ;; Resume edition
         (utop-set-state 'edit)))
-      ;; We are at a bound of history
+     ;; We are at a bound of history
      ((string= command "history-bound")
       ;; Just resume edition
       (utop-set-state 'edit))
@@ -988,7 +988,7 @@ defaults to 0."
   ;; Get the list of packages
   (let* ((packages (utop-ocamlfind-list-packages))
          (max-name-length 0))
-        ;; Find the longest package name
+    ;; Find the longest package name
     (mapc
      (lambda (package)
        (setq max-name-length
@@ -1035,7 +1035,7 @@ defaults to 0."
     (utop-list-packages-mode)
     (utop-list-packages--refresh)
     (tabulated-list-print t)
-  (display-buffer buffer)))
+    (display-buffer buffer)))
 
 (defun utop-query-load-package-list ()
   "Load packages defined in utop-package-list buffer local variable."
@@ -1235,7 +1235,7 @@ Special keys for utop:
         (setq utop-command cmd)
         ;; Put it in utop mode
         (with-current-buffer buf (utop-mode)))))
-  buf))
+    buf))
 
 (provide 'utop-minor-mode)
 (provide 'utop)
