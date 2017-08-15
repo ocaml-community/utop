@@ -358,34 +358,25 @@ it is started."
   "Change the utop state and mode-line-process."
   (setq utop-state state)
   (setq mode-line-process
-        (cond
-         ((eq state 'edit)
-          ": idle")
-         ((eq state 'comp)
-          ": completion")
-         ((eq state 'hist)
-          ": history")
-         ((eq state 'wait)
-          ": running")
-         ((eq state 'copy)
-          ": copying")
-         ((eq state 'done)
-          (let ((status (process-status utop-process)) (code (process-exit-status utop-process)))
-            (cond
-             ((and (eq status 'exit) (= code 0))
-              ": exited[0]")
-             ((eq status 'exit)
-              (let ((msg (concat ": exited[" (int-to-string code) "]")))
-                (add-text-properties 0 (length msg) '(face bold) msg)
-                msg))
-             ((eq status 'signal)
-              (let ((msg (concat ": killed[" (int-to-string code) "]")))
-                (add-text-properties 0 (length msg) '(face bold) msg)
-                msg))
-             (t
-              ": unknown"))))
-         (t
-          ": unknown"))))
+        (pcase state
+          ('edit ": idle")
+          ('comp ": completion")
+          ('hist ": history")
+          ('wait ": running")
+          ('copy ": copying")
+          ('done
+           (let ((status (process-status utop-process))
+                 (code (process-exit-status utop-process)))
+             (cond
+              ((and (eq status 'exit) (= code 0))
+               ": exited[0]")
+              ((or (eq status 'exit) (eq status 'signal))
+               (let* ((status-name (pcase status ('exit "exited") ('signal "killed")))
+                      (msg (concat ": " status-name "[" (int-to-string code) "]")))
+                 (add-text-properties 0 (length msg) '(face bold) msg)
+                 msg))
+              (else ": unknown"))))
+          (_ ": unknown"))))
 
 (defun utop-send-data (cmd)
   "Send current input to utop"
@@ -450,17 +441,14 @@ it is started."
 ;; +-----------------------------------------------------------------+
 
 (defun utop-cannot-edit ()
-  (cond
-   ((eq utop-state 'wait)
-    (signal 'text-read-only '("You cannot edit the buffer while ocaml is evaluating a phrase")))
-   ((eq utop-state 'done)
-    (signal 'text-read-only '("You cannot edit the buffer when ocaml is not running")))
-   ((eq utop-state 'comp)
-    (signal 'text-read-only '("You cannot edit the buffer while waiting for completion")))
-   ((eq utop-state 'copy)
-    (signal 'text-read-only '("You cannot edit the buffer while waiting for copy of last input")))
-   ((eq utop-state 'hist)
-    (signal 'text-read-only '("You cannot edit the buffer while waiting for history")))))
+  (signal
+   'text-read-only
+   (pcase utop-state
+     ('wait "You cannot edit the buffer while ocaml is evaluating a phrase")
+     ('done "You cannot edit the buffer when ocaml is not running")
+     ('comp "You cannot edit the buffer while waiting for completion")
+     ('copy "You cannot edit the buffer while waiting for copy of last input")
+     ('hist "You cannot edit the buffer while waiting for history"))))
 
 (defun utop-before-change (start stop)
   (unless utop-inhibit-check
@@ -587,106 +575,106 @@ it is started."
   ;; Extract the command and its argument
   (string-match "\\`\\([a-z-]*\\):\\(.*\\)\\'" line)
   (let ((command (match-string 1 line)) (argument (match-string 2 line)))
-    (cond
-     ;; Output on stdout
-     ((string= command "stdout")
-      (utop-insert-output argument 'utop-stdout))
-     ;; Output on stderr
-     ((string= command "stderr")
-      (utop-insert-output argument 'utop-stderr))
-     ;; Synchronisation of the phrase terminator
-     ((string= command "phrase-terminator")
-      (setq utop-phrase-terminator argument))
-     ;; A new prompt
-     ((string= command "prompt")
-      (let ((prompt (apply utop-prompt ())))
-        ;; Insert the new prompt
-        (utop-insert-prompt prompt)
-        ;; Increment the command number
-        (setq utop-command-number (+ utop-command-number 1))
-        ;; Send the initial command if any
-        (when utop-initial-command
-          (goto-char (point-max))
-          (insert utop-initial-command)
-          (setq utop-initial-command nil)
-          (utop-eval-input nil t nil utop-initial-mode)
-          (setq utop-initial-mode nil))))
-     ;; Input has been accepted
-     ((string= command "accept")
-      ;; Add a newline character at the end of the buffer
-      (goto-char (point-max))
-      (insert "\n")
-      ;; Make input frozen
-      (add-text-properties utop-prompt-max (point-max) '(face utop-frozen))
-      ;; Highlight errors
-      (let ((offsets (split-string argument "," t)))
-        (while offsets
-          (let ((a (string-to-number (car offsets)))
-                (b (string-to-number (cadr offsets))))
-            (add-text-properties (min (point-max) (+ utop-input-prompt-max a))
-                                 (min (point-max) (+ utop-input-prompt-max b))
-                                 '(face utop-error))
-            (setq offsets (cdr (cdr offsets))))))
-      ;; Make everything read-only
-      (add-text-properties (point-min) (point-max) utop-non-editable-properties)
-      ;; Advance the prompt
-      (setq utop-prompt-min (point-max))
-      (setq utop-prompt-max (point-max)))
-     ;; Continue editiong
-     ((string= command "continue")
-      ;; Add a newline character at the position where the user
-      ;; pressed enter
-      (when utop-pending-position
-        (goto-char (+ utop-prompt-max utop-pending-position))
-        (insert "\n"))
-      ;; Reset the state
-      (utop-set-state 'edit))
-     ;; Part of a history entry
-     ((string= command "history-data")
-      (cond
-       (utop-pending-entry
-        (setq utop-pending-entry (concat utop-pending-entry "\n" argument)))
-       (t
-        (setq utop-pending-entry argument))))
-     ;; End of history data
-     ((string= command "history-end")
-      (progn
-        (cond
-         ((eq utop-state 'copy)
-          (kill-new utop-pending-entry))
-         (t
-          (goto-char utop-prompt-max)
-          ;; Delete current input
-          (delete-region utop-prompt-max (point-max))
-          ;; Insert entry
-          (insert utop-pending-entry)))
-        ;; Resume edition
-        (utop-set-state 'edit)))
-     ;; We are at a bound of history
-     ((string= command "history-bound")
-      ;; Just resume edition
-      (utop-set-state 'edit))
-     ;; Complete with a word
-     ((string= command "completion-word")
-      (utop-set-state 'edit)
-      (with-current-buffer utop-complete-buffer (insert argument))
-      ;; Hide completion
-      (minibuffer-hide-completions))
-     ;; Start of completion
-     ((string= command "completion-start")
-      (setq utop-completion nil))
-     ;; A new possible completion
-     ((string= command "completion")
-      (push argument utop-completion))
-     ;; End of completion
-     ((string= command "completion-stop")
-      (utop-set-state 'edit)
-      (if (> (length utop-completion) 1)
-          (with-current-buffer utop-complete-buffer
-            (with-output-to-temp-buffer "*Completions*"
-              (display-completion-list (nreverse utop-completion))))
-        (minibuffer-hide-completions))
-      (setq utop-completion nil)))))
+    (pcase command
+      ;; Output on stdout
+      ("stdout"
+       (utop-insert-output argument 'utop-stdout))
+      ;; Output on stderr
+      ("stderr"
+       (utop-insert-output argument 'utop-stderr))
+      ;; Synchronisation of the phrase terminator
+      ("phrase-terminator"
+       (setq utop-phrase-terminator argument))
+      ;; A new prompt
+      ("prompt"
+       (let ((prompt (apply utop-prompt ())))
+         ;; Insert the new prompt
+         (utop-insert-prompt prompt)
+         ;; Increment the command number
+         (setq utop-command-number (+ utop-command-number 1))
+         ;; Send the initial command if any
+         (when utop-initial-command
+           (goto-char (point-max))
+           (insert utop-initial-command)
+           (setq utop-initial-command nil)
+           (utop-eval-input nil t nil utop-initial-mode)
+           (setq utop-initial-mode nil))))
+      ;; Input has been accepted
+      ("accept"
+       ;; Add a newline character at the end of the buffer
+       (goto-char (point-max))
+       (insert "\n")
+       ;; Make input frozen
+       (add-text-properties utop-prompt-max (point-max) '(face utop-frozen))
+       ;; Highlight errors
+       (let ((offsets (split-string argument "," t)))
+         (while offsets
+           (let ((a (string-to-number (car offsets)))
+                 (b (string-to-number (cadr offsets))))
+             (add-text-properties (min (point-max) (+ utop-input-prompt-max a))
+                                  (min (point-max) (+ utop-input-prompt-max b))
+                                  '(face utop-error))
+             (setq offsets (cdr (cdr offsets))))))
+       ;; Make everything read-only
+       (add-text-properties (point-min) (point-max) utop-non-editable-properties)
+       ;; Advance the prompt
+       (setq utop-prompt-min (point-max))
+       (setq utop-prompt-max (point-max)))
+      ;; Continue editiong
+      ("continue"
+       ;; Add a newline character at the position where the user
+       ;; pressed enter
+       (when utop-pending-position
+         (goto-char (+ utop-prompt-max utop-pending-position))
+         (insert "\n"))
+       ;; Reset the state
+       (utop-set-state 'edit))
+      ;; Part of a history entry
+      ("history-data"
+       (cond
+        (utop-pending-entry
+         (setq utop-pending-entry (concat utop-pending-entry "\n" argument)))
+        (t
+         (setq utop-pending-entry argument))))
+      ;; End of history data
+      ("history-end"
+       (progn
+         (cond
+          ((eq utop-state 'copy)
+           (kill-new utop-pending-entry))
+          (t
+           (goto-char utop-prompt-max)
+           ;; Delete current input
+           (delete-region utop-prompt-max (point-max))
+           ;; Insert entry
+           (insert utop-pending-entry)))
+         ;; Resume edition
+         (utop-set-state 'edit)))
+      ;; We are at a bound of history
+      ("history-bound"
+       ;; Just resume edition
+       (utop-set-state 'edit))
+      ;; Complete with a word
+      ("completion-word"
+       (utop-set-state 'edit)
+       (with-current-buffer utop-complete-buffer (insert argument))
+       ;; Hide completion
+       (minibuffer-hide-completions))
+      ;; Start of completion
+      ("completion-start"
+       (setq utop-completion nil))
+      ;; A new possible completion
+      ("completion"
+       (push argument utop-completion))
+      ;; End of completion
+      ("completion-stop"
+       (utop-set-state 'edit)
+       (if (> (length utop-completion) 1)
+           (with-current-buffer utop-complete-buffer
+             (with-output-to-temp-buffer "*Completions*"
+               (display-completion-list (nreverse utop-completion))))
+         (minibuffer-hide-completions))
+       (setq utop-completion nil)))))
 
 (defun utop-process-output (process output)
   "Process the output of utop"
