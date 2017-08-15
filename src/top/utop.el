@@ -244,7 +244,7 @@ list of 3 function symbols: (tuareg-symbol typerex-symbol caml-symbol)."
    ((eq major-mode 'caml-mode    ) (nth 2 choices))
    ((eq major-mode 'reason-mode  ) (nth 3 choices))
    (t (error (format "utop doesn't support the major mode \"%s\". It
-supports caml, tuareg and typerex modes by default. For other
+supports caml, tuareg, typerex and reason modes by default. For other
 modes you need to set these variables:
 
 - `utop-next-phrase-beginning'
