@@ -400,7 +400,7 @@ it is started."
      ('copy "You cannot edit the buffer while waiting for copy of last input")
      ('hist "You cannot edit the buffer while waiting for history"))))
 
-(defun utop-before-change (start stop)
+(defun utop-before-change (_start stop)
   (unless utop-inhibit-check
     (cond
      ((not (eq utop-state 'edit))
@@ -626,7 +626,7 @@ it is started."
          (minibuffer-hide-completions))
        (setq utop-completion nil)))))
 
-(defun utop-process-output (process output)
+(defun utop-process-output (_process output)
   "Process the output of utop"
   (with-current-buffer utop-buffer-name
     (utop-perform
@@ -871,7 +871,7 @@ defaults to 0."
     (unless (eq utop-state 'done)
       (utop-send-string (format "exit:%d\n" (or exit-code 0))))))
 
-(defun utop-sentinel (process msg)
+(defun utop-sentinel (_process _msg)
   "Callback for process' state change."
   (let ((buffer (get-buffer utop-buffer-name)))
     ;; Do nothing if the buffer does not exist anymore
@@ -948,7 +948,7 @@ defaults to 0."
       (setq packages (cdr packages))))
   (setq tabulated-list-entries (nreverse tabulated-list-entries)))
 
-(defun utop-package-printer (id cols)
+(defun utop-package-printer (_id cols)
   "Print one findlib package entry."
   (let ((width (cadr (elt tabulated-list-format 0))))
     (insert-text-button (elt cols 0)
