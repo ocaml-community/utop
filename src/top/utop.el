@@ -325,7 +325,7 @@ it is started."
                       (msg (concat ": " status-name "[" (int-to-string code) "]")))
                  (add-text-properties 0 (length msg) '(face bold) msg)
                  msg))
-              (else ": unknown"))))
+              (t ": unknown"))))
           (_ ": unknown"))))
 
 (defun utop-send-data (cmd)
