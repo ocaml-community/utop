@@ -1,4 +1,4 @@
-;;; utop.el --- Universal toplevel for OCaml
+;;; utop.el --- Universal toplevel for OCaml -*- lexical-binding: t -*-
 
 ;; Copyright: (c) 2011, Jeremie Dimino <jeremie@dimino.org>
 ;; Author: Jeremie Dimino <jeremie@dimino.org>
