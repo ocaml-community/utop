@@ -992,6 +992,18 @@ module Emacs(M : sig end) = struct
             loop_commands history_prev history_next
           else
             loop ()
+      | Some ("complete-company", _) ->
+        let input = read_data () in
+        let _, words =
+          UTop_complete.complete
+            ~syntax:(UTop.get_syntax ())
+            ~phrase_terminator:(UTop.get_phrase_terminator ())
+            ~input
+        in
+        send "completion-start" "";
+        List.iter (fun (w, _) -> send "completion" w) words;
+        send "completion-stop" "";
+        loop_commands history_prev history_next
       | Some ("complete", _) ->
           let input = read_data () in
           let start, words =

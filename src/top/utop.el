@@ -230,6 +230,10 @@ end-pos-with-comments)." )
 Non-nil means skip to the end of the phrase after evaluation in the
 Caml toplevel")
 
+(defvar utop--complete-k (lambda (_candidates) '())
+  "continuation function to populate the candidates for the company
+backend")
+
 ;; +-----------------------------------------------------------------+
 ;; | Compability with different ocaml major modes                    |
 ;; +-----------------------------------------------------------------+
@@ -619,11 +623,12 @@ it is started."
       ;; End of completion
       ("completion-stop"
        (utop-set-state 'edit)
-       (if (> (length utop-completion) 1)
-           (with-current-buffer utop-complete-buffer
-             (with-output-to-temp-buffer "*Completions*"
-               (display-completion-list (nreverse utop-completion))))
-         (minibuffer-hide-completions))
+       ;; (if (> (length utop-completion) 1)
+       ;;     (with-current-buffer utop-complete-buffer
+       ;;       (with-output-to-temp-buffer "*Completions*"
+       ;;         (display-completion-list (nreverse utop-completion))))
+       ;;   (minibuffer-hide-completions))
+       (funcall utop--complete-k (nreverse utop-completion))
        (setq utop-completion nil)))))
 
 (defun utop-process-output (_process output)
@@ -711,7 +716,7 @@ If ADD-TO-HISTORY is t then the input will be added to history."
     ;; We are now waiting for completion
     (utop-set-state 'comp)
     ;; Send all lines to utop
-    (utop-send-string "complete:\n")
+    (utop-send-string "complete-company:\n")
     (while lines
       ;; Send the line
       (utop-send-string (concat "data:" (car lines) "\n"))
@@ -1122,6 +1127,8 @@ See https://github.com/diml/utop for configuration information."))
   (make-local-variable 'utop-pending-position)
   (make-local-variable 'utop-pending-entry)
 
+  (make-local-variable 'utop--complete-k)
+
   ;; Set the hook to call before changing the buffer
   (add-hook 'before-change-functions 'utop-before-change nil t)
 
@@ -1130,6 +1137,10 @@ See https://github.com/diml/utop for configuration information."))
 
   ;; Save history before killing the buffer
   (add-hook 'kill-buffer-query-functions (lambda () (utop-save-history) t) nil t)
+
+  ;; add company completion hook:
+  (with-eval-after-load 'company
+    (add-to-list 'company-backends #'utop-company-backend))
 
   ;; Start utop
   (utop-start (utop-arguments)))
@@ -1176,6 +1187,20 @@ Special keys for utop:
         ;; Put it in utop mode
         (with-current-buffer buf (utop-mode)))))
     buf))
+
+(defun utop-company-backend (command &optional _arg &rest ignored)
+  "company backend for utop completions"
+  (interactive (list 'interactive))
+  (pcase command
+    ('interactive (company-begin-backend 'utop-company-backend))
+    ('sorted t)
+    ('prefix (company-grab-symbol))
+    ('candidates
+     (progn
+       `(:async
+         . ,(lambda (k)
+              (setq utop--complete-k k)
+              (call-interactively #'utop-complete)))))))
 
 (provide 'utop-minor-mode)
 (provide 'utop)
