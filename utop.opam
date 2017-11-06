@@ -20,4 +20,4 @@ depends: [
   "cppo"         {build & >= "1.1.2"}
   "jbuilder"     {build & >= "1.0+beta9"}
 ]
-available: [ ocaml-version >= "4.02.3" & ocaml-version < "4.06.0"]
+available: [ ocaml-version >= "4.06.0" & ocaml-version < "4.07.0"]
