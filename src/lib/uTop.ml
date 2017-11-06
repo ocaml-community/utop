@@ -180,7 +180,7 @@ let discard_formatters pps f =
   (* Output functions. *)
   let out_functions = {
     Format.out_string = (fun _ _ _ -> ()); out_flush = ignore;
-    out_newline = ignore; out_spaces = ignore;
+    out_newline = ignore; out_spaces = ignore; out_indent = ignore;
   } in
   (* Replace formatter functions. *)
   List.iter (fun pp -> Format.pp_set_formatter_out_functions pp out_functions) pps;
