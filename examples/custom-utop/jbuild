@@ -2,5 +2,6 @@
 
 (executable
  ((name myutop)
+  (flags (:standard -safe-string))
   (link_flags (-linkall))
   (libraries (utop))))
