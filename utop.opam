@@ -15,9 +15,11 @@ depends: [
   "ocamlfind"    {>= "1.7.2"}
   "lambda-term"  {>= "1.2"}
   "lwt"
+  "lwt_react"
   "camomile"
   "react"        {>= "1.0.0"}
   "cppo"         {build & >= "1.1.2"}
   "jbuilder"     {build & >= "1.0+beta9"}
 ]
-available: [ ocaml-version >= "4.02.3" & ocaml-version < "4.06.0"]
+build-test: [["jbuilder" "runtest" "-p" name "-j" jobs]]
+available: [ocaml-version >= "4.02.3"]

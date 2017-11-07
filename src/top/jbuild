@@ -3,6 +3,7 @@
 (executables
  ((names (utop))
   (libraries (utop))
+  (flags (:standard -safe-string))
   (link_flags (-linkall))))
 
 (rule
