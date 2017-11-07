@@ -1,3 +1,8 @@
+2.0.2 (2017-11-07)
+------------------
+
+* 4.06.0 compatibility (#221)
+
 2.0.1 (2016-05-30)
 ------------------
 
@@ -104,7 +109,7 @@
 * don't try to colorize the output when there is too much
 * add auto-completion for the `#ppx` directive
 * add support for -ppx, -dparsetree and -dsource
-* fix compatiblity with OCaml 4.02
+* fix compatibility with OCaml 4.02
 * update pa_optcomp
 * do not display the camlp4 welcome message
 
