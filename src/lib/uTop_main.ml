@@ -1175,7 +1175,8 @@ let print_version () =
   exit 0
 
 let print_version_num () =
-  Printf.printf "%s\n" UTop.version
+  Printf.printf "%s\n" UTop.version;
+  exit 0
 
 (* Config from command line *)
 let autoload = ref true
