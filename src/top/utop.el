@@ -237,11 +237,15 @@ backend")
 (defvar utop-version "0"
   "detected version of utop. 0 for unknown")
 
+(defvar utop--company-loaded nil)
+
 (defun utop--supports-company ()
-  ;; version< only works on version numbers 
-  (condition-case nil
-      (version< "2.0.2" utop-version)
-    (error t)))
+  (and
+   ;; version< only works on version numbers 
+   (condition-case nil
+       (version< "2.0.2" utop-version)
+     (error t))
+   (featurep 'company)))
 
 ;; +-----------------------------------------------------------------+
 ;; | Compability with different ocaml major modes                    |
@@ -632,12 +636,14 @@ it is started."
       ;; End of completion
       ("completion-stop"
        (utop-set-state 'edit)
-       ;; (if (> (length utop-completion) 1)
-       ;;     (with-current-buffer utop-complete-buffer
-       ;;       (with-output-to-temp-buffer "*Completions*"
-       ;;         (display-completion-list (nreverse utop-completion))))
-       ;;   (minibuffer-hide-completions))
-       (funcall utop--complete-k (nreverse utop-completion))
+       (if (utop--supports-company)
+           (funcall utop--complete-k (nreverse utop-completion))
+         (progn
+           (if (> (length utop-completion) 1)
+               (with-current-buffer utop-complete-buffer
+                 (with-output-to-temp-buffer "*Completions*"
+                   (display-completion-list (nreverse utop-completion))))
+             (minibuffer-hide-completions))))
        (setq utop-completion nil)))))
 
 (defun utop-process-output (_process output)
@@ -725,7 +731,10 @@ If ADD-TO-HISTORY is t then the input will be added to history."
     ;; We are now waiting for completion
     (utop-set-state 'comp)
     ;; Send all lines to utop
-    (utop-send-string "complete-company:\n")
+    (utop-send-string
+     (if (utop--supports-company)
+         "complete-company:\n"
+       "complete:\n"))
     (while lines
       ;; Send the line
       (utop-send-string (concat "data:" (car lines) "\n"))
