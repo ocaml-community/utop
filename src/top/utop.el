@@ -234,6 +234,15 @@ Caml toplevel")
   "continuation function to populate the candidates for the company
 backend")
 
+(defvar utop-version "0"
+  "detected version of utop. 0 for unknown")
+
+(defun utop--supports-company ()
+  ;; version< only works on version numbers 
+  (condition-case nil
+      (version< "2.0.2" utop-version)
+    (error t)))
+
 ;; +-----------------------------------------------------------------+
 ;; | Compability with different ocaml major modes                    |
 ;; +-----------------------------------------------------------------+
@@ -1068,6 +1077,12 @@ defaults to 0."
   ;; Create the sub-process
   (setq utop-process (apply 'start-process "utop" (current-buffer) (car arguments) (cdr arguments)))
 
+  (let ((version (shell-command-to-string (concat utop-command " -version"))))
+    (save-match-data
+      (and
+       (string-match "version \\([^,]+\\)," version)
+       (setq utop-version (match-string 1 version)))))
+
   ;; Set the initial state: we are waiting for ocaml to send the
   ;; initial prompt
   (utop-set-state 'wait)
@@ -1126,6 +1141,7 @@ See https://github.com/diml/utop for configuration information."))
   (make-local-variable 'utop-phrase-terminator)
   (make-local-variable 'utop-pending-position)
   (make-local-variable 'utop-pending-entry)
+  (make-local-variable 'utop-version)
 
   (make-local-variable 'utop--complete-k)
 
