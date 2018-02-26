@@ -351,11 +351,9 @@ it is started."
     (setq utop-input-prompt-max utop-prompt-max)
     ;; Send all lines to utop
     (utop-send-string cmd)
-    (while lines
+    (dolist (line lines)
       ;; Send the line
-      (utop-send-string (concat "data:" (car lines) "\n"))
-      ;; Remove it and continue
-      (setq lines (cdr lines)))
+      (utop-send-string (concat "data:" line "\n")))
     (utop-send-string "end:\n")))
 
 (defun utop-last-type ()
@@ -735,11 +733,9 @@ If ADD-TO-HISTORY is t then the input will be added to history."
      (if (utop--supports-company)
          "complete-company:\n"
        "complete:\n"))
-    (while lines
+    (dolist (line lines)
       ;; Send the line
-      (utop-send-string (concat "data:" (car lines) "\n"))
-      ;; Remove it and continue
-      (setq lines (cdr lines)))
+      (utop-send-string (concat "data:" line "\n")))
     (utop-send-string "end:\n")))
 
 (defun utop-complete ()
@@ -962,13 +958,12 @@ defaults to 0."
     ;; Set the header column size to the maximal length
     (setcdr (elt tabulated-list-format 0) (list max-name-length t))
     ;; Build a list, accumulating in tabulated-list-entries
-    (while packages
-      (let* ((package (car packages))
+    (dolist (package packages)
+      (let* ((package package)
              (name (car package))
              (version (cdr package)))
         (push (list package (vector name version))
-              tabulated-list-entries))
-      (setq packages (cdr packages))))
+              tabulated-list-entries))))
   (setq tabulated-list-entries (nreverse tabulated-list-entries)))
 
 (defun utop-package-printer (_id cols)
