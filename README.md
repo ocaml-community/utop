@@ -1,7 +1,3 @@
-# IMPORTANT: utop is looking for a new maintainer
-
-See the last announcement for more details: https://sympa.inria.fr/sympa/arc/caml-list/2017-05/msg00124.html
-
 utop — a universal toplevel (i.e., REPL) for OCaml
 ==================================================
 
