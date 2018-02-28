@@ -1,3 +1,8 @@
+2.1.0 (2018-02-28)
+------------------
+
+* Add support for company-mode based completion in utop.el (#233)
+
 2.0.2 (2017-11-07)
 ------------------
 
