@@ -663,8 +663,9 @@ it is started."
                (utop-process-line line)
              (progn
                (save-match-data
-                 (when (string-match "protocol-version:\\([0-9]+\\)" line)
-                   (setq utop-protocol-version (match-string 1 line))))
+                 (if (string-match "protocol-version:\\([0-9]+\\)" line)
+                     (setq utop-protocol-version (match-string 1 line))
+                   (utop-process-line line)))
                (setq utop--read-version t)))
            ;; Remove it and continue
            (setq lines (cdr lines))))
