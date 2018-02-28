@@ -992,6 +992,18 @@ module Emacs(M : sig end) = struct
             loop_commands history_prev history_next
           else
             loop ()
+      | Some ("complete-company", _) ->
+        let input = read_data () in
+        let _, words =
+          UTop_complete.complete
+            ~syntax:(UTop.get_syntax ())
+            ~phrase_terminator:(UTop.get_phrase_terminator ())
+            ~input
+        in
+        send "completion-start" "";
+        List.iter (fun (w, _) -> send "completion" w) words;
+        send "completion-stop" "";
+        loop_commands history_prev history_next
       | Some ("complete", _) ->
           let input = read_data () in
           let start, words =
@@ -1308,10 +1320,13 @@ let load_inputrc () =
       Lwt_log.error_f "error in key bindings file %S, line %d: %s" fname line msg
     | exn -> Lwt.fail exn)
 
+let protocol_version = 1
+
 let main_aux ~initial_env =
   Arg.parse args file_argument usage;
   if not (prepare ()) then exit 2;
   if !emacs_mode then begin
+    Printf.printf "protocol-version:%d\n%!" protocol_version;
     UTop_private.set_ui UTop_private.Emacs;
     let module Emacs = Emacs (struct end) in
     Printf.printf "Welcome to utop version %s (using OCaml version %s)!\n\n%!" UTop.version Sys.ocaml_version;
