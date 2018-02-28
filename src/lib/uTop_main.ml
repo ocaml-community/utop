@@ -1320,10 +1320,13 @@ let load_inputrc () =
       Lwt_log.error_f "error in key bindings file %S, line %d: %s" fname line msg
     | exn -> Lwt.fail exn)
 
+let protocol_version = 1
+
 let main_aux ~initial_env =
   Arg.parse args file_argument usage;
   if not (prepare ()) then exit 2;
   if !emacs_mode then begin
+    Printf.printf "protocol-version:%d\n%!" protocol_version;
     UTop_private.set_ui UTop_private.Emacs;
     let module Emacs = Emacs (struct end) in
     Printf.printf "Welcome to utop version %s (using OCaml version %s)!\n\n%!" UTop.version Sys.ocaml_version;
