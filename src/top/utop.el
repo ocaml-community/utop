@@ -234,8 +234,11 @@ Caml toplevel")
   "continuation function to populate the candidates for the company
 backend")
 
-(defvar utop-version "0"
-  "detected version of utop. 0 for unknown")
+(defvar utop-protocol-version "0"
+  "detected version of utop protocol. 0 for unknown or version pre")
+
+(defvar utop--read-version nil
+  "whether we've tried to detect the utop version")
 
 (defvar utop--company-loaded nil)
 
@@ -243,7 +246,7 @@ backend")
   (and
    ;; version< only works on version numbers 
    (condition-case nil
-       (version< "2.0.2" utop-version)
+       (version<= "1" utop-protocol-version)
      (error t))
    (featurep 'company)))
 
@@ -653,10 +656,18 @@ it is started."
      ;; Split lines. Each line contains exactly one command
      (let ((lines (split-string utop-output "\n")))
        (while (>= (length lines) 2)
-         ;; Process the first line
-         (utop-process-line (car lines))
-         ;; Remove it and continue
-         (setq lines (cdr lines)))
+         ;; process first line. if we haven't tried reading the version, we'll
+         ;; trying to do it now.
+         (let ((line (car lines)))
+           (if utop--read-version
+               (utop-process-line line)
+             (progn
+               (save-match-data
+                 (when (string-match "protocol-version:\\([0-9]+\\)" line)
+                   (setq utop-protocol-version (match-string 1 line))))
+               (setq utop--read-version t)))
+           ;; Remove it and continue
+           (setq lines (cdr lines))))
        ;; When the list contains only one element, then this is either
        ;; the end of commands, either an unterminated one, so we save
        ;; it for later
@@ -1081,12 +1092,6 @@ defaults to 0."
   ;; Create the sub-process
   (setq utop-process (apply 'start-process "utop" (current-buffer) (car arguments) (cdr arguments)))
 
-  (let ((version (shell-command-to-string (concat utop-command " -version"))))
-    (save-match-data
-      (and
-       (string-match "version \\([^,]+\\)," version)
-       (setq utop-version (match-string 1 version)))))
-
   ;; Set the initial state: we are waiting for ocaml to send the
   ;; initial prompt
   (utop-set-state 'wait)
@@ -1145,9 +1150,10 @@ See https://github.com/diml/utop for configuration information."))
   (make-local-variable 'utop-phrase-terminator)
   (make-local-variable 'utop-pending-position)
   (make-local-variable 'utop-pending-entry)
-  (make-local-variable 'utop-version)
+  (make-local-variable 'utop-protocol-version)
 
   (make-local-variable 'utop--complete-k)
+  (make-local-variable 'utop--read-version)
 
   ;; Set the hook to call before changing the buffer
   (add-hook 'before-change-functions 'utop-before-change nil t)
