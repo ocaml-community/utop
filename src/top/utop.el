@@ -1231,7 +1231,8 @@ Special keys for utop:
   (pcase command
     ('interactive (company-begin-backend 'utop-company-backend))
     ('sorted t)
-    ('prefix (company-grab-symbol))
+    ('prefix (and (derived-mode-p 'utop-mode)
+                  (or (company-grab-symbol-cons "\\." 1) 'stop)))
     ('candidates
      (progn
        `(:async
