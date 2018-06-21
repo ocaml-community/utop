@@ -544,23 +544,10 @@ let list_global_names () =
 #if OCAML_VERSION >= (4, 07, 0)
     | Env.Env_copy_types (summary, _) ->
         loop acc summary
-#endif
-#if OCAML_VERSION >= (4, 07, 0)
     | Env.Env_open(summary, _skip, path) ->
-        match try Some (Path_map.find path !local_fields_by_path) with Not_found -> None with
-          | Some fields ->
-              loop (String_set.union acc fields) summary
-          | None ->
-              match lookup_env find_module path !Toploop.toplevel_env with
-                | Some module_type ->
-                    let fields = fields_of_module_type module_type in
-                    local_fields_by_path := Path_map.add path fields !local_fields_by_path;
-                    loop (String_set.union acc fields) summary
-                | None ->
-                    local_fields_by_path := Path_map.add path String_set.empty !local_fields_by_path;
-                    loop acc summary
 #else
     | Env.Env_open(summary, path) ->
+#endif
         match try Some (Path_map.find path !local_names_by_path) with Not_found -> None with
           | Some names ->
               loop (String_set.union acc names) summary
@@ -573,7 +560,6 @@ let list_global_names () =
                 | None ->
                     local_names_by_path := Path_map.add path String_set.empty !local_names_by_path;
                     loop acc summary
-#endif
   in
   (* Add names of the environment: *)
   let acc = loop String_set.empty (Env.summary !Toploop.toplevel_env) in
@@ -627,23 +613,10 @@ let list_global_fields () =
 #if OCAML_VERSION >= (4, 07, 0)
     | Env.Env_copy_types (summary, _) ->
         loop acc summary
-#endif
-#if OCAML_VERSION >= (4, 07, 0)
     | Env.Env_open(summary, _skip, path) ->
-        match try Some (Path_map.find path !local_fields_by_path) with Not_found -> None with
-          | Some fields ->
-              loop (String_set.union acc fields) summary
-          | None ->
-              match lookup_env find_module path !Toploop.toplevel_env with
-                | Some module_type ->
-                    let fields = fields_of_module_type module_type in
-                    local_fields_by_path := Path_map.add path fields !local_fields_by_path;
-                    loop (String_set.union acc fields) summary
-                | None ->
-                    local_fields_by_path := Path_map.add path String_set.empty !local_fields_by_path;
-                    loop acc summary
 #else
     | Env.Env_open(summary, path) ->
+#endif
         match try Some (Path_map.find path !local_fields_by_path) with Not_found -> None with
           | Some fields ->
               loop (String_set.union acc fields) summary
@@ -656,7 +629,6 @@ let list_global_fields () =
                 | None ->
                     local_fields_by_path := Path_map.add path String_set.empty !local_fields_by_path;
                     loop acc summary
-#endif
   in
   (* Add fields of the environment: *)
   let acc = loop String_set.empty (Env.summary !Toploop.toplevel_env) in
