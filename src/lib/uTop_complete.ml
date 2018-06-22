@@ -541,7 +541,13 @@ let list_global_names () =
     | Env.Env_constraints (summary, _) ->
         loop acc summary
 #endif
+#if OCAML_VERSION >= (4, 07, 0)
+    | Env.Env_copy_types (summary, _) ->
+        loop acc summary
+    | Env.Env_open(summary, _skip, path) ->
+#else
     | Env.Env_open(summary, path) ->
+#endif
         match try Some (Path_map.find path !local_names_by_path) with Not_found -> None with
           | Some names ->
               loop (String_set.union acc names) summary
@@ -604,7 +610,13 @@ let list_global_fields () =
     | Env.Env_constraints (summary, _) ->
         loop acc summary
 #endif
+#if OCAML_VERSION >= (4, 07, 0)
+    | Env.Env_copy_types (summary, _) ->
+        loop acc summary
+    | Env.Env_open(summary, _skip, path) ->
+#else
     | Env.Env_open(summary, path) ->
+#endif
         match try Some (Path_map.find path !local_fields_by_path) with Not_found -> None with
           | Some fields ->
               loop (String_set.union acc fields) summary
