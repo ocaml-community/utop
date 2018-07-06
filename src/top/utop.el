@@ -272,9 +272,19 @@ modes you need to set these variables:
 " major-mode))))
    choices))
 
+(defun utop-tuareg-next-phrase ()
+  "Move to the next phrase after point."
+  (let* ((pos (tuareg--after-double-colon))
+         (pos (if pos pos (point)))
+         (phrase (tuareg-discover-phrase pos)))
+    (when phrase
+      (goto-char (caddr phrase))
+      (tuareg--skip-double-colon)
+      (tuareg-skip-blank-and-comments))))
+
 (defun utop-compat-next-phrase-beginning ()
   (funcall
-   (utop-compat-resolve '(tuareg-next-phrase
+   (utop-compat-resolve '(utop-tuareg-next-phrase
                           typerex-skip-to-end-of-phrase
                           caml-skip-to-end-of-phrase
                           reason-next-phrase))))
