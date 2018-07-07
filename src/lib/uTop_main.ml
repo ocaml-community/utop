@@ -1193,6 +1193,13 @@ let print_version_num () =
 (* Config from command line *)
 let autoload = ref true
 
+let clflags_no_stdlib =
+#if OCAML_VERSION >= (4, 08, 0)
+Clflags.no_stdlib
+#else
+Clflags.no_std_include
+#endif
+
 let args = Arg.align [
   "-absname", Arg.Set Location.absname, " Show absolute filenames in error message";
   "-I", Arg.String (fun dir ->  Clflags.include_dirs := Misc.expand_directory Config.standard_library dir :: !Clflags.include_dirs), "<dir> Add <dir> to the list of include directories";
@@ -1201,7 +1208,7 @@ let args = Arg.align [
   "-no-app-funct", Arg.Clear Clflags.applicative_functors, " Deactivate applicative functors";
   "-noassert", Arg.Set Clflags.noassert, " Do not compile assertion checks";
   "-nolabels", Arg.Set Clflags.classic, " Ignore non-optional labels in types";
-  "-nostdlib", Arg.Set Clflags.no_std_include, " Do not add default directory to the list of include directories";
+  "-nostdlib", Arg.Set clflags_no_stdlib, " Do not add default directory to the list of include directories";
   "-ppx", Arg.String (fun ppx -> Clflags.all_ppx := ppx :: !Clflags.all_ppx), "<command> Pipe abstract syntax trees through preprocessor <command>";
   "-principal", Arg.Set Clflags.principal, " Check principality of type inference";
   "-safe-string", Arg.Clear Clflags.unsafe_string, " Make strings immutable";
