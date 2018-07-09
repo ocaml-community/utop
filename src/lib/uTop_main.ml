@@ -1195,7 +1195,7 @@ let autoload = ref true
 
 let args = Arg.align [
   "-absname", Arg.Set Location.absname, " Show absolute filenames in error message";
-  "-I", Arg.String (fun dir ->  Clflags.include_dirs := Misc.expand_directory Config.standard_library dir :: !Clflags.include_dirs), "<dir> Add <dir> to the list of include directories";
+  "-I", Arg.String (fun dir ->  Clflags.include_dirs := dir :: !Clflags.include_dirs), "<dir> Add <dir> to the list of include directories";
   "-init", Arg.String (fun s -> Clflags.init_file := Some s), "<file> Load <file> instead of default init file";
   "-labels", Arg.Clear Clflags.classic, " Use commuting label mode";
   "-no-app-funct", Arg.Clear Clflags.applicative_functors, " Deactivate applicative functors";
