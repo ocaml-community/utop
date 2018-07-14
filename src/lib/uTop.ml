@@ -33,8 +33,8 @@ let stashable_session_history = UTop_history.create ()
    | Hooks                                                           |
    +-----------------------------------------------------------------+ *)
 
-let new_command_hooks = Lwt_sequence.create ()
-let at_new_command f = ignore (Lwt_sequence.add_l f new_command_hooks)
+let new_command_hooks = LTerm_dlist.create ()
+let at_new_command f = ignore (LTerm_dlist.add_l f new_command_hooks)
 
 (* +-----------------------------------------------------------------+
    | Config                                                          |
@@ -813,7 +813,7 @@ let load_path = Config.load_path
    +-----------------------------------------------------------------+ *)
 
 let smart_accept = ref true
-let new_prompt_hooks = Lwt_sequence.create ()
-let at_new_prompt f = ignore (Lwt_sequence.add_l f new_prompt_hooks)
+let new_prompt_hooks = LTerm_dlist.create ()
+let at_new_prompt f = ignore (LTerm_dlist.add_l f new_prompt_hooks)
 let prompt_continue = ref (S.const [| |])
 let prompt_comment = ref (S.const [| |])
