@@ -7,7 +7,7 @@
  * This file is a part of utop.
  *)
 
-open CamomileLibraryDyn.Camomile
+open CamomileLibraryDefault.Camomile
 open Lwt_react
 open LTerm_text
 open LTerm_geom
