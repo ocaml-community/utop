@@ -9,6 +9,7 @@
 
 open CamomileLibraryDyn.Camomile
 open Lwt_react
+open LTerm_dlist
 open LTerm_text
 open LTerm_geom
 open UTop_token
@@ -628,7 +629,7 @@ let rec loop term =
   UTop_private.set_count (S.value UTop_private.count + 1);
 
   (* Call hooks. *)
-  Lwt_sequence.iter_l (fun f -> f ()) UTop.new_command_hooks;
+  LTerm_dlist.iter_l (fun f -> f ()) UTop.new_command_hooks;
 
   (* Read interactively user input. *)
   let phrase_opt =
@@ -953,7 +954,7 @@ module Emacs(M : sig end) = struct
     UTop_private.set_count (S.value UTop_private.count + 1);
 
     (* Call hooks. *)
-    Lwt_sequence.iter_l (fun f -> f ()) UTop.new_command_hooks;
+    LTerm_dlist.iter_l (fun f -> f ()) UTop.new_command_hooks;
 
     (* Tell emacs we are ready. *)
     send "prompt" "";

@@ -264,7 +264,7 @@ val prompt : LTerm_text.t React.signal ref
 
 (** {6 Hooks} *)
 
-val new_command_hooks : (unit -> unit) Lwt_sequence.t
+val new_command_hooks : (unit -> unit) LTerm_dlist.t
   (** Functions called before each new command. *)
 
 val at_new_command : (unit -> unit) -> unit
@@ -370,5 +370,5 @@ val load_path : string list ref
 val prompt_continue : LTerm_text.t React.signal ref
 val prompt_comment : LTerm_text.t React.signal ref
 val smart_accept : bool ref
-val new_prompt_hooks : (unit -> unit) Lwt_sequence.t
+val new_prompt_hooks : (unit -> unit) LTerm_dlist.t
 val at_new_prompt : (unit -> unit) -> unit
