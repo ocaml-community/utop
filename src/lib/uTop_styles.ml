@@ -80,7 +80,7 @@ let load () =
       styles.style_foreground <- LTerm_resources.get_color "foreground" res;
       styles.style_background <- LTerm_resources.get_color "background" res;
       styles.style_cursor <- LTerm_resources.get_color "cursor" res;
-      (match String.lowercase (LTerm_resources.get "profile" res) with
+      (match String.lowercase_ascii (LTerm_resources.get "profile" res) with
          | "light" -> UTop.set_profile UTop.Light
          | "dark" -> UTop.set_profile UTop.Dark
          | "" -> ()
