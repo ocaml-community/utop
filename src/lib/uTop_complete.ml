@@ -383,7 +383,7 @@ let visible_modules () =
             Array.fold_left
               (fun acc fname ->
                 if Filename.check_suffix fname ".cmi" then
-                  String_set.add (String.capitalize (Filename.chop_suffix fname ".cmi")) acc
+                  String_set.add (String.capitalize_ascii (Filename.chop_suffix fname ".cmi")) acc
                 else
                   acc)
               acc
