@@ -4,7 +4,7 @@ authors: ["Jérémie Dimino"]
 license: "BSD3"
 homepage: "https://github.com/diml/utop"
 bug-reports: "https://github.com/diml/utop/issues"
-dev-repo: "git://github.com/diml/utop.git"
+dev-repo: "https://github.com/diml/utop.git"
 build: [
   ["jbuilder" "subst"] {pinned}
   ["jbuilder" "build" "-p" name "-j" jobs]
