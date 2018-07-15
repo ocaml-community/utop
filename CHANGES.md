@@ -1,3 +1,10 @@
+2.2.0 (2018-07-15)
+------------------
+
+* 4.07.0 compatibility (#238, @hcarty)
+* Fix compatibility with latest tuareg-mode (#241, @Wilfred)
+* Do not expand include directories (#242, @sliquister)
+
 2.1.0 (2018-02-28)
 ------------------
 
