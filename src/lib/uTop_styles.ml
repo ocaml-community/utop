@@ -98,21 +98,23 @@ let load () =
         Lwt_log.error_f "cannot load styles from %S: %s: %s" fn func (Unix.error_message error)
     | exn -> Lwt.fail exn)
 
-let rec stylise_filter_layout stylise tokens =
-  match tokens with
+let stylise_filter_layout stylise tokens =
+  let rec aux acc = function
     | [] ->
-        []
+        acc
     | (Comment (Comment_reg, _), loc) :: tokens ->
         stylise loc styles.style_comment;
-        stylise_filter_layout stylise tokens
+        aux acc tokens
     | (Comment (Comment_doc, _), loc) :: tokens ->
         stylise loc styles.style_doc;
-        stylise_filter_layout stylise tokens
+        aux acc tokens
     | (Blanks, loc) :: tokens ->
         stylise loc styles.style_blanks;
-        stylise_filter_layout stylise tokens
+        aux acc tokens
     | x :: tokens ->
-        x :: stylise_filter_layout stylise tokens
+        aux (x :: acc) tokens
+  in
+  List.rev (aux [] tokens)
 
 let rec stylise_rec stylise tokens =
   match tokens with

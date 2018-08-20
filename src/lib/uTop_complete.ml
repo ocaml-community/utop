@@ -771,12 +771,14 @@ let labels_of_newclass longident =
    +-----------------------------------------------------------------+ *)
 
 (* Filter blanks and comments except for the last token. *)
-let rec filter tokens =
-  match tokens with
-    | [] -> []
-    | [((Blanks | Comment (_, true)), loc)] -> [(Blanks, loc)]
-    | ((Blanks | Comment (_, true)), _) :: rest -> filter rest
-    | x :: rest -> x :: filter rest
+let filter tokens =
+  let rec aux acc = function
+    | [] -> acc
+    | [((Blanks | Comment (_, true)), loc)] -> (Blanks, loc) :: acc
+    | ((Blanks | Comment (_, true)), _) :: rest -> aux acc rest
+    | x :: rest -> aux (x :: acc) rest
+  in
+  List.rev (aux [] tokens)
 
 (* Reverse and filter blanks and comments except for the last
    token. *)

@@ -316,75 +316,76 @@ let is_implicit_name name =
   with
     Failure _ -> false
 
-let rec map_items unwrap wrap items =
-  match items with
-  | [] ->
-    []
-  | item :: items ->
-    let sig_item, _ = unwrap item in
-    let name, rec_status =
-      match sig_item with
-      | Outcometree.Osig_class (_, name, _, _, rs)
-      | Outcometree.Osig_class_type (_, name, _, _, rs)
-      | Outcometree.Osig_module (name, _, rs)
-      | Outcometree.Osig_type ({ Outcometree.otype_name = name }, rs) ->
-        (name, rs)
-      | Outcometree.Osig_typext ({ Outcometree.oext_name = name}, _)
-      | Outcometree.Osig_modtype (name, _)
+let map_items unwrap wrap items =
+  let rec aux acc = function
+    | [] ->
+       acc
+    | item :: items ->
+       let sig_item, _ = unwrap item in
+       let name, rec_status =
+         match sig_item with
+         | Outcometree.Osig_class (_, name, _, _, rs)
+         | Outcometree.Osig_class_type (_, name, _, _, rs)
+         | Outcometree.Osig_module (name, _, rs)
+         | Outcometree.Osig_type ({ Outcometree.otype_name = name }, rs) ->
+            (name, rs)
+         | Outcometree.Osig_typext ({ Outcometree.oext_name = name}, _)
+         | Outcometree.Osig_modtype (name, _)
 #if OCAML_VERSION < (4, 03, 0)
-      | Outcometree.Osig_value (name, _, _) ->
-        (name, Outcometree.Orec_not)
+         | Outcometree.Osig_value (name, _, _) ->
+            (name, Outcometree.Orec_not)
 #else
-      | Outcometree.Osig_value { oval_name = name; _ } ->
-        (name, Outcometree.Orec_not)
-      | Outcometree.Osig_ellipsis -> ("", Outcometree.Orec_not)
+         | Outcometree.Osig_value { oval_name = name; _ } ->
+            (name, Outcometree.Orec_not)
+         | Outcometree.Osig_ellipsis -> ("", Outcometree.Orec_not)
 #endif
-    in
-
-    let keep =
-      name = "" || name.[0] <> '_' ||
-      (UTop.get_create_implicits () && is_implicit_name name)
-    in
-    if keep then
-      item :: map_items unwrap wrap items
-    else
-      (* Replace the [Orec_next] at the head of items by [Orec_first] *)
-      let items =
-        match items with
-        | [] ->
-          []
-        | item :: items' ->
-          let sig_item, extra = unwrap item in
-          match sig_item with
-          | Outcometree.Osig_class (a, name, b, c, rs) ->
-            if rs = Outcometree.Orec_next then
-              wrap (Outcometree.Osig_class (a, name, b, c, Outcometree.Orec_first)) extra :: items'
-            else
-              items
-          | Outcometree.Osig_class_type (a, name, b, c, rs) ->
-            if rs = Outcometree.Orec_next then
-              wrap (Outcometree.Osig_class_type (a, name, b, c, Outcometree.Orec_first)) extra :: items'
-            else
-              items
-          | Outcometree.Osig_module (name, a, rs) ->
-            if rs = Outcometree.Orec_next then
-              wrap (Outcometree.Osig_module (name, a, Outcometree.Orec_first)) extra :: items'
-            else
-              items
-          | Outcometree.Osig_type (oty, rs) ->
-            if rs = Outcometree.Orec_next then
-              wrap (Outcometree.Osig_type (oty, Outcometree.Orec_first)) extra :: items'
-            else
-              items
-          | Outcometree.Osig_typext _
+       in
+       let keep =
+         name = "" || name.[0] <> '_' ||
+           (UTop.get_create_implicits () && is_implicit_name name)
+       in
+       if keep then
+         aux (item :: acc) items
+       else
+         (* Replace the [Orec_next] at the head of items by [Orec_first] *)
+         let items =
+           match items with
+           | [] ->
+              []
+           | item :: items' ->
+              let sig_item, extra = unwrap item in
+              match sig_item with
+              | Outcometree.Osig_class (a, name, b, c, rs) ->
+                 if rs = Outcometree.Orec_next then
+                   wrap (Outcometree.Osig_class (a, name, b, c, Outcometree.Orec_first)) extra :: items'
+                 else
+                   items
+              | Outcometree.Osig_class_type (a, name, b, c, rs) ->
+                 if rs = Outcometree.Orec_next then
+                   wrap (Outcometree.Osig_class_type (a, name, b, c, Outcometree.Orec_first)) extra :: items'
+                 else
+                   items
+              | Outcometree.Osig_module (name, a, rs) ->
+                 if rs = Outcometree.Orec_next then
+                   wrap (Outcometree.Osig_module (name, a, Outcometree.Orec_first)) extra :: items'
+                 else
+                   items
+              | Outcometree.Osig_type (oty, rs) ->
+                 if rs = Outcometree.Orec_next then
+                   wrap (Outcometree.Osig_type (oty, Outcometree.Orec_first)) extra :: items'
+                 else
+                   items
+              | Outcometree.Osig_typext _
 #if OCAML_VERSION >= (4, 03, 0)
-          | Outcometree.Osig_ellipsis
+              | Outcometree.Osig_ellipsis
 #endif
-          | Outcometree.Osig_modtype _
-          | Outcometree.Osig_value _ ->
-            items
-      in
-      map_items unwrap wrap items
+              | Outcometree.Osig_modtype _
+              | Outcometree.Osig_value _ ->
+                 items
+         in
+         aux acc items
+  in
+  List.rev (aux [] items)
 
 let print_out_signature pp items =
   if UTop.get_hide_reserved () then
@@ -535,7 +536,7 @@ let is_eval = function
   | _ -> false
 
 (* Returns the rewrite rule associated to a type, if any. *)
-let rec rule_of_type typ =
+let rule_of_type typ =
   match (Ctype.expand_head !Toploop.toplevel_env typ).Types.desc with
   | Types.Tconstr (path, _, _) -> begin
       try
@@ -768,18 +769,18 @@ module Emacs(M : sig end) = struct
   let command_oc = Unix.out_channel_of_descr (Unix.dup Unix.stdout)
 
   let split_at ?(trim=false) ch str =
-    let rec aux i j =
+    let rec aux acc i j =
       if j = String.length str then
         if trim && i = j then
-          []
+          acc
         else
-          [String.sub str i (j - i)]
+          (String.sub str i (j - i)) :: acc
       else if str.[j] = ch then
-        String.sub str i (j - i) :: aux (j + 1) (j + 1)
+        aux (String.sub str i (j - i) :: acc) (j + 1) (j + 1)
       else
-        aux i (j + 1)
+        aux acc i (j + 1)
     in
-    aux 0 0
+    List.rev (aux [] 0 0)
 
   (* +---------------------------------------------------------------+
      | Sending commands to Emacs                                     |
