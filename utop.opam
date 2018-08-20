@@ -2,9 +2,9 @@ opam-version: "1.2"
 maintainer: "jeremie@dimino.org"
 authors: ["Jérémie Dimino"]
 license: "BSD3"
-homepage: "https://github.com/diml/utop"
-bug-reports: "https://github.com/diml/utop/issues"
-dev-repo: "https://github.com/diml/utop.git"
+homepage: "https://github.com/ocaml-community/utop"
+bug-reports: "https://github.com/ocaml-community/utop/issues"
+dev-repo: "https://github.com/ocaml-community/utop.git"
 build: [
   ["jbuilder" "subst"] {pinned}
   ["jbuilder" "build" "-p" name "-j" jobs]
