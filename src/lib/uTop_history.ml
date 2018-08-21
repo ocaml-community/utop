@@ -7,6 +7,8 @@
  * This file is a part of utop.
  *)
 
+module List = UTop_utils.List
+
 type entry =
   | Input of string
   | Output of string

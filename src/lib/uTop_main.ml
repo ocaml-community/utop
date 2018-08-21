@@ -18,6 +18,7 @@ open UTop_private
 let return, (>>=) = Lwt.return, Lwt.(>>=)
 
 module String_set = Set.Make(String)
+module List = UTop_utils.List
 
 exception Term of int
 

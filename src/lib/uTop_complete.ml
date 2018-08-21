@@ -13,6 +13,7 @@ open UTop_token
 
 module String_set = Set.Make(String)
 module String_map = Map.Make(String)
+module List = UTop_utils.List
 
 let set_of_list = List.fold_left (fun set x -> String_set.add x set) String_set.empty
 

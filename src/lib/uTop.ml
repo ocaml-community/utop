@@ -16,6 +16,7 @@ open LTerm_style
 let (>>=) = Lwt.(>>=)
 
 module String_set = Set.Make(String)
+module List = UTop_utils.List
 
 let version = "%%VERSION%%"
 
@@ -104,7 +105,8 @@ let default_keywords = [
   "when"; "while"; "with"; "try_lwt"; "finally"; "for_lwt"; "lwt";
 ]
 
-let keywords = ref (List.fold_right String_set.add default_keywords String_set.empty)
+let add set elt = String_set.add elt set
+let keywords = ref (List.fold_left add String_set.empty default_keywords)
 let add_keyword kwd = keywords := String_set.add kwd !keywords
 
 (* +-----------------------------------------------------------------+
