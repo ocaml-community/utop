@@ -8,7 +8,7 @@ sensitive completion, colors, and more.
 
 It integrates with the Tuareg and typerex modes in Emacs.
 
-[![Travis build Status](https://travis-ci.org/diml/utop.svg?branch=master)](https://travis-ci.org/diml/utop)
+[![Travis build Status](https://travis-ci.org/ocaml-community/utop.svg?branch=master)](https://travis-ci.org/ocaml-community/utop)
 
 Installation via opam
 ---------------------
