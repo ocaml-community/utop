@@ -1,4 +1,4 @@
-open UTop_utils.StdLabels
+open StdLabels
 open Printf
 
 let run_and_read_lines args =

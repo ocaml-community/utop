@@ -1,7 +1,5 @@
 (jbuild_version 1)
 
-(rule (copy ../../lib/uTop_utils.ml uTop_utils.ml))
-
 (executable
  ((name expunge)
   (flags (:standard -safe-string))
