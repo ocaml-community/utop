@@ -99,7 +99,7 @@ let load () =
     | exn -> Lwt.fail exn)
 
 let stylise_filter_layout stylise tokens =
-  let rec aux acc = function
+  let aux acc = function
     | (Comment (Comment_reg, _), loc) ->
         stylise loc styles.style_comment;
         acc
