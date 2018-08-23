@@ -100,21 +100,18 @@ let load () =
 
 let stylise_filter_layout stylise tokens =
   let rec aux acc = function
-    | [] ->
-        acc
-    | (Comment (Comment_reg, _), loc) :: tokens ->
+    | (Comment (Comment_reg, _), loc) ->
         stylise loc styles.style_comment;
-        aux acc tokens
-    | (Comment (Comment_doc, _), loc) :: tokens ->
+        acc
+    | (Comment (Comment_doc, _), loc) ->
         stylise loc styles.style_doc;
-        aux acc tokens
-    | (Blanks, loc) :: tokens ->
+        acc
+    | (Blanks, loc) ->
         stylise loc styles.style_blanks;
-        aux acc tokens
-    | x :: tokens ->
-        aux (x :: acc) tokens
+        acc
+    | x -> x :: acc
   in
-  List.rev (aux [] tokens)
+  List.rev (List.fold_left aux [] tokens)
 
 let rec stylise_rec stylise tokens =
   match tokens with
