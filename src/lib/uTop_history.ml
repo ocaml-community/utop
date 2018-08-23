@@ -33,18 +33,21 @@ let strip_colors s =
     with
     | Not_found -> None
   in
-  let rec find_color_escapes offset =
-    match find_escape offset with
-    | None -> [offset, len]
-    | Some esc_offset ->
-      try
-        let i = String.index_from s esc_offset 'm' in
-        (offset, esc_offset) :: find_color_escapes (i + 1)
-      with
-      | Not_found -> [offset, len]
+  let find_color_escapes offset =
+    let rec aux acc offset =
+      match find_escape offset with
+      | None -> (offset, len) :: acc
+      | Some esc_offset ->
+         try
+           let i = String.index_from s esc_offset 'm' in
+           aux ((offset, esc_offset) :: acc) (i + 1)
+         with
+         | Not_found -> (offset, len) :: acc
+    in
+    aux [] offset
   in
   find_color_escapes 0
-    |> List.map (fun (i, j) -> String.sub s i (j - i))
+    |> List.rev_map (fun (i, j) -> String.sub s i (j - i))
     |> String.concat ""
 
 let add history v =

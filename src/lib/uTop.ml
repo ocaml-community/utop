@@ -104,7 +104,7 @@ let default_keywords = [
   "when"; "while"; "with"; "try_lwt"; "finally"; "for_lwt"; "lwt";
 ]
 
-let keywords = ref (List.fold_right String_set.add default_keywords String_set.empty)
+let keywords = ref (String_set.of_list default_keywords)
 let add_keyword kwd = keywords := String_set.add kwd !keywords
 
 (* +-----------------------------------------------------------------+
@@ -750,24 +750,24 @@ let split_words str =
     | ' ' | '\t' | '\r' | '\n' | ',' -> true
     | _ -> false
   in
-  let rec skip i =
+  let rec skip acc i =
     if i = len then
-      []
+      acc
     else
       if is_sep str.[i] then
-        skip (i + 1)
+        skip acc (i + 1)
       else
-        extract i (i + 1)
-  and extract i j =
+        extract acc i (i + 1)
+  and extract acc i j =
     if j = len then
-      [String.sub str i (j - i)]
+      (String.sub str i (j - i)) :: acc
     else
       if is_sep str.[j] then
-        String.sub str i (j - i) :: skip (j + 1)
+        skip (String.sub str i (j - i) :: acc) (j + 1)
       else
-        extract i (j + 1)
+        extract acc i (j + 1)
   in
-  skip 0
+  List.rev (skip [] 0)
 
 let require packages =
   try
