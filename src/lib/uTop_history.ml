@@ -44,10 +44,10 @@ let strip_colors s =
          with
          | Not_found -> (offset, len) :: acc
     in
-    List.rev (aux [] offset)
+    aux [] offset
   in
   find_color_escapes 0
-    |> List.map (fun (i, j) -> String.sub s i (j - i))
+    |> List.rev_map (fun (i, j) -> String.sub s i (j - i))
     |> String.concat ""
 
 let add history v =
