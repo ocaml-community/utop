@@ -116,89 +116,71 @@ let stylise_filter_layout stylise tokens =
   in
   List.rev (aux [] tokens)
 
-let rec stylise_rec stylise ~f tokens items =
+let rec stylise_rec stylise tokens =
   match tokens with
-    | [] when items <> [] ->
-        stylise_rec_then_quotation_items stylise ~f tokens items
     | [] ->
         ()
     | (Symbol _, loc) :: tokens ->
         stylise loc styles.style_symbol;
-        stylise_rec stylise ~f tokens items
+        stylise_rec stylise tokens
     | (Lident id, loc) :: tokens ->
         stylise loc
           (if String_set.mem id !UTop.keywords then
              styles.style_keyword
            else
              styles.style_ident);
-        stylise_rec stylise ~f tokens items
+        stylise_rec stylise tokens
     | (Uident id, loc) :: tokens when String_set.mem id !UTop.keywords ->
         stylise loc styles.style_keyword;
-        stylise_rec stylise ~f tokens items
+        stylise_rec stylise tokens
     | (Uident id, loc1) :: (Symbol ".", loc2) :: tokens ->
         stylise loc1 styles.style_module;
         stylise loc2 styles.style_symbol;
-        stylise_rec stylise ~f tokens items
+        stylise_rec stylise tokens
     | (Uident id, loc) :: tokens ->
         stylise loc styles.style_ident;
-        stylise_rec stylise ~f tokens items
+        stylise_rec stylise tokens
     | (Constant _, loc) :: tokens ->
         stylise loc styles.style_constant;
-        stylise_rec stylise ~f tokens items
+        stylise_rec stylise tokens
     | (Char, loc) :: tokens ->
         stylise loc styles.style_char;
-        stylise_rec stylise ~f tokens items
+        stylise_rec stylise tokens
     | (String _, loc) :: tokens ->
         stylise loc styles.style_string;
-        stylise_rec stylise ~f tokens items
+        stylise_rec stylise tokens
     | (Quotation (items, _), _) :: tokens ->
-        stylise_quotation_items_then_rec stylise ~f tokens items
+        stylise_quotation_items stylise items;
+        stylise_rec stylise tokens
     | (Error, loc) :: tokens ->
         stylise loc styles.style_error;
-        stylise_rec stylise ~f tokens items
+        stylise_rec stylise tokens
     | ((Comment _ | Blanks), _) :: _ ->
         assert false
 
-and stylise_quotation_items stylise ~f tokens items =
+and stylise_quotation_items stylise items =
   match items with
-  | [] when tokens <> [] ->
-     stylise_quotation_items_then_rec stylise ~f tokens items
-  | [] ->
-      ()
-  | (Quot_data, loc) :: items ->
-     stylise loc styles.style_quotation;
-     stylise_quotation_items stylise ~f tokens items
-  | (Quot_anti anti, _) :: items ->
-     stylise anti.a_opening styles.style_symbol;
-     (match anti.a_name with
-      | None ->
-         ()
-      | Some (loc1, loc2) ->
-         stylise loc1 styles.style_module;
-         stylise loc2 styles.style_symbol);
-     let tokens = stylise_filter_layout stylise anti.a_contents in
-     stylise_rec_then_quotation_items stylise ~f:(fun () ->
-         (match anti.a_closing with
-          | None ->
-             ()
-          | Some loc ->
-             stylise loc styles.style_symbol)) tokens items
-
-and stylise_quotation_items_then_rec stylise ~f tokens items =
-  match items with
-  | [] -> stylise_rec stylise ~f tokens items
-  | _ -> stylise_quotation_items stylise ~f tokens items
-
-and stylise_rec_then_quotation_items stylise ~f tokens items =
-  match tokens with
-  | [] ->
-     f ();
-     stylise_quotation_items stylise ~f tokens items
-  | _ ->
-     stylise_rec stylise ~f tokens items
-
-let stylise_rec stylise tokens =
-  stylise_rec stylise ~f:(fun () -> ()) tokens []
+    | [] ->
+        ()
+    | (Quot_data, loc) :: items ->
+        stylise loc styles.style_quotation;
+        stylise_quotation_items stylise items
+    | (Quot_anti anti, _) :: items ->
+        stylise anti.a_opening styles.style_symbol;
+        (match anti.a_name with
+           | None ->
+               ()
+           | Some (loc1, loc2) ->
+               stylise loc1 styles.style_module;
+               stylise loc2 styles.style_symbol);
+        let tokens = stylise_filter_layout stylise anti.a_contents in
+        stylise_rec stylise tokens;
+        (match anti.a_closing with
+           | None ->
+               ()
+           | Some loc ->
+               stylise loc styles.style_symbol);
+        stylise_quotation_items stylise items
 
 let stylise stylise tokens =
   let tokens = stylise_filter_layout stylise tokens in
