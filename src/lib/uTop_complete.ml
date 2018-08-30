@@ -541,10 +541,12 @@ let list_global_names () =
     | Env.Env_constraints (summary, _) ->
         loop acc summary
 #endif
-#if OCAML_VERSION >= (4, 07, 0)
+#if OCAML_VERSION >= (4, 06, 0)
     | Env.Env_copy_types (summary, _) ->
         loop acc summary
-    | Env.Env_open(summary, _skip, path) ->
+#endif
+#if OCAML_VERSION >= (4, 07, 0)
+    | Env.Env_open(summary, _, path) ->
 #else
     | Env.Env_open(summary, path) ->
 #endif
@@ -610,10 +612,12 @@ let list_global_fields () =
     | Env.Env_constraints (summary, _) ->
         loop acc summary
 #endif
-#if OCAML_VERSION >= (4, 07, 0)
+#if OCAML_VERSION >= (4, 06, 0)
     | Env.Env_copy_types (summary, _) ->
         loop acc summary
-    | Env.Env_open(summary, _skip, path) ->
+#endif
+#if OCAML_VERSION >= (4, 07, 0)
+    | Env.Env_open(summary, _, path) ->
 #else
     | Env.Env_open(summary, path) ->
 #endif
