@@ -101,7 +101,7 @@ this file by executing:
 ### UTop API
 
 UTop exposes several more settings through its API; see
-[documentation](http://diml.github.io/utop).
+[documentation](http://ocaml-community.github.io/utop).
 
 Integration with emacs
 ----------------------
