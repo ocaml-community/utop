@@ -10,6 +10,8 @@ It integrates with the Tuareg and typerex modes in Emacs.
 
 [![Travis build Status](https://travis-ci.org/ocaml-community/utop.svg?branch=master)](https://travis-ci.org/ocaml-community/utop)
 
+![Screenshot](screenshot.png)
+
 Installation via opam
 ---------------------
 
