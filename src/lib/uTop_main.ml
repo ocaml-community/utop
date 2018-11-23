@@ -1246,6 +1246,7 @@ let args = Arg.align [
   "-require", Arg.String (fun s -> preload := `Packages (UTop.split_words s) :: !preload),
   "<package> Load this package";
   "-dparsetree", Arg.Set Clflags.dump_parsetree, " Dump OCaml AST after rewriting";
+  "-dtypedtree", Arg.Set Clflags.dump_typedtree, " Dump OCaml typed AST after rewriting";
   "-dsource", Arg.Set Clflags.dump_source, " Dump OCaml source after rewriting";
 ]
 
