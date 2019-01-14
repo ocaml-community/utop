@@ -27,7 +27,7 @@ Dependencies
 ------------
 
 * [OCaml](http://caml.inria.fr/ocaml/) (>= 4.02.3)
-* [Jbuilder](http://github.com/janestreet/jbuilder)
+* [Dune](http://github.com/ocaml/dune)
 * [findlib](http://projects.camlcity.org/projects/findlib.html) (>= 1.4.0)
 * [cppo](http://mjambon.com/cppo.html) (>= 1.0.1)
 * [react](http://erratique.ch/software/react)
@@ -209,29 +209,29 @@ It shall point to the directory `stublibs` inside your ocaml installation.
 Creating a custom utop-enabled toplevel
 ---------------------------------------
 
-### With jbuilder
+### With Dune
 
 The recommended way to build a custom utop toplevel is via
-[jbuilder][jbuilder]. The entry point of the custom utop must call
+[Dune][dune]. The entry point of the custom utop must call
 `UTop_main.main`. For instance write the following `myutop.ml` file:
 
 ```ocaml
 let () = UTop_main.main ()
 ```
 
-and the following jbuild file:
+and the following dune file:
 
 ```scheme
 (executable
- ((name myutop)
-  (link_flags (-linkall))
-  (libraries (utop))))
+ (name myutop)
+ (link_flags -linkall)
+ (libraries utop))
 ```
 
 then to build the toplevel, run:
 
 ```
-$ jbuilder myutop.bc
+$ dune myutop.bc
 ```
 
 Note the `-linkall` in the link flags. By default OCaml doesn't link
@@ -241,19 +241,19 @@ the user is going to use so you must link everything.
 If you want to include more libraries in your custom utop, simply add
 them to the `(libraries ...)` field.
 
-Additionally, if you want to install this topevel, add the two
+Additionally, if you want to install this toplevel, add the two
 following fields to the executable stanza:
 
 ```scheme
   (public_name myutop)
-  (modes (byte))
+  (modes byte)
 ```
 
-The `(modes ...)` field is to tell jbuilder to install the byte-code
+The `(modes ...)` field is to tell dune to install the byte-code
 version of the executable, as currently native toplevels are not fully
 suported.
 
-[jbuilder]: https://github.com/janestreet/jbuilder
+[dune]: https://github.com/ocaml/dune
 
 ### Manually, with ocamlfind
 

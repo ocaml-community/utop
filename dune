@@ -1,0 +1,12 @@
+(install
+ (section share)
+ (files utoprc-dark utoprc-light))
+
+(install
+ (section share_root)
+ (files
+  (src/top/utop.el as emacs/site-lisp/utop.el)))
+
+(alias
+ (name examples)
+ (deps examples/custom-utop/myutop.bc examples/interact/test_program.bc))

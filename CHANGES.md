@@ -1,3 +1,8 @@
+dev
+---
+
+* Port build to dune from jbuilder (@avsm)
+
 2.2.0 (2018-07-15)
 ------------------
 
