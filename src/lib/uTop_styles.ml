@@ -94,7 +94,7 @@ let load () =
     (function
     | Unix.Unix_error(Unix.ENOENT, _, _) ->
         return ()
-    | Unix.Unix_error (error, func, arg) ->
+    | Unix.Unix_error (error, func, _arg) ->
         Lwt_log.error_f "cannot load styles from %S: %s: %s" fn func (Unix.error_message error)
     | exn -> Lwt.fail exn)
 
@@ -130,11 +130,11 @@ let rec stylise_rec stylise tokens =
     | (Uident id, loc) :: tokens when String_set.mem id !UTop.keywords ->
         stylise loc styles.style_keyword;
         stylise_rec stylise tokens
-    | (Uident id, loc1) :: (Symbol ".", loc2) :: tokens ->
+    | (Uident _id, loc1) :: (Symbol ".", loc2) :: tokens ->
         stylise loc1 styles.style_module;
         stylise loc2 styles.style_symbol;
         stylise_rec stylise tokens
-    | (Uident id, loc) :: tokens ->
+    | (Uident _id, loc) :: tokens ->
         stylise loc styles.style_ident;
         stylise_rec stylise tokens
     | (Constant _, loc) :: tokens ->

@@ -7,6 +7,8 @@
  * This file is a part of utop.
  *)
 
+[@@@warning "-9-27-32"]
+
 open Types
 open LTerm_read_line
 open UTop_token
