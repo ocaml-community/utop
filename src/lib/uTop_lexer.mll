@@ -34,7 +34,7 @@
       ofs2 = ofs2;
     }
 
-  let merge_loc l1 l2 = {
+  let _merge_loc l1 l2 = {
     idx1 = l1.idx1;
     idx2 = l2.idx2;
     ofs1 = l1.ofs1;

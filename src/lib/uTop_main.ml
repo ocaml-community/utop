@@ -7,6 +7,8 @@
  * This file is a part of utop.
  *)
 
+[@@@warning "-7-9-27-32-33"]
+
 open CamomileLibraryDefault.Camomile
 open Lwt_react
 open LTerm_dlist
