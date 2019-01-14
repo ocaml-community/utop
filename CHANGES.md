@@ -2,6 +2,7 @@ dev
 ---
 
 * Port build to dune from jbuilder (@avsm)
+* Upgrade local opam metadata to opam 2.0 format (@avsm)
 
 2.2.0 (2018-07-15)
 ------------------
