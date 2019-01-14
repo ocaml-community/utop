@@ -1,0 +1,4 @@
+(executable
+ (name expunge)
+ (flags :standard -safe-string)
+ (libraries unix))

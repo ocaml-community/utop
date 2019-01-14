@@ -1,0 +1,20 @@
+(executables
+ (names utop)
+ (libraries utop)
+ (flags :standard -safe-string)
+ (link_flags -linkall))
+
+(rule
+ (targets utop-expunged.bc)
+ (deps utop.bc)
+ (action
+  (run %{exe:expunge/expunge.exe} %{bin:ocamlobjinfo} %{ocaml_where} %{deps}
+    %{targets} %{lib:compiler-libs.common:ocamlcommon.cma}
+    %{lib:compiler-libs.bytecomp:ocamlbytecomp.cma}
+    %{lib:compiler-libs.toplevel:ocamltoplevel.cma})))
+
+(install
+ (section bin)
+ (files
+  (utop-expunged.bc as utop)
+  (utop.bc as utop-full)))
