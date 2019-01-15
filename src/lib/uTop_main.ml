@@ -605,6 +605,57 @@ let bind_expressions name phrase =
       phrase
 
 (* +-----------------------------------------------------------------+
+   | Handling of [@@toplevel_printer] attributes                     |
+   +-----------------------------------------------------------------+ *)
+
+let execute_phrase =
+  let new_cmis = ref []in
+
+  let default_load = !Env.Persistent_signature.load in
+  let load ~unit_name =
+    let res = default_load ~unit_name in
+    (match res with None -> () | Some x -> new_cmis := x.cmi :: !new_cmis);
+    res
+  in
+  Env.Persistent_signature.load := load;
+
+  let rec collect_printers path signature acc =
+    List.fold_left (fun acc item ->
+      match (item : Types.signature_item) with
+      | Sig_module (id, {md_type = Mty_signature s; _}, _) ->
+        collect_printers (Longident.Ldot (path, Ident.name id)) s acc
+      | Sig_value (id, vd) ->
+        if List.exists (function
+          | {Asttypes.txt = "toplevel_printer" | "ocaml.toplevel_printer"; _},
+            _ ->
+            true
+          | _ -> false)
+          vd.val_attributes
+        then
+          Longident.Ldot (path, Ident.name id) :: acc
+        else acc
+      | _ -> acc)
+      acc signature
+  in
+
+  let acknowledge_new_cmis () =
+    let l = !new_cmis in
+    new_cmis := [];
+    let printers =
+    List.fold_left (fun acc (cmi : Cmi_format.cmi_infos) ->
+        collect_printers (Longident.Lident cmi.cmi_name) cmi.cmi_sign acc )
+      [] l
+    in
+    List.iter (Topdirs.dir_install_printer Format.err_formatter) printers
+  in
+
+  fun b pp phrase ->
+    acknowledge_new_cmis ();
+    let res = Toploop.execute_phrase b pp phrase in
+    acknowledge_new_cmis ();
+    res
+
+(* +-----------------------------------------------------------------+
    | Main loop                                                       |
    +-----------------------------------------------------------------+ *)
 
@@ -673,7 +724,7 @@ let rec loop term =
            Env.reset_cache_toplevel ();
            if !Clflags.dump_parsetree then Printast.top_phrase pp phrase;
            if !Clflags.dump_source then Pprintast.top_phrase pp phrase;
-           ignore (Toploop.execute_phrase true pp phrase);
+           ignore (execute_phrase true pp phrase);
            (* Flush everything. *)
            Format.pp_print_flush Format.std_formatter ();
            Format.pp_print_flush Format.err_formatter ();
@@ -879,7 +930,7 @@ module Emacs(M : sig end) = struct
     let phrase = rewrite phrase in
     try
       Env.reset_cache_toplevel ();
-      ignore (Toploop.execute_phrase true Format.std_formatter phrase);
+      ignore (execute_phrase true Format.std_formatter phrase);
       true
     with exn ->
       (* The only possible errors are directive errors. *)
