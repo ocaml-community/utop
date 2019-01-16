@@ -608,6 +608,7 @@ let bind_expressions name phrase =
    | Handling of [@@toplevel_printer] attributes                     |
    +-----------------------------------------------------------------+ *)
 
+#if OCAML_VERSION >= (4, 04, 0)
 let execute_phrase =
   let new_cmis = ref []in
 
@@ -654,6 +655,12 @@ let execute_phrase =
     let res = Toploop.execute_phrase b pp phrase in
     acknowledge_new_cmis ();
     res
+
+#else
+
+let execute_phrase = Toploop.execute_phrase
+
+#endif
 
 (* +-----------------------------------------------------------------+
    | Main loop                                                       |
