@@ -206,6 +206,34 @@ correctly:
 
 It shall point to the directory `stublibs` inside your ocaml installation.
 
+Automatically installing toplevel printers
+------------------------------------------
+
+Utop will automatically install toplevel printers for custom
+types if their interface file is marked with an
+`[@@ocaml.toplevel_printer]` attribute.  Adding this annotation to
+your libraries will remove the need to have a separate `top` package
+to install the printers.
+
+For example, in the [uri](https://github.com/mirage/ocaml-uri)
+library, the old printing function for `Uri.t` was:
+
+```
+val pp_hum : Format.formatter -> t -> unit
+```
+
+Just adding this annotation results in `Uri.t` values being automatically
+pretty printed in this version of utop.
+
+```
+val pp_hum : Format.formatter -> t -> unit [@@ocaml.toplevel_printer]
+```
+
+There should be no downsides to adding this attribute to your
+libraries, so we encourage community library maintainers to
+use this attribute to improve the out-of-the-box experience
+for users of their libraries within utop.
+
 Creating a custom utop-enabled toplevel
 ---------------------------------------
 
