@@ -4,6 +4,7 @@ authors: "Jérémie Dimino"
 license: "BSD3"
 homepage: "https://github.com/ocaml-community/utop"
 bug-reports: "https://github.com/ocaml-community/utop/issues"
+doc: "https://ocaml-community.github.io/utop/"
 depends: [
   "ocaml" {>= "4.03.0"}
   "base-unix"
