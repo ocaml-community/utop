@@ -1,8 +1,32 @@
-dev
----
+2.3.0 (2019-01-31)
+------------------
 
-* Port build to dune from jbuilder (@avsm)
-* Upgrade local opam metadata to opam 2.0 format (@avsm)
+The new feature in this release is to automatically install
+printers marked with `[@@ocaml.toplevel_printer]` (#269 @diml).
+Adding this annotation to your libraries will remove the need
+to have a separate `top` package to install the printers.
+
+For example, in the [uri](https://github.com/mirage/ocaml-uri)
+library, the old printing function for `Uri.t` was:
+
+```
+val pp_hum : Format.formatter -> t -> unit
+```
+
+Just adding this annotation results in `Uri.t` values being automatically
+pretty printed in this version of utop.
+
+```
+val pp_hum : Format.formatter -> t -> unit [@@ocaml.toplevel_printer]
+```
+
+* Add cool screenshot to README (#259 @rizo) and update links (#257 @bobot)
+* Improve robustness by using more tail-recursive functions (#251 @gpetiot)
+* Remove deprecation warnings in newer compilers (#246 @ncihnegn)
+* Minimum OCaml version supported is now 4.03.0 (#254 @XVilka)
+* Publish API documentation online and add `doc:` entry to opam file (#270 @avsm)
+* Port build to dune from jbuilder (#268 @avsm)
+* Upgrade local opam metadata to opam 2.0 format (#268 @avsm)
 
 2.2.0 (2018-07-15)
 ------------------
