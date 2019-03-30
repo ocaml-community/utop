@@ -150,7 +150,7 @@ let is_accept : LTerm_read_line.action -> bool = function
    valid phrase (i.e. typable and compilable). It also returns
    warnings printed parsing. *)
 class read_phrase ~term = object(self)
-  inherit [Parsetree.toplevel_phrase UTop.result * string] LTerm_read_line.engine ~history:(LTerm_history.contents UTop.history) () as super
+  inherit [Parsetree.toplevel_phrase UTop.result * string] LTerm_read_line.engine ~history:(LTerm_history.zed_contents UTop.history) () as super
   inherit [Parsetree.toplevel_phrase UTop.result * string] LTerm_read_line.term term as super_term
 
   method create_temporary_file_for_external_editor =
@@ -180,6 +180,7 @@ class read_phrase ~term = object(self)
                              is_accept action  -> begin
         Zed_macro.add self#macro action;
         let input = Zed_rope.to_string (Zed_edit.text self#edit) in
+        let input=  Zed_string_UTF8.of_t input in
         let input =
           if action == UTop.end_and_accept_current_phrase then
             add_terminator input
@@ -223,7 +224,7 @@ class read_phrase ~term = object(self)
         styled.(i) <- (ch, LTerm_style.merge token_style style)
       done
     in
-    UTop_styles.stylise stylise (UTop_lexer.lex_string (UTop.get_syntax ()) (LTerm_text.to_string styled));
+    UTop_styles.stylise stylise (UTop_lexer.lex_string (UTop.get_syntax ()) (Zed_string_UTF8.of_t (LTerm_text.to_string styled)));
 
     if not last then
       (* Parenthesis matching. *)
@@ -250,8 +251,10 @@ class read_phrase ~term = object(self)
       UTop_complete.complete
         ~syntax:(UTop.get_syntax ())
         ~phrase_terminator:(UTop.get_phrase_terminator ())
-        ~input:(Zed_rope.to_string self#input_prev)
+        ~input:(Zed_string_UTF8.of_t (Zed_rope.to_string self#input_prev))
     in
+    let words= words |> List.map (fun (k, v)->
+      (Zed_string_UTF8.to_t_exn k, Zed_string_UTF8.to_t_exn v)) in
     self#set_completion pos words
 
   method! show_box = S.value self#mode <> LTerm_read_line.Edition || UTop.get_show_box ()
@@ -296,7 +299,7 @@ let render_out_phrase term string =
     LTerm.fprint term string
   else begin
     let string = fix_string string in
-    let styled = LTerm_text.of_string string in
+    let styled = LTerm_text.of_utf8 string in
     let stylise loc token_style =
       for i = loc.idx1 to loc.idx2 - 1 do
         let ch, style = styled.(i) in

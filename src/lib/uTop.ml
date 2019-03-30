@@ -441,7 +441,7 @@ let make_prompt ui profile count size key_sequence (recording, macro_count, macr
               txta;
               Array.make
                 (size.cols - Array.length txta - Array.length txtb)
-                (UChar.of_int 0x2500, { none with foreground = Some (color lcyan blue); bold = Some bold });
+                (Zed_char.unsafe_of_uChar (UChar.of_int 0x2500), { none with foreground = Some (color lcyan blue); bold = Some bold });
               txtb;
             ]
         ) second_line
@@ -464,12 +464,12 @@ let () =
   Hashtbl.add Toploop.directive_table "utop_prompt_simple"
     (Toploop.Directive_none
        (fun () ->
-         prompt := S.map (Printf.ksprintf LTerm_text.of_string "utop [%d]: ") count));
+         prompt := S.map (Printf.ksprintf LTerm_text.of_utf8 "utop [%d]: ") count));
 
   Hashtbl.add Toploop.directive_table "utop_prompt_dummy"
     (Toploop.Directive_none
        (fun () ->
-         prompt := S.const (LTerm_text.of_string "# ")));
+         prompt := S.const (LTerm_text.of_utf8 "# ")));
 
   Hashtbl.add Toploop.directive_table "utop_prompt_fancy_light"
     (Toploop.Directive_none
