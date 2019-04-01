@@ -136,11 +136,11 @@ let parse_and_check input eos_is_error =
   (result, Buffer.contents buf)
 
 let add_terminator s =
-  let terminator = UTop.get_phrase_terminator () in
-  if Zed_utf8.ends_with s terminator then
+  let terminator = UTop.get_phrase_terminator () |> Zed_string.unsafe_of_utf8 in
+  if Zed_string.ends_with s terminator then
     s
   else
-    s ^ terminator
+    Zed_string.append s terminator
 
 let is_accept : LTerm_read_line.action -> bool = function
   | Accept -> true
@@ -150,7 +150,7 @@ let is_accept : LTerm_read_line.action -> bool = function
    valid phrase (i.e. typable and compilable). It also returns
    warnings printed parsing. *)
 class read_phrase ~term = object(self)
-  inherit [Parsetree.toplevel_phrase UTop.result * string] LTerm_read_line.engine ~history:(LTerm_history.zed_contents UTop.history) () as super
+  inherit [Parsetree.toplevel_phrase UTop.result * string] LTerm_read_line.engine ~history:(LTerm_history.contents UTop.history) () as super
   inherit [Parsetree.toplevel_phrase UTop.result * string] LTerm_read_line.term term as super_term
 
   method create_temporary_file_for_external_editor =
@@ -180,28 +180,28 @@ class read_phrase ~term = object(self)
                              is_accept action  -> begin
         Zed_macro.add self#macro action;
         let input = Zed_rope.to_string (Zed_edit.text self#edit) in
-        let input=  Zed_string_UTF8.of_t input in
         let input =
           if action == UTop.end_and_accept_current_phrase then
             add_terminator input
           else
             input
         in
+        let input_utf8= Zed_string.to_utf8 input in
         (* Toploop does that: *)
         Location.reset ();
         let eos_is_error = not !UTop.smart_accept in
         try
-          let result = parse_and_check input eos_is_error in
+          let result = parse_and_check input_utf8 eos_is_error in
           return_value <- Some result;
           LTerm_history.add UTop.history input;
           let out, warnings = result in
           begin
             match out with
             | UTop.Value _ ->
-              UTop_history.add_input UTop.stashable_session_history input;
+              UTop_history.add_input UTop.stashable_session_history input_utf8;
               UTop_history.add_warnings UTop.stashable_session_history warnings;
             | (UTop.Error (_, msg)) ->
-              UTop_history.add_bad_input UTop.stashable_session_history input;
+              UTop_history.add_bad_input UTop.stashable_session_history input_utf8;
               UTop_history.add_warnings UTop.stashable_session_history warnings;
               UTop_history.add_error UTop.stashable_session_history msg;
           end;
@@ -224,7 +224,7 @@ class read_phrase ~term = object(self)
         styled.(i) <- (ch, LTerm_style.merge token_style style)
       done
     in
-    UTop_styles.stylise stylise (UTop_lexer.lex_string (UTop.get_syntax ()) (Zed_string_UTF8.of_t (LTerm_text.to_string styled)));
+    UTop_styles.stylise stylise (UTop_lexer.lex_string (UTop.get_syntax ()) (Zed_string.to_utf8 (LTerm_text.to_string styled)));
 
     if not last then
       (* Parenthesis matching. *)
@@ -251,10 +251,10 @@ class read_phrase ~term = object(self)
       UTop_complete.complete
         ~syntax:(UTop.get_syntax ())
         ~phrase_terminator:(UTop.get_phrase_terminator ())
-        ~input:(Zed_string_UTF8.of_t (Zed_rope.to_string self#input_prev))
+        ~input:(Zed_string.to_utf8 (Zed_rope.to_string self#input_prev))
     in
     let words= words |> List.map (fun (k, v)->
-      (Zed_string_UTF8.to_t_exn k, Zed_string_UTF8.to_t_exn v)) in
+      (Zed_string.unsafe_of_utf8 k, Zed_string.unsafe_of_utf8 v)) in
     self#set_completion pos words
 
   method! show_box = S.value self#mode <> LTerm_read_line.Edition || UTop.get_show_box ()
@@ -958,17 +958,18 @@ module Emacs(M : sig end) = struct
 
   let process_input add_to_history eos_is_error =
     let input = read_data () in
+    let input_zed= Zed_string.unsafe_of_utf8 input in
     let result, warnings = parse_and_check input eos_is_error in
     match result with
       | UTop.Value phrase ->
           send "accept" "";
           List.iter (send "stderr") (split_at ~trim:true '\n' warnings);
-          if add_to_history then LTerm_history.add UTop.history input;
+          if add_to_history then LTerm_history.add UTop.history input_zed;
           ignore (process_checked_phrase phrase)
       | UTop.Error (locs, msg) ->
           send "accept" (String.concat "," (List.map (fun (a, b) -> Printf.sprintf "%d,%d" a b) locs));
           List.iter (send "stderr") (split_at ~trim:true '\n' warnings);
-          if add_to_history then LTerm_history.add UTop.history input;
+          if add_to_history then LTerm_history.add UTop.history input_zed;
           List.iter (send "stderr") (split_at ~trim:true '\n' msg)
 
   let send_error locs msg warnings =
@@ -1100,7 +1101,7 @@ module Emacs(M : sig end) = struct
                 send "history-bound" "";
                 loop_commands history_prev history_next
             | entry :: history_prev ->
-                List.iter (send "history-data") (split_at '\n' entry);
+                List.iter (send "history-data") (split_at '\n' (Zed_string.to_utf8 entry));
                 send "history-end" "";
                 loop_commands history_prev (input :: history_next)
         end
@@ -1113,7 +1114,7 @@ module Emacs(M : sig end) = struct
             | entry :: history_next ->
                 List.iter (send "history-data") (split_at '\n' entry);
                 send "history-end" "";
-                loop_commands (input :: history_prev) history_next
+                loop_commands ((Zed_string.unsafe_of_utf8 input) :: history_prev) history_next
         end
       | Some ("exit", code) ->
           exit (int_of_string code)
