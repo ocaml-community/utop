@@ -3,6 +3,7 @@ open Printf
 
 let run_and_read_lines args =
   let cmd = String.concat ~sep:" " (List.map args ~f:Filename.quote) in
+  let cmd = if Sys.win32 then "\"" ^ cmd ^ "\"" else cmd in
   let ic = Unix.open_process_in cmd in
   let rec loop acc =
     match input_line ic with
@@ -60,6 +61,7 @@ let main ~objinfo ~stdlib_dir ~src ~dst ~cma_files ~verbose =
       (Filename.quote dst)
       (String.concat ~sep:" " (S.elements modules_to_keep))
   in
+  let cmdline = if Sys.win32 then "\"" ^ cmdline ^ "\"" else cmdline in
   if verbose then prerr_endline cmdline;
   exit (Sys.command cmdline)
 
