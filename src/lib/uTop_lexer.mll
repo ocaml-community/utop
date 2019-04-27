@@ -115,13 +115,13 @@ rule tokens syntax context idx acc = parse
         tokens syntax context loc.idx2 ((tok, loc) :: acc) lexbuf }
   | '"'
       { let ofs = lexeme_start lexbuf in
-        let idx2, terminated = string (idx + 1) lexbuf in
+        let idx2, terminated = string (idx + 1) false lexbuf in
         let loc = mkloc idx idx2 ofs (lexeme_end lexbuf) in
         tokens syntax context idx2 ((String (1, terminated), loc) :: acc) lexbuf }
   | '{' (lowercase* as tag) '|'
       { let ofs = lexeme_start lexbuf in
         let delim_len = String.length tag + 2 in
-        let idx2, terminated = quoted_string (idx + delim_len) tag lexbuf in
+        let idx2, terminated = quoted_string (idx + delim_len) tag false lexbuf in
         let loc = mkloc idx idx2 ofs (lexeme_end lexbuf) in
         tokens syntax context idx2 ((String (delim_len, terminated), loc) :: acc) lexbuf }
   | "'" [^'\'' '\\'] "'"
@@ -143,12 +143,12 @@ rule tokens syntax context idx acc = parse
         tokens syntax context loc.idx2 ((Comment (Comment_doc, true), loc) :: acc) lexbuf }
   | "(**"
       { let ofs = lexeme_start lexbuf in
-        let idx2, terminated = comment (idx + 3) 0 lexbuf in
+        let idx2, terminated = comment (idx + 3) 0 false lexbuf in
         let loc = mkloc idx idx2 ofs (lexeme_end lexbuf) in
         tokens syntax context idx2 ((Comment (Comment_doc, terminated), loc) :: acc) lexbuf }
   | "(*"
       { let ofs = lexeme_start lexbuf in
-        let idx2, terminated = comment (idx + 2) 0 lexbuf in
+        let idx2, terminated = comment (idx + 2) 0 false lexbuf in
         let loc = mkloc idx idx2 ofs (lexeme_end lexbuf) in
         tokens syntax context idx2 ((Comment (Comment_reg, terminated), loc) :: acc) lexbuf }
   | ""
@@ -180,7 +180,7 @@ and symbol syntax context idx acc = parse
 and camlp4_toplevel syntax context idx acc = parse
   | '<' (':' ident)? ('@' lident)? '<'
       { let ofs = lexeme_start lexbuf in
-        let idx2, items, terminated = quotation syntax 0 idx (idx + lexeme_size lexbuf) (lexeme_start lexbuf) lexbuf in
+        let idx2, items, terminated = quotation syntax 0 idx (idx + lexeme_size lexbuf) (lexeme_start lexbuf) false lexbuf in
         let ofs2 = lexeme_end lexbuf in
         tokens syntax context idx2
           ((Quotation (items, terminated), mkloc idx idx2 ofs ofs2) :: acc)
@@ -194,56 +194,89 @@ and camlp4_antiquot syntax context idx acc = parse
   | ""
       { camlp4_toplevel syntax context idx acc lexbuf }
 
-and comment idx depth = parse
+and comment idx depth combining= parse
   | "(*"
-      { comment (idx + 2) (depth + 1) lexbuf }
+      { comment (idx + 2) (depth + 1) false lexbuf }
   | "*)"
       { if depth = 0 then
           (idx + 2, true)
         else
-          comment (idx + 2) (depth - 1) lexbuf }
+          comment (idx + 2) (depth - 1) false lexbuf }
   | '"'
-      { let idx, terminated = string (idx + 1) lexbuf in
+      { let idx, terminated = string (idx + 1) false lexbuf in
         if terminated then
-          comment idx depth lexbuf
+          comment idx depth false lexbuf
         else
           (idx, false) }
-  | uchar
-      { comment (idx + 1) depth lexbuf }
+  | uchar as uchar
+      { let uChar= Zed_utf8.unsafe_extract uchar 0 in
+        if not combining then
+          if Zed_char.is_combining_mark uChar then
+            comment (idx + 1) depth false lexbuf
+          else
+            comment (idx + 1) depth true lexbuf
+        else
+          if Zed_char.is_combining_mark uChar then
+            comment idx depth true lexbuf
+          else
+            comment (idx + 1) depth true lexbuf
+      }
   | eof
       { (idx, false) }
 
-and string idx = parse
+and string idx combining= parse
   | '"'
       { (idx + 1, true) }
   | "\\\""
-      { string (idx + 2) lexbuf }
-  | uchar
-      { string (idx + 1) lexbuf }
+      { string (idx + 2) false lexbuf }
+  | uchar as uchar
+      { let uChar= Zed_utf8.unsafe_extract uchar 0 in
+        if not combining then
+          if Zed_char.is_combining_mark uChar then
+            string (idx + 1) false lexbuf
+          else
+            string (idx + 1) true lexbuf
+        else
+          if Zed_char.is_combining_mark uChar then
+            string idx true lexbuf
+          else
+            string (idx + 1) true lexbuf
+      }
   | eof
       { (idx, false) }
 
-and quoted_string idx tag = parse
+and quoted_string idx tag combining= parse
     | '|' (lowercase* as tag2) '}'
         { let idx = idx + 2 + String.length tag2 in
           if tag = tag2 then
             (idx, true)
           else
-            quoted_string idx tag lexbuf }
+            quoted_string idx tag false lexbuf }
     | eof
         { (idx, false) }
-    | uchar
-        { quoted_string (idx + 1) tag lexbuf }
+    | uchar as uchar
+        { let uChar= Zed_utf8.unsafe_extract uchar 0 in
+          if not combining then
+            if Zed_char.is_combining_mark uChar then
+              quoted_string (idx + 1) tag false lexbuf
+            else
+              quoted_string (idx + 1) tag true lexbuf
+          else
+            if Zed_char.is_combining_mark uChar then
+              quoted_string idx tag true lexbuf
+            else
+              quoted_string (idx + 1) tag true lexbuf
+        }
 
-and quotation syntax depth idx1 idx2 ofs1 = parse
+and quotation syntax depth idx1 idx2 ofs1 combining= parse
   | '<' (':' ident)? ('@' lident)? '<'
-      { quotation syntax (depth + 1) idx1 (idx2 + lexeme_size lexbuf) ofs1 lexbuf }
+      { quotation syntax (depth + 1) idx1 (idx2 + lexeme_size lexbuf) ofs1 false lexbuf }
   | ">>"
       { if depth = 0 then
           let loc = mkloc idx1 (idx2 + 2) ofs1 (lexeme_end lexbuf) in
           (idx2 + 2, [(Quot_data, loc)], true)
         else
-          quotation syntax (depth - 1) idx1 (idx2 + 2) ofs1 lexbuf }
+          quotation syntax (depth - 1) idx1 (idx2 + 2) ofs1 false lexbuf }
   | '$'
       { let quot_data_loc =
           if idx1 = idx2 then
@@ -262,15 +295,26 @@ and quotation syntax depth idx1 idx2 ofs1 = parse
         } in
         let ofs = lexeme_end lexbuf in
         let loc = mkloc opening_loc.idx1 idx opening_loc.ofs2 ofs in
-        let idx, quot_items, terminated = quotation syntax depth idx idx ofs lexbuf in
+        let idx, quot_items, terminated = quotation syntax depth idx idx ofs false lexbuf in
         let quot_items = (Quot_anti anti, loc) :: quot_items in
         match quot_data_loc with
           | Some loc ->
               (idx, (Quot_data, loc) :: quot_items, terminated)
           | None ->
               (idx, quot_items, terminated) }
-  | uchar
-      { quotation syntax depth idx1 (idx2 + 1) ofs1 lexbuf }
+  | uchar as uchar
+      { let uChar= Zed_utf8.unsafe_extract uchar 0 in
+        if not combining then
+          if Zed_char.is_combining_mark uChar then
+            quotation syntax depth idx1 (idx2 + 1) ofs1 false lexbuf
+          else
+            quotation syntax depth idx1 (idx2 + 1) ofs1 true lexbuf
+        else
+          if Zed_char.is_combining_mark uChar then
+            quotation syntax depth idx1 idx2 ofs1 true lexbuf
+          else
+            quotation syntax depth idx1 (idx2 + 1) ofs1 true lexbuf
+      }
   | eof
       { if idx1 = idx2 then
           (idx2, [], false)
