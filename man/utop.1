@@ -61,6 +61,13 @@ You can then add this line to your
 .I ~/.ocamlinit
 file.
 
+To turn off utop's advanced prompt features, add the following to .ocamlinit 
+to turn off respectively (a) colors and the upper information line, and 
+(b) the lower boxed list of possible completions:
+
+        #utop_prompt_dummy;; 
+        UTop.set_show_box false
+
 You can enable basic syntax highlighting in utop by writing a
 .I ~/.utoprc
 file. See
