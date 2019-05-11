@@ -173,9 +173,24 @@ and symbol syntax context idx acc = parse
       { let loc = lexeme_loc idx lexbuf in
         let tok = Symbol (lexeme lexbuf) in
         tokens syntax context loc.idx2 ((tok, loc) :: acc) lexbuf }
-  | uchar
-      { let loc = mkloc idx (idx + 1) (lexeme_start lexbuf) (lexeme_end lexbuf) in
-        tokens syntax context loc.idx2 ((Error, loc) :: acc) lexbuf }
+  | uchar as uchar
+      { let uChar= Zed_utf8.unsafe_extract uchar 0 in
+        if Zed_char.is_combining_mark uChar then
+          let tok, loc= List.hd acc
+          and tl= List.tl acc in
+          let tok= match tok with
+            | Symbol str-> Symbol (str ^ (lexeme lexbuf))
+            | Lident str-> Lident (str ^ (lexeme lexbuf))
+            | Uident str-> Uident (str ^ (lexeme lexbuf))
+            | Constant str-> Constant (str ^ (lexeme lexbuf))
+            | _-> tok
+          in
+          let loc= { loc with ofs2= lexeme_end lexbuf } in
+          tokens syntax context loc.idx2 ((tok, loc) :: tl) lexbuf
+        else
+          let loc = mkloc idx (idx + 1) (lexeme_start lexbuf) (lexeme_end lexbuf) in
+          tokens syntax context loc.idx2 ((Error, loc) :: acc) lexbuf
+      }
 
 and camlp4_toplevel syntax context idx acc = parse
   | '<' (':' ident)? ('@' lident)? '<'
