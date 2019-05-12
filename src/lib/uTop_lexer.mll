@@ -115,9 +115,9 @@ rule tokens syntax context idx acc = parse
         tokens syntax context loc.idx2 ((tok, loc) :: acc) lexbuf }
   | '"'
       { let ofs = lexeme_start lexbuf in
-        let idx2, terminated = string (idx + 1) false lexbuf in
+        let item, idx2= cm_string (idx + 1) lexbuf in
         let loc = mkloc idx idx2 ofs (lexeme_end lexbuf) in
-        tokens syntax context idx2 ((String (1, terminated), loc) :: acc) lexbuf }
+        tokens syntax context idx2 ((item, loc) :: acc) lexbuf }
   | '{' (lowercase* as tag) '|'
       { let ofs = lexeme_start lexbuf in
         let delim_len = String.length tag + 2 in
@@ -191,6 +191,25 @@ and symbol syntax context idx acc = parse
           let loc = mkloc idx (idx + 1) (lexeme_start lexbuf) (lexeme_end lexbuf) in
           tokens syntax context loc.idx2 ((Error, loc) :: acc) lexbuf
       }
+
+and cm_string idx= parse
+  | '"'
+      { (String (1, true), idx+1) }
+  | "\\\""
+      { let idx2, terminated= string (idx + 2) false lexbuf in
+        (String (1, terminated), idx2)
+      }
+  | uchar as uchar
+      {
+        let uChar= Zed_utf8.unsafe_extract uchar 0 in
+        if Zed_char.is_combining_mark uChar then
+          (Error, idx)
+        else
+          let idx2, terminated= string (idx + 1) true lexbuf in
+          (String (1, terminated), idx2)
+      }
+  | eof
+      { (String (1, false), idx) }
 
 and camlp4_toplevel syntax context idx acc = parse
   | '<' (':' ident)? ('@' lident)? '<'
