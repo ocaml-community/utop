@@ -203,7 +203,7 @@ and cm_string idx= parse
       {
         let uChar= Zed_utf8.unsafe_extract uchar 0 in
         if Zed_char.is_combining_mark uChar then
-          (Error, idx)
+          cm_string idx lexbuf
         else
           let idx2, terminated= string (idx + 1) true lexbuf in
           (String (1, terminated), idx2)
