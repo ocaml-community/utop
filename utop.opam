@@ -6,11 +6,11 @@ homepage: "https://github.com/ocaml-community/utop"
 bug-reports: "https://github.com/ocaml-community/utop/issues"
 doc: "https://ocaml-community.github.io/utop/"
 depends: [
-  "ocaml" {>= "4.03.0"}
+  "ocaml" {>= "4.03.0" & < "4.08.0"}
   "base-unix"
   "base-threads"
   "ocamlfind" {>= "1.7.2"}
-  "lambda-term" {>= "1.13"}
+  "lambda-term" {>= "2.0" & < "3.0"}
   "lwt"
   "lwt_react"
   "camomile"
