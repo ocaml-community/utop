@@ -137,7 +137,7 @@ let parse_and_check input eos_is_error =
 
 let add_terminator s =
   let terminator = UTop.get_phrase_terminator () |> Zed_string.unsafe_of_utf8 in
-  if Zed_string.ends_with s terminator then
+  if Zed_string.ends_with s ~suffix:terminator then
     s
   else
     Zed_string.append s terminator
