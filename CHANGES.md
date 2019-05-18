@@ -1,6 +1,6 @@
 2.4.0 (2019-05-17)
 
-* UTop depends on lambda-term 2 and therefore provide better unicode support(wide, combined glyph).
+* UTop: depend on lambda-term 2 and therefore provide better unicode support(wide, combined glyph).
 * UTop\_lexer: support combined glyph
 * Added tips for simpe prompt without fancy features (Marshall Abrams, #279)
 * Correct quoting for Windows command shell (Dmitry Bely, #272)
