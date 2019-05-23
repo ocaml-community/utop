@@ -811,6 +811,18 @@ let () =
   (* Make UTop accessible. *)
   Topdirs.dir_directory (Findlib.package_directory "utop")
 
+ (* +-----------------------------------------------------------------+
+   | Compiler-libs re-exports                                        |
+   +-----------------------------------------------------------------+ *)
+
+#if OCAML_VERSION >= (4, 08, 0)
+let get_load_path ()= Load_path.get_paths ()
+let set_load_path path= Load_path.init path
+#else
+let get_load_path ()= !Config.load_path
+let set_load_path path= Config.load_path := path
+#endif
+
 (* +-----------------------------------------------------------------+
    | Deprecated                                                      |
    +-----------------------------------------------------------------+ *)
