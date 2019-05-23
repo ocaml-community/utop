@@ -803,13 +803,13 @@ let () =
 let () =
   (* "utop" is an internal library so it is not passed as "-package"
      to "ocamlfind ocamlmktop". *)
-  try Topfind.don't_load_deeply ["utop"]; with Fl_package_base.No_such_package _-> ();
+  Topfind.don't_load_deeply ["utop"];
   Topfind.add_predicates ["byte"; "toploop"];
   (* Add findlib path so Topfind is available and it won't be
      initialized twice if the user does [#use "topfind"]. *)
   Topdirs.dir_directory (Findlib.package_directory "findlib");
   (* Make UTop accessible. *)
-  try Topdirs.dir_directory (Findlib.package_directory "utop") with Fl_package_base.No_such_package _-> ()
+  Topdirs.dir_directory (Findlib.package_directory "utop")
 
 (* +-----------------------------------------------------------------+
    | Deprecated                                                      |
