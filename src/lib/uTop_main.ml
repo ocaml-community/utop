@@ -518,7 +518,11 @@ let rule_path rule =
 (* Returns whether the given path is persistent. *)
 let rec is_persistent_path = function
   | Path.Pident id -> Ident.persistent id
+#if OCAML_VERSION >= (4, 08, 0)
+  | Path.Pdot (p, _) -> is_persistent_path p
+#else
   | Path.Pdot (p, _, _) -> is_persistent_path p
+#endif
   | Path.Papply (_, p) -> is_persistent_path p
 
 (* Check that the given long identifier is present in the environment
@@ -572,7 +576,11 @@ let rewrite phrase =
   match phrase with
     | Parsetree.Ptop_def pstr ->
       if (UTop.get_auto_run_lwt () || UTop.get_auto_run_async ()) && List.exists is_eval pstr then
+#if OCAML_VERSION >= (4, 08, 0)
+        let tstr, _, _, _ = Typemod.type_structure !Toploop.toplevel_env pstr Location.none in
+#else
         let tstr, _, _ = Typemod.type_structure !Toploop.toplevel_env pstr Location.none in
+#endif
         Parsetree.Ptop_def (List.map2 rewrite_str_item pstr tstr.Typedtree.str_items)
       else
         phrase
@@ -589,6 +597,9 @@ let add_let binding_name def =
         {
           pvb_pat = {
             ppat_desc = Ppat_var { txt = binding_name; loc = pstr_loc; };
+#if OCAML_VERSION >= (4, 08, 0)
+            ppat_loc_stack= [];
+#endif
             ppat_loc = pstr_loc;
             ppat_attributes = [];
           };
@@ -626,12 +637,27 @@ let execute_phrase =
   let rec collect_printers path signature acc =
     List.fold_left (fun acc item ->
       match (item : Types.signature_item) with
+#if OCAML_VERSION >= (4, 08, 0)
+      | Sig_module (id, _, {md_type = Mty_signature s; _}, _, _) ->
+#else
       | Sig_module (id, {md_type = Mty_signature s; _}, _) ->
+#endif
         collect_printers (Longident.Ldot (path, Ident.name id)) s acc
+#if OCAML_VERSION >= (4, 08, 0)
+      | Sig_value (id, vd, _) ->
+#else
       | Sig_value (id, vd) ->
+#endif
+#if OCAML_VERSION >= (4, 08, 0)
+        if List.exists (fun attr->
+          let open Parsetree in
+          match attr.attr_name with
+          | {Asttypes.txt = "toplevel_printer" | "ocaml.toplevel_printer"; _} ->
+#else
         if List.exists (function
           | {Asttypes.txt = "toplevel_printer" | "ocaml.toplevel_printer"; _},
             _ ->
+#endif
             true
           | _ -> false)
           vd.val_attributes
@@ -1149,29 +1175,49 @@ let typeof sid =
   let out_sig_item =
     try
       let (path, ty_decl) = lookup_type id env in
+#if OCAML_VERSION >= (4, 08, 0)
+      let id = Ident.create_local (Path.name path) in
+#else
       let id = Ident.create (Path.name path) in
+#endif
       Some (Printtyp.tree_of_type_declaration id ty_decl Types.Trec_not)
     with Not_found ->
     try
       let (path, val_descr) = Env.lookup_value id env in
+#if OCAML_VERSION >= (4, 08, 0)
+      let id = Ident.create_local (Path.name path) in
+#else
       let id = Ident.create (Path.name path) in
+#endif
       Some (Printtyp.tree_of_value_description id val_descr)
     with Not_found ->
     try
       let lbl_desc = Env.lookup_label id env in
       let (path, ty_decl) = from_type_desc lbl_desc.Types.lbl_res.Types.desc in
+#if OCAML_VERSION >= (4, 08, 0)
+      let id = Ident.create_local (Path.name path) in
+#else
       let id = Ident.create (Path.name path) in
+#endif
       Some (Printtyp.tree_of_type_declaration id ty_decl Types.Trec_not)
     with Not_found ->
     try
       let path = Env.lookup_module id env ~load:true in
       let mod_typ = (Env.find_module path env).Types.md_type in
+#if OCAML_VERSION >= (4, 08, 0)
+      let id = Ident.create_local (Path.name path) in
+#else
       let id = Ident.create (Path.name path) in
+#endif
       Some (Printtyp.tree_of_module id mod_typ Types.Trec_not)
     with Not_found ->
     try
       let (path, mty_decl) = Env.lookup_modtype id env in
+#if OCAML_VERSION >= (4, 08, 0)
+      let id = Ident.create_local (Path.name path) in
+#else
       let id = Ident.create (Path.name path) in
+#endif
       Some (Printtyp.tree_of_modtype_declaration id mty_decl)
     with Not_found ->
     try
@@ -1179,7 +1225,11 @@ let typeof sid =
       match cstr_desc.Types.cstr_tag with
       | _ ->
         let (path, ty_decl) = from_type_desc cstr_desc.Types.cstr_res.Types.desc in
+#if OCAML_VERSION >= (4, 08, 0)
+        let id = Ident.create_local (Path.name path) in
+#else
         let id = Ident.create (Path.name path) in
+#endif
         Some (Printtyp.tree_of_type_declaration id ty_decl Types.Trec_not)
     with Not_found ->
       None
@@ -1260,7 +1310,11 @@ let print_version_num () =
 let autoload = ref true
 
 let args = Arg.align [
+#if OCAML_VERSION >= (4, 08, 0)
+  "-absname", Arg.Set Clflags.absname, " Show absolute filenames in error message";
+#else
   "-absname", Arg.Set Location.absname, " Show absolute filenames in error message";
+#endif
   "-I", Arg.String (fun dir ->  Clflags.include_dirs := dir :: !Clflags.include_dirs), "<dir> Add <dir> to the list of include directories";
   "-init", Arg.String (fun s -> Clflags.init_file := Some s), "<file> Load <file> instead of default init file";
   "-labels", Arg.Clear Clflags.classic, " Use commuting label mode";
@@ -1276,7 +1330,11 @@ let args = Arg.align [
   "-rectypes", Arg.Set Clflags.recursive_types, " Allow arbitrary recursive types";
   "-stdin", Arg.Unit (fun () -> run_script ""), " Read script from standard input";
   "-strict-sequence", Arg.Set Clflags.strict_sequence, " Left-hand part of a sequence must have type unit";
+#if OCAML_VERSION >= (4, 08, 0)
+  "-unsafe", Arg.Set Clflags.unsafe, " Do not compile bounds checking on array and string access";
+#else
   "-unsafe", Arg.Set Clflags.fast, " Do not compile bounds checking on array and string access";
+#endif
   "-version", Arg.Unit print_version, " Print version and exit";
   "-vnum", Arg.Unit print_version_num, " Print version number and exit";
   "-w", Arg.String (Warnings.parse_options false),

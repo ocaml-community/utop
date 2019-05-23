@@ -356,13 +356,6 @@ val discard_formatters : Format.formatter list -> (unit -> 'a) -> 'a
 
 val split_words : string -> string list
 
-(** {6 compiler-libs reexports} *)
-
-val load_path : string list ref
-  (** [load_path] is an alias of [Config.load_path], normally hidden in toplevel.
-      It contains the list of directories added by findlib-required packages
-      and [#directory] directives. *)
-
 (**/**)
 
 (* These variables are not used and deprecated: *)
