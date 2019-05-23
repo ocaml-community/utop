@@ -248,7 +248,14 @@ let parse_default parse str eos_is_error =
         (* If the string is empty, do not report an error. *)
         raise Need_more
     | Lexer.Error (error, loc) ->
+#if OCAML_VERSION >= (4, 08, 0)
+        (match Location.error_of_exn (Lexer.Error (error, loc)) with
+        | Some (`Ok error)->
+          Error ([mkloc loc], get_message Location.print_report error)
+        | _-> raise Need_more)
+#else
         Error ([mkloc loc], get_message Lexer.report_error error)
+#endif
     | Syntaxerr.Error error -> begin
       match error with
       | Syntaxerr.Unclosed (opening_loc, opening, closing_loc, closing) ->
@@ -796,19 +803,13 @@ let () =
 let () =
   (* "utop" is an internal library so it is not passed as "-package"
      to "ocamlfind ocamlmktop". *)
-  Topfind.don't_load_deeply ["utop"];
+  try Topfind.don't_load_deeply ["utop"]; with Fl_package_base.No_such_package _-> ();
   Topfind.add_predicates ["byte"; "toploop"];
   (* Add findlib path so Topfind is available and it won't be
      initialized twice if the user does [#use "topfind"]. *)
   Topdirs.dir_directory (Findlib.package_directory "findlib");
   (* Make UTop accessible. *)
-  Topdirs.dir_directory (Findlib.package_directory "utop")
-
-(* +-----------------------------------------------------------------+
-   | Compiler-libs re-exports                                        |
-   +-----------------------------------------------------------------+ *)
-
-let load_path = Config.load_path
+  try Topdirs.dir_directory (Findlib.package_directory "utop") with Fl_package_base.No_such_package _-> ()
 
 (* +-----------------------------------------------------------------+
    | Deprecated                                                      |
