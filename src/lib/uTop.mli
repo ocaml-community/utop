@@ -360,8 +360,7 @@ val split_words : string -> string list
 
 val get_load_path : unit -> string list
 val set_load_path : string list -> unit
-  (** [get_load_path] is an alias of [Config.load_path], normally hidden in toplevel.
-      [get_load_path] and [set_load_path] manage the include directories.
+  (** [get_load_path] and [set_load_path] manage the include directories.
 
       The internal variable contains the list of directories added by findlib-required packages
       and [#directory] directives. *)
