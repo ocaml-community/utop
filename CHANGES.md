@@ -1,9 +1,20 @@
 2.4.0 (2019-05-17)
+------------------
 
-* UTop: depend on lambda-term 2 and therefore provide better unicode support(wide, combined glyph).
-* UTop\_lexer: support combined glyph
+### General
+
+* Better support for wide and combined glyph (@kandu)
 * Added tips for simpe prompt without fancy features (Marshall Abrams, #279)
 * Correct quoting for Windows command shell (Dmitry Bely, #272)
+
+### Additions
+
+* 4.08 compatibility (#284)
+* module `UTop`: add `get_load_path` and `set_load_path` to manage the include directories (#284)
+
+### Breaking
+
+* module `UTop`: `val load_path : string list ref` is removed (#284)
 
 2.3.0 (2019-01-31)
 ------------------
