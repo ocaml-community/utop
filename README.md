@@ -26,15 +26,15 @@ dependencies listed in the next section.
 Dependencies
 ------------
 
-* [OCaml](http://caml.inria.fr/ocaml/) (>= 4.02.3)
+* [OCaml](http://caml.inria.fr/ocaml/) (>= 4.03.0)
 * [Dune](http://github.com/ocaml/dune)
 * [findlib](http://projects.camlcity.org/projects/findlib.html) (>= 1.4.0)
 * [cppo](http://mjambon.com/cppo.html) (>= 1.0.1)
 * [react](http://erratique.ch/software/react)
 * [lwt](http://ocsigen.org/lwt/) (>= 2.4.0) built with react support
 * [Camomile](http://github.com/yoriyuki/Camomile) (>= 0.8)
-* [zed](http://github.com/diml/zed) (>= 1.2)
-* [lambda-term](http://github.com/diml/lambda-term) (>= 1.2)
+* [zed](http://github.com/diml/zed) (>= 2.0)
+* [lambda-term](http://github.com/diml/lambda-term) (>= 2.0)
 
 Installation from sources
 -------------------------
