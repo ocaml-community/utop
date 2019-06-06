@@ -1,3 +1,8 @@
+next
+----
+
+- Allow to statically link utop (@diml, #285)
+
 2.4.0 (2019-05-17)
 ------------------
 
