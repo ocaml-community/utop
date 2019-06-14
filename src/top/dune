@@ -2,7 +2,7 @@
  (names utop)
  (libraries utop)
  (flags :standard -safe-string)
- (mode byte)
+ (modes byte)
  (link_flags -linkall))
 
 (rule
