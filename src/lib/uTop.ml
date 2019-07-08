@@ -66,15 +66,9 @@ let make_variable ?eq x =
   let set v = set v in
   (signal, (fun () -> S.value signal), set)
 
-type syntax =
-  | Normal
-  | Camlp4o
-  | Camlp4r
-
 let hide_reserved, get_hide_reserved, set_hide_reserved = make_variable true
 let create_implicits, get_create_implicits, set_create_implicits = make_variable false
 let show_box, get_show_box, set_show_box = make_variable true
-let syntax, get_syntax, set_syntax = make_variable Normal
 let phrase_terminator, get_phrase_terminator, set_phrase_terminator = make_variable ";;"
 let auto_run_lwt, get_auto_run_lwt, set_auto_run_lwt = make_variable true
 let auto_run_async, get_auto_run_async, set_auto_run_async = make_variable true
@@ -661,7 +655,7 @@ let () =
   Hashtbl.add Toploop.directive_table "utop_save" (Toploop.Directive_string fn)
 
 (* +-----------------------------------------------------------------+
-   | Camlp4                                                          |
+   | Findlib stuff                                                   |
    +-----------------------------------------------------------------+ *)
 
 let print_error msg =
@@ -680,55 +674,6 @@ let handle_findlib_error = function
       Lwt_main.run (print_error (Printf.sprintf "Package requires itself: %s\n" pkg))
   | exn ->
       raise exn
-
-let check_for_camlp4_support () =
-  try
-    ignore (Fl_package_base.query "utop.camlp4");
-    true
-  with Fl_package_base.No_such_package("utop.camlp4", "") ->
-    Lwt_main.run (print_error "utop was built without camlp4 support.\n");
-    false
-
-let set_syntax syntax =
-  match get_syntax (), syntax with
-    | Normal, Normal
-    | Camlp4o, Camlp4o
-    | Camlp4r, Camlp4r ->
-        ()
-    | (Camlp4o | Camlp4r), _ ->
-        Lwt_main.run (print_error "Camlp4 already loaded, you cannot change the syntax now.\n")
-    | Normal, Camlp4o ->
-        if check_for_camlp4_support () then begin
-          Topfind.syntax "camlp4o";
-          Topfind.load_deeply ["utop.camlp4"];
-          set_syntax Camlp4o;
-          set_phrase_terminator ";;"
-        end
-    | Normal, Camlp4r ->
-        if check_for_camlp4_support () then begin
-          Topfind.syntax "camlp4r";
-          Topfind.load_deeply ["utop.camlp4"];
-          set_syntax Camlp4r;
-          set_phrase_terminator ";";
-          add_keyword "value"
-        end
-
-let () =
-  Hashtbl.add
-    Toploop.directive_table
-    "camlp4o"
-    (Toploop.Directive_none
-       (fun () -> set_syntax Camlp4o));
-
-  Hashtbl.add
-    Toploop.directive_table
-    "camlp4r"
-    (Toploop.Directive_none
-       (fun () -> set_syntax Camlp4r))
-
-(* +-----------------------------------------------------------------+
-   | Findlib stuff                                                   |
-   +-----------------------------------------------------------------+ *)
 
 let topfind_log, set_topfind_log = S.create ~eq:(fun _ _ -> false) []
 
@@ -781,11 +726,7 @@ let split_words str =
 let require packages =
   try
     let eff_packages = Findlib.package_deep_ancestors !Topfind.predicates packages in
-    if get_syntax () = Normal && List.mem "camlp4" eff_packages then begin
-      set_syntax Camlp4o;
-      Topfind.load_deeply packages
-    end else
-      Topfind.load eff_packages
+    Topfind.load eff_packages
   with exn ->
     handle_findlib_error exn
 

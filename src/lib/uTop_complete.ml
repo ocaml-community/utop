@@ -623,19 +623,6 @@ let replace x y set =
   else
     set
 
-let global_names_revised () =
-  get_cached global_names_revised
-    (fun () ->
-      let set = global_names () in
-      replace "true" "True" (replace "false" "False" set))
-
-let global_names syntax =
-  match syntax with
-    | UTop.Normal | UTop.Camlp4o ->
-        global_names ()
-    | UTop.Camlp4r ->
-        global_names_revised ()
-
 let list_global_fields () =
   let rec loop acc = function
     | Env.Env_empty -> acc
@@ -873,15 +860,9 @@ and find_context_in_quotation = function
    | Completion                                                      |
    +-----------------------------------------------------------------+ *)
 
-let complete ~syntax ~phrase_terminator ~input =
-  let true_name, false_name =
-    match syntax with
-      | UTop.Normal | UTop.Camlp4o ->
-          ("true", "false")
-      | UTop.Camlp4r ->
-          ("True", "False")
-  in
-  let tokens = UTop_lexer.lex_string syntax input in
+let complete ~phrase_terminator ~input =
+  let true_name, false_name = ("true", "false") in
+  let tokens = UTop_lexer.lex_string input in
   (* Filter blanks and comments. *)
   let tokens = filter tokens in
   match tokens with
@@ -918,7 +899,7 @@ let complete ~syntax ~phrase_terminator ~input =
         let start = loc.idx1 + 1 + (String.length prefix - String.length last_prefix) in
         (start, List.map (fun w -> (w, "")) compls)
       | _ ->
-        let set = global_names syntax in
+        let set = global_names () in
         let compls = lookup prefix (String_set.elements set) in
         (loc.idx1 + 1, List.map (fun w -> (w, "")) compls)
       end
@@ -1029,7 +1010,7 @@ let complete ~syntax ~phrase_terminator ~input =
            | Some (Toploop.Directive_string _) -> [(" \"", "")]
            | Some (Toploop.Directive_bool _) -> [(true_name, phrase_terminator); (false_name, phrase_terminator)]
            | Some (Toploop.Directive_int _) -> []
-           | Some (Toploop.Directive_ident _) -> List.map (fun w -> (w, "")) (String_set.elements (global_names syntax))
+           | Some (Toploop.Directive_ident _) -> List.map (fun w -> (w, "")) (String_set.elements (global_names ()))
            | None -> [])
     | (Symbol "#", _) :: ((Lident dir | Uident dir), _) :: tokens -> begin
         match try Some (Hashtbl.find Toploop.directive_table dir) with Not_found -> None with
@@ -1049,7 +1030,7 @@ let complete ~syntax ~phrase_terminator ~input =
           | Some (Toploop.Directive_ident _) -> begin
               match parse_longident (List.rev tokens) with
                 | Some (Value, None, start, id) ->
-                    (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (global_names syntax))))
+                    (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (global_names ()))))
                 | Some (Value, Some longident, start, id) ->
                     (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (names_of_module longident))))
                 | _ ->
@@ -1065,7 +1046,7 @@ let complete ~syntax ~phrase_terminator ~input =
           | None ->
               (0, [])
           | Some [] ->
-              (0, List.map (fun w -> (w, "")) (String_set.elements (String_set.union !UTop.keywords (global_names syntax))))
+              (0, List.map (fun w -> (w, "")) (String_set.elements (String_set.union !UTop.keywords (global_names ()))))
           | Some tokens ->
               match parse_method tokens with
                 | Some (longident, meths, start, meth) ->
@@ -1085,7 +1066,7 @@ let complete ~syntax ~phrase_terminator ~input =
                             | None ->
                                 (0, [])
                             | Some (Value, None, start, id) ->
-                                (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (String_set.union !UTop.keywords (global_names syntax)))))
+                                (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (String_set.union !UTop.keywords (global_names ())))))
                             | Some (Value, Some longident, start, id) ->
                                 (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (names_of_module longident))))
                             | Some (Field, None, start, id) ->
@@ -1093,8 +1074,8 @@ let complete ~syntax ~phrase_terminator ~input =
                             | Some (Field, Some longident, start, id) ->
                                 (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (fields_of_module longident))))
 
-let complete ~syntax ~phrase_terminator ~input =
+let complete ~phrase_terminator ~input =
   try
-    (complete ~syntax ~phrase_terminator ~input : int * (string * string) list)
+    (complete ~phrase_terminator ~input : int * (string * string) list)
   with Cmi_format.Error _ ->
     (0, [])

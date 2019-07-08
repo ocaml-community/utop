@@ -224,7 +224,7 @@ class read_phrase ~term = object(self)
         styled.(i) <- (ch, LTerm_style.merge token_style style)
       done
     in
-    UTop_styles.stylise stylise (UTop_lexer.lex_string (UTop.get_syntax ()) (Zed_string.to_utf8 (LTerm_text.to_string styled)));
+    UTop_styles.stylise stylise (UTop_lexer.lex_string (Zed_string.to_utf8 (LTerm_text.to_string styled)));
 
     if not last then
       (* Parenthesis matching. *)
@@ -249,7 +249,6 @@ class read_phrase ~term = object(self)
   method! completion =
     let pos, words =
       UTop_complete.complete
-        ~syntax:(UTop.get_syntax ())
         ~phrase_terminator:(UTop.get_phrase_terminator ())
         ~input:(Zed_string.to_utf8 (Zed_rope.to_string self#input_prev))
     in
@@ -306,7 +305,7 @@ let render_out_phrase term string =
         styled.(i) <- (ch, LTerm_style.merge token_style style)
       done
     in
-    UTop_styles.stylise stylise (UTop_lexer.lex_string (UTop.get_syntax ()) string);
+    UTop_styles.stylise stylise (UTop_lexer.lex_string string);
     LTerm.fprints term styled
   end
 
@@ -1088,7 +1087,6 @@ module Emacs(M : sig end) = struct
         let input = read_data () in
         let _, words =
           UTop_complete.complete
-            ~syntax:(UTop.get_syntax ())
             ~phrase_terminator:(UTop.get_phrase_terminator ())
             ~input
         in
@@ -1100,7 +1098,6 @@ module Emacs(M : sig end) = struct
           let input = read_data () in
           let start, words =
             UTop_complete.complete
-              ~syntax:(UTop.get_syntax ())
               ~phrase_terminator:(UTop.get_phrase_terminator ())
               ~input
           in
