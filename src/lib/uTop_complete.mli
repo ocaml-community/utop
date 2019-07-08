@@ -9,8 +9,8 @@
 
 (** OCaml completion. *)
 
-val complete : syntax : UTop.syntax -> phrase_terminator : string -> input : string -> int * (string * string) list
-  (** [complete ~syntax ~phrase_terminator ~input] returns the start
+val complete : phrase_terminator : string -> input : string -> int * (string * string) list
+  (** [complete ~phrase_terminator ~input] returns the start
       of the completed word in [input] and the list of possible
       completions with their suffixes. *)
 

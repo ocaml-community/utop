@@ -211,11 +211,6 @@ to add the newline character if it is not accepted).")
    "List of packages to load when visiting OCaml buffer.
 Useful as file variable."))
 
-(make-variable-buffer-local
- (defvar utop-ocaml-preprocessor nil
-   "Name of preprocesor. Currently supported camlp4o, camlp4r.
-Useful as file variable."))
-
 (defvar utop-next-phrase-beginning 'utop-compat-next-phrase-beginning
   "The function used to find the beginning of the next phrase.")
 
