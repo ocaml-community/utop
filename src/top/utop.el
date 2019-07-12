@@ -1023,10 +1023,6 @@ defaults to 0."
 
 (defun utop-hack-local-variables ()
   "Perform actions defined by local variables"
-  (when utop-ocaml-preprocessor
-    (with-current-buffer (utop))
-    (utop-eval-string (format "#%s" utop-ocaml-preprocessor))
-    (message (format "uTop: %s OCaml preprocessor loaded" utop-ocaml-preprocessor)))
   (utop-query-load-package-list))
 
 ;; +-----------------------------------------------------------------+
