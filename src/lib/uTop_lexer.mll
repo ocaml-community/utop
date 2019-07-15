@@ -13,10 +13,6 @@
   open Lexing
   open UTop_token
 
-  (* Return the size in bytes. *)
-  let lexeme_size lexbuf =
-    lexeme_end lexbuf - lexeme_start lexbuf
-
   let mkloc idx1 idx2 ofs1 ofs2 = {
     idx1 = idx1;
     idx2 = idx2;
@@ -41,9 +37,6 @@
     ofs2 = l2.ofs2;
   }
 
-  type context =
-    | Toplevel
-    | Antiquot
 }
 
 let uchar = ['\x00' - '\x7f'] | _ [ '\x80' - '\xbf' ]*
@@ -75,12 +68,12 @@ let float_literal =
 let symbolchar =
   ['!' '$' '%' '&' '*' '+' '-' '.' '/' ':' '<' '=' '>' '?' '@' '^' '|' '~']
 
-rule tokens context idx acc = parse
+rule tokens idx acc = parse
   | eof
       { (idx, None, List.rev acc) }
   | ('\n' | blank)+
       { let loc = lexeme_loc idx lexbuf in
-        tokens context loc.idx2 ((Blanks, loc) :: acc) lexbuf }
+        tokens loc.idx2 ((Blanks, loc) :: acc) lexbuf }
   | lident
       { let src = lexeme lexbuf in
         let loc = lexeme_loc idx lexbuf in
@@ -91,12 +84,12 @@ rule tokens context idx acc = parse
             | _ ->
                 Lident src
         in
-        tokens context loc.idx2 ((tok, loc) :: acc) lexbuf }
+        tokens loc.idx2 ((tok, loc) :: acc) lexbuf }
   | uident
       { let src = lexeme lexbuf in
         let loc = lexeme_loc idx lexbuf in
         let tok = Uident src in
-        tokens context loc.idx2 ((tok, loc) :: acc) lexbuf }
+        tokens loc.idx2 ((tok, loc) :: acc) lexbuf }
   | int_literal "l"
   | int_literal "L"
   | int_literal "n"
@@ -104,18 +97,18 @@ rule tokens context idx acc = parse
   | float_literal
       { let loc = lexeme_loc idx lexbuf in
         let tok = Constant (lexeme lexbuf) in
-        tokens context loc.idx2 ((tok, loc) :: acc) lexbuf }
+        tokens loc.idx2 ((tok, loc) :: acc) lexbuf }
   | '"'
       { let ofs = lexeme_start lexbuf in
         let item, idx2= cm_string (idx + 1) lexbuf in
         let loc = mkloc idx idx2 ofs (lexeme_end lexbuf) in
-        tokens context idx2 ((item, loc) :: acc) lexbuf }
+        tokens idx2 ((item, loc) :: acc) lexbuf }
   | '{' (lowercase* as tag) '|'
       { let ofs = lexeme_start lexbuf in
         let delim_len = String.length tag + 2 in
         let idx2, terminated = quoted_string (idx + delim_len) tag false lexbuf in
         let loc = mkloc idx idx2 ofs (lexeme_end lexbuf) in
-        tokens context idx2 ((String (delim_len, terminated), loc) :: acc) lexbuf }
+        tokens idx2 ((String (delim_len, terminated), loc) :: acc) lexbuf }
   | "'" [^'\'' '\\'] "'"
   | "'\\" ['\\' '"' 'n' 't' 'b' 'r' ' ' '\'' 'x' '0'-'9'] eof
   | "'\\" ['\\' '"' 'n' 't' 'b' 'r' ' ' '\''] "'"
@@ -123,30 +116,30 @@ rule tokens context idx acc = parse
   | "'\\" (['0'-'9'] ['0'-'9'] ['0'-'9'] | 'x' hexa_char hexa_char) eof
   | "'\\" (['0'-'9'] ['0'-'9'] ['0'-'9'] | 'x' hexa_char hexa_char) "'"
       { let loc = lexeme_loc idx lexbuf in
-        tokens context loc.idx2 ((Char, loc) :: acc) lexbuf }
+        tokens loc.idx2 ((Char, loc) :: acc) lexbuf }
   | "'\\" uchar
       { let loc = mkloc idx (idx + 3) (lexeme_start lexbuf) (lexeme_end lexbuf) in
-        tokens context loc.idx2 ((Error, loc) :: acc) lexbuf }
+        tokens loc.idx2 ((Error, loc) :: acc) lexbuf }
   | "(*)"
       { let loc = lexeme_loc idx lexbuf in
-        tokens context loc.idx2 ((Comment (Comment_reg, true), loc) :: acc) lexbuf }
+        tokens loc.idx2 ((Comment (Comment_reg, true), loc) :: acc) lexbuf }
   | "(**)"
       { let loc = lexeme_loc idx lexbuf in
-        tokens context loc.idx2 ((Comment (Comment_doc, true), loc) :: acc) lexbuf }
+        tokens loc.idx2 ((Comment (Comment_doc, true), loc) :: acc) lexbuf }
   | "(**"
       { let ofs = lexeme_start lexbuf in
         let idx2, terminated = comment (idx + 3) 0 false lexbuf in
         let loc = mkloc idx idx2 ofs (lexeme_end lexbuf) in
-        tokens context idx2 ((Comment (Comment_doc, terminated), loc) :: acc) lexbuf }
+        tokens idx2 ((Comment (Comment_doc, terminated), loc) :: acc) lexbuf }
   | "(*"
       { let ofs = lexeme_start lexbuf in
         let idx2, terminated = comment (idx + 2) 0 false lexbuf in
         let loc = mkloc idx idx2 ofs (lexeme_end lexbuf) in
-        tokens context idx2 ((Comment (Comment_reg, terminated), loc) :: acc) lexbuf }
+        tokens idx2 ((Comment (Comment_reg, terminated), loc) :: acc) lexbuf }
   | ""
-      { symbol context idx acc lexbuf }
+      { symbol idx acc lexbuf }
 
-and symbol context idx acc = parse
+and symbol idx acc = parse
   | "(" | ")"
   | "[" | "]"
   | "{" | "}"
@@ -157,7 +150,7 @@ and symbol context idx acc = parse
   | symbolchar+
       { let loc = lexeme_loc idx lexbuf in
         let tok = Symbol (lexeme lexbuf) in
-        tokens context loc.idx2 ((tok, loc) :: acc) lexbuf }
+        tokens loc.idx2 ((tok, loc) :: acc) lexbuf }
   | uchar as uchar
       { let uChar= Zed_utf8.unsafe_extract uchar 0 in
         if Zed_char.is_combining_mark uChar then
@@ -171,10 +164,10 @@ and symbol context idx acc = parse
             | _-> tok
           in
           let loc= { loc with ofs2= lexeme_end lexbuf } in
-          tokens context loc.idx2 ((tok, loc) :: tl) lexbuf
+          tokens loc.idx2 ((tok, loc) :: tl) lexbuf
         else
           let loc = mkloc idx (idx + 1) (lexeme_start lexbuf) (lexeme_end lexbuf) in
-          tokens context loc.idx2 ((Error, loc) :: acc) lexbuf
+          tokens loc.idx2 ((Error, loc) :: acc) lexbuf
       }
 
 and cm_string idx= parse
@@ -270,71 +263,8 @@ and quoted_string idx tag combining= parse
               quoted_string (idx + 1) tag true lexbuf
         }
 
-and quotation depth idx1 idx2 ofs1 combining= parse
-  | '<' (':' ident)? ('@' lident)? '<'
-      { quotation (depth + 1) idx1 (idx2 + lexeme_size lexbuf) ofs1 false lexbuf }
-  | ">>"
-      { if depth = 0 then
-          let loc = mkloc idx1 (idx2 + 2) ofs1 (lexeme_end lexbuf) in
-          (idx2 + 2, [(Quot_data, loc)], true)
-        else
-          quotation (depth - 1) idx1 (idx2 + 2) ofs1 false lexbuf }
-  | '$'
-      { let quot_data_loc =
-          if idx1 = idx2 then
-            None
-          else
-            Some (mkloc idx1 idx2 ofs1 (lexeme_start lexbuf))
-        in
-        let opening_loc = lexeme_loc idx2 lexbuf in
-        let idx, name = quotation_name (idx2 + 1) lexbuf in
-        let idx, closing_loc, items = tokens Antiquot idx [] lexbuf in
-        let anti = {
-          a_opening = opening_loc;
-          a_closing = closing_loc;
-          a_name = name;
-          a_contents = items;
-        } in
-        let ofs = lexeme_end lexbuf in
-        let loc = mkloc opening_loc.idx1 idx opening_loc.ofs2 ofs in
-        let idx, quot_items, terminated = quotation depth idx idx ofs false lexbuf in
-        let quot_items = (Quot_anti anti, loc) :: quot_items in
-        match quot_data_loc with
-          | Some loc ->
-              (idx, (Quot_data, loc) :: quot_items, terminated)
-          | None ->
-              (idx, quot_items, terminated) }
-  | uchar as uchar
-      { let uChar= Zed_utf8.unsafe_extract uchar 0 in
-        if not combining then
-          if Zed_char.is_combining_mark uChar then
-            quotation depth idx1 (idx2 + 1) ofs1 false lexbuf
-          else
-            quotation depth idx1 (idx2 + 1) ofs1 true lexbuf
-        else
-          if Zed_char.is_combining_mark uChar then
-            quotation depth idx1 idx2 ofs1 true lexbuf
-          else
-            quotation depth idx1 (idx2 + 1) ofs1 true lexbuf
-      }
-  | eof
-      { if idx1 = idx2 then
-          (idx2, [], false)
-        else
-          let loc = mkloc idx1 idx2 ofs1 (lexeme_end lexbuf) in
-          (idx2, [(Quot_data, loc)], false) }
-
-and quotation_name idx = parse
-  | '`'? (identchar*|['.' '!']+) ':'
-      { let len = lexeme_size lexbuf in
-        let ofs = lexeme_start lexbuf in
-        (idx + len, Some (mkloc idx (idx + len - 1) ofs (ofs + len - 1),
-                          mkloc (idx + len - 1) (idx + len) (ofs + len - 1) (ofs + len))) }
-  | ""
-      { (idx, None) }
-
 {
   let lex_string str =
-    let _, _, items = tokens Toplevel 0 [] (Lexing.from_string str) in
+    let _, _, items = tokens 0 [] (Lexing.from_string str) in
     items
 }
