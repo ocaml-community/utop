@@ -1247,6 +1247,8 @@ let () =
   Hashtbl.add Toploop.directive_table "typeof"
     (Toploop.Directive_string typeof)
 
+let ()= Ocp_index_hook.add_directive Toploop.directive_table render_out_phrase print_error
+
 (* +-----------------------------------------------------------------+
    | Entry point                                                     |
    +-----------------------------------------------------------------+ *)

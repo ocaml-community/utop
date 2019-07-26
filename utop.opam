@@ -18,6 +18,9 @@ depends: [
   "cppo" {build & >= "1.1.2"}
   "dune" {build}
 ]
+depopts: [
+  "ocp-index"
+]
 build: [
   ["dune" "subst"] {pinned}
   ["dune" "build" "-p" name "-j" jobs]
