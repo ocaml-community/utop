@@ -1487,7 +1487,7 @@ let main_aux ~initial_env =
 
 let main_internal ~initial_env =
   try
-    main_aux ~initial_env;
+    main_aux ~initial_env
   with exn ->
     (match exn with
        | Unix.Unix_error (error, func, "") ->
@@ -1503,6 +1503,7 @@ let main_internal ~initial_env =
 let main () =
   let child_ocp_index= Ocp_index_hook.init_ocp_index () in
   let children= [child_ocp_index] in
+  let children= List.filter (fun child-> child > 0) children in
   Lwt_main.at_exit (fun ()->
     List.iter (fun child-> Unix.kill child Sys.sigterm) children; Lwt.return ());
   main_internal ~initial_env:None

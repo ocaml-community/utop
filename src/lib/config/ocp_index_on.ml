@@ -37,13 +37,14 @@ let complete input names_of_module global_names= function
 #if OCAML_VERSION >= (4, 04, 0)
 let lookup_type longident env = Env.lookup_type longident env
 #else
-let lookup_type id env= let path, _= Env.lookup_type in path
+let lookup_type id env= let path, _= Env.lookup_type id env in path
 #endif
 
 let req_query= ref stdout
 let rep_query= ref stdin
 
 let infoof render_out_phrase print_error sid =
+  let sid= String.trim sid in
   let id  = Longident.parse sid in
   let env = !Toploop.toplevel_env in
   let from_type_desc = function
