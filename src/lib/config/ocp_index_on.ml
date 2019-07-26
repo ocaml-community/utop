@@ -18,11 +18,6 @@ let cmd_input_line cmd =
   with
   | End_of_file | Unix.Unix_error _ | Sys_error _ -> failwith "cmd_input_line"
 
-let index=
-  let ocaml_lib= try (cmd_input_line) "ocamlc -where" with _-> "" in
-  let opam_lib= try (cmd_input_line) "opam config var lib" with _-> "" in
-  LibIndex.load @@ LibIndex.Misc.unique_subdirs [ocaml_lib; opam_lib]
-
 let complete input names_of_module global_names= function
   | [(Symbol "#", _); (Lident "infoof", _); (String (tlen, false), loc)] ->
     let prefix = String.sub input (loc.ofs1 + tlen) (String.length input - loc.ofs1 - tlen) in
@@ -44,6 +39,9 @@ let lookup_type longident env = Env.lookup_type longident env
 #else
 let lookup_type id env= let path, _= Env.lookup_type in path
 #endif
+
+let req_query= ref stdout
+let rep_query= ref stdin
 
 let infoof render_out_phrase print_error sid =
   let id  = Longident.parse sid in
@@ -85,22 +83,51 @@ let infoof render_out_phrase print_error sid =
     with Not_found ->
       None
   in
+  let name= match name with Some name-> name | None-> sid in
   let open Lwt in
-  match name with
-  | None ->
-    (try
-      let info= LibIndex.Print.info ~color:false (LibIndex.get index sid) in
-      Lwt_main.run (Lazy.force LTerm.stdout >>= fun term -> render_out_phrase term info)
-    with Not_found->
-      Lwt_main.run (Lazy.force LTerm.stdout >>= fun term -> print_error term "Unknown info\n"))
-  | Some name ->
-    try
-      let info= LibIndex.Print.info ~color:false (LibIndex.get index name) in
-      Lwt_main.run (Lazy.force LTerm.stdout >>= fun term -> render_out_phrase term info)
-    with Not_found->
-      Lwt_main.run (Lazy.force LTerm.stdout >>= fun term -> print_error term "Unknown info\n")
+  output_string !req_query @@ name ^ "\n"; flush !req_query;
+  match input_value !rep_query with
+  | Some info->
+    Lwt_main.run (Lazy.force LTerm.stdout >>= fun term -> render_out_phrase term info)
+  | None->
+    Lwt_main.run (Lazy.force LTerm.stdout >>= fun term -> print_error term "Unknown info\n")
 
 let add_directive directive_table render_out_phrase print_error=
   Hashtbl.add directive_table "infoof"
     (Toploop.Directive_string (infoof render_out_phrase print_error))
+
+let child req_query rep_query=
+  let req_query= Unix.in_channel_of_descr req_query
+  and rep_query= Unix.out_channel_of_descr rep_query in
+  let index=
+    let ocaml_lib= try (cmd_input_line) "ocamlc -where" with _-> "" in
+    let opam_lib= try (cmd_input_line) "opam config var lib" with _-> "" in
+    LibIndex.load @@ LibIndex.Misc.unique_subdirs [ocaml_lib; opam_lib]
+  in
+  let infoof name=
+    (try
+      let info= LibIndex.Print.info ~color:false (LibIndex.get index name) in
+      output_value rep_query (Some info)
+    with Not_found->
+      output_value rep_query None);
+    flush rep_query;
+  in
+  let rec watching ()=
+    let query= input_line req_query in
+    infoof query;
+    watching ()
+  in
+  watching ()
+
+let init_ocp_index ()=
+  let r1, w1= Unix.pipe ()
+  and r2, w2= Unix.pipe () in
+  match Unix.fork () with
+  | 0->
+    let req_query= r1 and rep_query= w2
+    in child req_query rep_query
+  | child->
+    req_query:= Unix.out_channel_of_descr w1;
+    rep_query:= Unix.in_channel_of_descr r2;
+    child
 
