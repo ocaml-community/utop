@@ -6,7 +6,7 @@ module String_map = Map.Make(String)
 
 let cmd_input_line cmd =
   try
-    let ic = Unix.open_process_in (cmd ^ " 2>/dev/null") in
+    let ic = Unix.open_process_in cmd in
     let r = input_line ic in
     let r =
       let len = String.length r in
@@ -19,7 +19,7 @@ let cmd_input_line cmd =
   | End_of_file | Unix.Unix_error _ | Sys_error _ -> failwith "cmd_input_line"
 
 let complete input names_of_module global_names= function
-  | [(Symbol "#", _); (Lident "infoof", _); (String (tlen, false), loc)] ->
+  | [(Symbol "#", _); (Lident "info", _); (String (tlen, false), loc)] ->
     let prefix = String.sub input (loc.ofs1 + tlen) (String.length input - loc.ofs1 - tlen) in
     begin match Longident.parse prefix with
     | Longident.Ldot (lident, last_prefix) ->
@@ -43,7 +43,7 @@ let lookup_type id env= let path, _= Env.lookup_type id env in path
 let req_query= ref stdout
 let rep_query= ref stdin
 
-let infoof render_out_phrase print_error sid =
+let query_info render_out_phrase print_error sid =
   let sid= String.trim sid in
   let id  = Longident.parse sid in
   let env = !Toploop.toplevel_env in
@@ -94,8 +94,8 @@ let infoof render_out_phrase print_error sid =
     Lwt_main.run (Lazy.force LTerm.stdout >>= fun term -> print_error term "Unknown info\n")
 
 let add_directive directive_table render_out_phrase print_error=
-  Hashtbl.add directive_table "infoof"
-    (Toploop.Directive_string (infoof render_out_phrase print_error))
+  Hashtbl.add directive_table "info"
+    (Toploop.Directive_string (query_info render_out_phrase print_error))
 
 let child req_query rep_query=
   let req_query= Unix.in_channel_of_descr req_query
@@ -105,7 +105,7 @@ let child req_query rep_query=
     let opam_lib= try (cmd_input_line) "opam config var lib" with _-> "" in
     LibIndex.load @@ LibIndex.Misc.unique_subdirs [ocaml_lib; opam_lib]
   in
-  let infoof name=
+  let query_info name=
     (try
       let info= LibIndex.Print.info ~color:false (LibIndex.get index name) in
       output_value rep_query (Some info)
@@ -115,7 +115,7 @@ let child req_query rep_query=
   in
   let rec watching ()=
     let query= input_line req_query in
-    infoof query;
+    query_info query;
     watching ()
   in
   watching ()
