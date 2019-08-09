@@ -1,7 +1,15 @@
-next
-----
+2.4.1 (2019-08-09)
+------------------
 
-- Allow to statically link utop (@diml, #285)
+### General
+
+* Remove camlp4 remnants (@XVilka, #290) (@kandu, #293)
+* Allow to statically link utop (@diml, #285) (@hongchangwu, #286)
+
+### Misc
+
+* Remove broken elisp (m-plamann, #292)
+* Add OCaml 4.08 build in Travis CI (XVilka, #291)
 
 2.4.0 (2019-05-17)
 ------------------
