@@ -1564,12 +1564,8 @@ let interact ?(search_path=[]) ?(build_dir="_build") ~unit ~loc:(fname, lnum, cn
       Printf.ksprintf failwith "%s.cmt not found in search path!" unit
   in
   let cmt_infos = Cmt_format.read_cmt cmt_fname in
-  let module Search =
-    TypedtreeIter.MakeIterator(struct
-      include TypedtreeIter.DefaultIteratorArgument
-
-      let enter_expression (e : Typedtree.expression) =
-        match e.exp_desc with
+  let expr next (e : Typedtree.expression) =
+    match e.exp_desc with
         | Texp_apply (_, args) -> begin
             try
               match get_required_label "loc"    args,
@@ -1581,14 +1577,28 @@ let interact ?(search_path=[]) ?(build_dir="_build") ~unit ~loc:(fname, lnum, cn
                    pos.pos_lnum = lnum   &&
                    pos.pos_cnum - pos.pos_bol = cnum then
                   raise (Found v.exp_env)
-              | _ -> ()
-            with Not_found -> ()
+              | _ -> next e
+            with Not_found -> next e
           end
-        | _ -> ()
+        | _ -> next e
+  in
+#if OCAML_VERSION >= (4,09,0)
+  let next iterator e = Tast_iterator.default_iterator.expr iterator e in
+  let expr iterator = expr (next iterator) in
+  let iter = { Tast_iterator.default_iterator with expr } in
+  let search = iter.structure iter in
+#else
+  let module Search =
+    TypedtreeIter.MakeIterator(struct
+      include TypedtreeIter.DefaultIteratorArgument
+
+      let enter_expression = expr ignore
      end) in
+    let search = Search.iter_structure in
+#endif
   try
     begin match cmt_infos.cmt_annots with
-    | Implementation st -> Search.iter_structure st
+    | Implementation st -> search st
     | _ -> ()
     end;
     failwith "Couldn't find location in cmt file"
