@@ -625,13 +625,23 @@ let bind_expressions name phrase =
 let execute_phrase =
   let new_cmis = ref []in
 
-  let default_load = !Env.Persistent_signature.load in
+  let default_load =
+#if OCAML_VERSION >= (4, 09, 0)
+    !Persistent_env.Persistent_signature.load
+#else
+    !Env.Persistent_signature.load
+#endif
+  in
   let load ~unit_name =
     let res = default_load ~unit_name in
     (match res with None -> () | Some x -> new_cmis := x.cmi :: !new_cmis);
     res
   in
+#if OCAML_VERSION >= (4, 09, 0)
+  Persistent_env.Persistent_signature.load := load;
+#else
   Env.Persistent_signature.load := load;
+#endif
 
   let rec collect_printers path signature acc =
     List.fold_left (fun acc item ->
@@ -1274,14 +1284,28 @@ let prepare () =
       Format.eprintf "Uncaught exception: %s\n" (Printexc.to_string exn);
       false
 
+#if OCAML_VERSION >= (4, 09, 0)
+external caml_sys_modify_argv : string array -> unit =
+  "caml_sys_modify_argv"
+let override_argv () =
+  let len = Array.length Sys.argv - !Arg.current in
+  let copy = Array.init len (fun i -> Sys.argv.(i+ !Arg.current)) in
+  caml_sys_modify_argv copy;
+  Arg.current := 0
+#else
+let override_argv () =
+  let len = Array.length Sys.argv - !Arg.current in
+  Array.blit Sys.argv !Arg.current Sys.argv 0 len;
+  Obj.truncate (Obj.repr Sys.argv) len;
+  Arg.current := 0
+#endif
+
+
 let run_script name =
   (* To prevent message from camlp4 *)
   Sys.interactive := false;
   if not (prepare ()) then exit 2;
-  let len = Array.length Sys.argv - !Arg.current in
-  Array.blit Sys.argv !Arg.current Sys.argv 0 len;
-  Obj.truncate (Obj.repr Sys.argv) len;
-  Arg.current := 0;
+  override_argv ();
   Toploop.initialize_toplevel_env ();
   Location.input_name := UTop.input_name;
   if Toploop.use_silently Format.err_formatter name then
@@ -1540,12 +1564,8 @@ let interact ?(search_path=[]) ?(build_dir="_build") ~unit ~loc:(fname, lnum, cn
       Printf.ksprintf failwith "%s.cmt not found in search path!" unit
   in
   let cmt_infos = Cmt_format.read_cmt cmt_fname in
-  let module Search =
-    TypedtreeIter.MakeIterator(struct
-      include TypedtreeIter.DefaultIteratorArgument
-
-      let enter_expression (e : Typedtree.expression) =
-        match e.exp_desc with
+  let expr next (e : Typedtree.expression) =
+    match e.exp_desc with
         | Texp_apply (_, args) -> begin
             try
               match get_required_label "loc"    args,
@@ -1557,14 +1577,28 @@ let interact ?(search_path=[]) ?(build_dir="_build") ~unit ~loc:(fname, lnum, cn
                    pos.pos_lnum = lnum   &&
                    pos.pos_cnum - pos.pos_bol = cnum then
                   raise (Found v.exp_env)
-              | _ -> ()
-            with Not_found -> ()
+              | _ -> next e
+            with Not_found -> next e
           end
-        | _ -> ()
+        | _ -> next e
+  in
+#if OCAML_VERSION >= (4,09,0)
+  let next iterator e = Tast_iterator.default_iterator.expr iterator e in
+  let expr iterator = expr (next iterator) in
+  let iter = { Tast_iterator.default_iterator with expr } in
+  let search = iter.structure iter in
+#else
+  let module Search =
+    TypedtreeIter.MakeIterator(struct
+      include TypedtreeIter.DefaultIteratorArgument
+
+      let enter_expression = expr ignore
      end) in
+    let search = Search.iter_structure in
+#endif
   try
     begin match cmt_infos.cmt_annots with
-    | Implementation st -> Search.iter_structure st
+    | Implementation st -> search st
     | _ -> ()
     end;
     failwith "Couldn't find location in cmt file"
