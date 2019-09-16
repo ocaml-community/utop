@@ -625,13 +625,23 @@ let bind_expressions name phrase =
 let execute_phrase =
   let new_cmis = ref []in
 
-  let default_load = !Env.Persistent_signature.load in
+  let default_load =
+#if OCAML_VERSION >= (4, 09, 0)
+    !Persistent_env.Persistent_signature.load
+#else
+    !Env.Persistent_signature.load
+#endif
+  in
   let load ~unit_name =
     let res = default_load ~unit_name in
     (match res with None -> () | Some x -> new_cmis := x.cmi :: !new_cmis);
     res
   in
+#if OCAML_VERSION >= (4, 09, 0)
+  Persistent_env.Persistent_signature.load := load;
+#else
   Env.Persistent_signature.load := load;
+#endif
 
   let rec collect_printers path signature acc =
     List.fold_left (fun acc item ->
