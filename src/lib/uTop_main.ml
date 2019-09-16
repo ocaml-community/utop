@@ -1284,14 +1284,28 @@ let prepare () =
       Format.eprintf "Uncaught exception: %s\n" (Printexc.to_string exn);
       false
 
+#if OCAML_VERSION >= (4, 09, 0)
+external caml_sys_modify_argv : string array -> unit =
+  "caml_sys_modify_argv"
+let override_argv () =
+  let len = Array.length Sys.argv - !Arg.current in
+  let copy = Array.init len (fun i -> Sys.argv.(i+ !Arg.current)) in
+  caml_sys_modify_argv copy;
+  Arg.current := 0
+#else
+let override_argv () =
+  let len = Array.length Sys.argv - !Arg.current in
+  Array.blit Sys.argv !Arg.current Sys.argv 0 len;
+  Obj.truncate (Obj.repr Sys.argv) len;
+  Arg.current := 0
+#endif
+
+
 let run_script name =
   (* To prevent message from camlp4 *)
   Sys.interactive := false;
   if not (prepare ()) then exit 2;
-  let len = Array.length Sys.argv - !Arg.current in
-  Array.blit Sys.argv !Arg.current Sys.argv 0 len;
-  Obj.truncate (Obj.repr Sys.argv) len;
-  Arg.current := 0;
+  override_argv ();
   Toploop.initialize_toplevel_env ();
   Location.input_name := UTop.input_name;
   if Toploop.use_silently Format.err_formatter name then
