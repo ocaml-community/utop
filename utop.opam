@@ -16,7 +16,7 @@ depends: [
   "camomile"
   "react" {>= "1.0.0"}
   "cppo" {build & >= "1.1.2"}
-  "dune" {build}
+  "dune"
 ]
 build: [
   ["dune" "subst"] {pinned}
