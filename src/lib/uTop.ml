@@ -342,7 +342,13 @@ let check_phrase phrase =
             (fun () ->
                Str.eval
                  (Exp.fun_ nolabel None (Pat.construct unit None)
-                   (Exp.letmodule (with_loc loc "_")
+                   (Exp.letmodule (with_loc loc
+                        #if OCAML_VERSION >= (4, 10, 0)
+                        (Some "_")
+                        #else
+                          "_"
+                        #endif
+                        )
                       (Mod.structure (item :: items))
                       (Exp.construct unit None))))
         in

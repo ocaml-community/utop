@@ -482,12 +482,17 @@ let rewrite_rules = [
   }
 ]
 
+#if OCAML_VERSION >= (4, 10, 0)
+let lookup_type longident env =
+  Env.find_type_by_name longident env
+#else
 #if OCAML_VERSION >= (4, 04, 0)
 let lookup_type longident env =
   let path = Env.lookup_type longident env in
   (path, Env.find_type path env)
 #else
 let lookup_type = Env.lookup_type
+#endif
 #endif
 
 let rule_path rule =
@@ -527,8 +532,15 @@ let rec is_persistent_path = function
 (* Check that the given long identifier is present in the environment
    and is persistent. *)
 let is_persistent_in_env longident =
+  let lookup_value=
+#if OCAML_VERSION >= (4, 10, 0)
+    Env.find_value_by_name
+#else
+    Env.lookup_value
+#endif
+  in
   try
-    is_persistent_path (fst (Env.lookup_value longident !Toploop.toplevel_env))
+    is_persistent_path (fst (lookup_value longident !Toploop.toplevel_env))
   with Not_found ->
     false
 
@@ -622,26 +634,22 @@ let bind_expressions name phrase =
    +-----------------------------------------------------------------+ *)
 
 #if OCAML_VERSION >= (4, 04, 0)
+
+#if OCAML_VERSION >= (4, 09, 0)
+  module Persistent_signature = Persistent_env.Persistent_signature
+#else
+  module Persistent_signature = Env.Persistent_signature
+#endif
+
 let execute_phrase =
   let new_cmis = ref []in
-
-  let default_load =
-#if OCAML_VERSION >= (4, 09, 0)
-    !Persistent_env.Persistent_signature.load
-#else
-    !Env.Persistent_signature.load
-#endif
-  in
+  let default_load = !Persistent_signature.load in
   let load ~unit_name =
     let res = default_load ~unit_name in
     (match res with None -> () | Some x -> new_cmis := x.cmi :: !new_cmis);
     res
   in
-#if OCAML_VERSION >= (4, 09, 0)
-  Persistent_env.Persistent_signature.load := load;
-#else
-  Env.Persistent_signature.load := load;
-#endif
+  Persistent_signature.load := load;
 
   let rec collect_printers path signature acc =
     List.fold_left (fun acc item ->
@@ -1173,6 +1181,22 @@ end
 let typeof sid =
   let id  = Longident.parse sid in
   let env = !Toploop.toplevel_env in
+#if OCAML_VERSION >= (4, 10, 0)
+  let lookup_value= Env.find_value_by_name
+  and lookup_label= Env.find_label_by_name
+  and lookup_modtype= Env.find_modtype_by_name
+  and lookup_module id env =
+    let path, decl = Env.find_module_by_name id env in
+    (path, decl.md_type)
+#else
+  let lookup_value= Env.lookup_value
+  and lookup_label= Env.lookup_label
+  and lookup_modtype= Env.lookup_modtype
+  and lookup_module id env =
+    let path = Env.lookup_module id env ~load:true in
+    (path, (Env.find_module path env).md_type)
+#endif
+  in
   let from_type_desc = function
     | Types.Tconstr (path, _, _) ->
       let typ_decl = Env.find_type path env in
@@ -1190,7 +1214,7 @@ let typeof sid =
       Some (Printtyp.tree_of_type_declaration id ty_decl Types.Trec_not)
     with Not_found ->
     try
-      let (path, val_descr) = Env.lookup_value id env in
+      let (path, val_descr) = lookup_value id env in
 #if OCAML_VERSION >= (4, 08, 0)
       let id = Ident.create_local (Path.name path) in
 #else
@@ -1199,7 +1223,7 @@ let typeof sid =
       Some (Printtyp.tree_of_value_description id val_descr)
     with Not_found ->
     try
-      let lbl_desc = Env.lookup_label id env in
+      let lbl_desc = lookup_label id env in
       let (path, ty_decl) = from_type_desc lbl_desc.Types.lbl_res.Types.desc in
 #if OCAML_VERSION >= (4, 08, 0)
       let id = Ident.create_local (Path.name path) in
@@ -1209,8 +1233,7 @@ let typeof sid =
       Some (Printtyp.tree_of_type_declaration id ty_decl Types.Trec_not)
     with Not_found ->
     try
-      let path = Env.lookup_module id env ~load:true in
-      let mod_typ = (Env.find_module path env).Types.md_type in
+      let path, mod_typ = lookup_module id env in
 #if OCAML_VERSION >= (4, 08, 0)
       let id = Ident.create_local (Path.name path) in
 #else
@@ -1219,7 +1242,7 @@ let typeof sid =
       Some (Printtyp.tree_of_module id mod_typ Types.Trec_not)
     with Not_found ->
     try
-      let (path, mty_decl) = Env.lookup_modtype id env in
+      let (path, mty_decl) = lookup_modtype id env in
 #if OCAML_VERSION >= (4, 08, 0)
       let id = Ident.create_local (Path.name path) in
 #else
@@ -1228,7 +1251,11 @@ let typeof sid =
       Some (Printtyp.tree_of_modtype_declaration id mty_decl)
     with Not_found ->
     try
+      #if OCAML_VERSION >= (4, 10, 0)
+      let cstr_desc = Env.find_constructor_by_name id env in
+      #else
       let cstr_desc = Env.lookup_constructor id env in
+      #endif
       match cstr_desc.Types.cstr_tag with
       | _ ->
         let (path, ty_decl) = from_type_desc cstr_desc.Types.cstr_res.Types.desc in
