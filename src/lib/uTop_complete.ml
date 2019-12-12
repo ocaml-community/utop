@@ -516,8 +516,14 @@ let rec fields_of_module_type = function
       String_set.empty
 
 let lookup_module id env =
+#if OCAML_VERSION >= (4, 10, 0)
+  let path, decl = Env.find_module_by_name id env in
+  (path, decl.md_type)
+#else
   let path = Env.lookup_module id env ~load:true in
   (path, (Env.find_module path env).md_type)
+#endif
+
 let find_module path env = (Env.find_module path env).md_type
 
 let names_of_module longident =
@@ -551,6 +557,10 @@ let fields_of_module longident =
 let list_global_names () =
   let rec loop acc = function
     | Env.Env_empty -> acc
+#if OCAML_VERSION >= (4, 10, 0)
+    | Env.Env_value_unbound _-> acc
+    | Env.Env_module_unbound _-> acc
+#endif
     | Env.Env_value(summary, id, _) ->
         loop (add (Ident.name id) acc) summary
     | Env.Env_type(summary, id, decl) ->
@@ -579,8 +589,8 @@ let list_global_names () =
     | Env.Env_constraints (summary, _) ->
         loop acc summary
 #endif
-#if OCAML_VERSION >= (4, 08, 0)
-    | Env.Env_copy_types (summary, _) ->
+#if OCAML_VERSION >= (4, 10, 0)
+    | Env.Env_copy_types summary ->
         loop acc summary
 #else
 #if OCAML_VERSION >= (4, 06, 0)
@@ -626,6 +636,10 @@ let replace x y set =
 let list_global_fields () =
   let rec loop acc = function
     | Env.Env_empty -> acc
+#if OCAML_VERSION >= (4, 10, 0)
+    | Env.Env_value_unbound _-> acc
+    | Env.Env_module_unbound _-> acc
+#endif
     | Env.Env_value(summary, id, _) ->
         loop (add (Ident.name id) acc) summary
     | Env.Env_type(summary, id, decl) ->
@@ -654,9 +668,14 @@ let list_global_fields () =
     | Env.Env_constraints (summary, _) ->
         loop acc summary
 #endif
-#if OCAML_VERSION >= (4, 06, 0)
-    | Env.Env_copy_types (summary, _) ->
+#if OCAML_VERSION >= (4, 10, 0)
+    | Env.Env_copy_types summary ->
         loop acc summary
+#else
+  #if OCAML_VERSION >= (4, 06, 0)
+      | Env.Env_copy_types (summary, _) ->
+          loop acc summary
+  #endif
 #endif
 #if OCAML_VERSION >= (4, 07, 0)
   #if OCAML_VERSION >= (4, 08, 0)
@@ -748,7 +767,14 @@ let rec find_object meths type_expr =
               None
 
 let methods_of_object longident meths =
-  match lookup_env Env.lookup_value longident !Toploop.toplevel_env with
+  let lookup_value=
+#if OCAML_VERSION >= (4, 10, 0)
+    Env.find_value_by_name
+#else
+    Env.lookup_value
+#endif
+  in
+  match lookup_env lookup_value longident !Toploop.toplevel_env with
     | None ->
         []
     | Some (path, { val_type = type_expr }) ->
@@ -797,7 +823,14 @@ let rec labels_of_type acc type_expr =
         String_map.bindings acc
 
 let labels_of_function longident meths =
-  match lookup_env Env.lookup_value longident !Toploop.toplevel_env with
+  let lookup_value=
+#if OCAML_VERSION >= (4, 10, 0)
+    Env.find_value_by_name
+#else
+    Env.lookup_value
+#endif
+  in
+  match lookup_env lookup_value longident !Toploop.toplevel_env with
     | None ->
         []
     | Some (path, { val_type = type_expr }) ->
@@ -808,7 +841,14 @@ let labels_of_function longident meths =
               labels_of_type String_map.empty type_expr
 
 let labels_of_newclass longident =
-  match lookup_env Env.lookup_class longident !Toploop.toplevel_env with
+  let lookup_class=
+#if OCAML_VERSION >= (4, 10, 0)
+    Env.find_class_by_name
+#else
+    Env.lookup_class
+#endif
+  in
+  match lookup_env lookup_class longident !Toploop.toplevel_env with
     | None ->
         []
     | Some (path, { cty_new = None }) ->
