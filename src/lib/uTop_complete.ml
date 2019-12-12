@@ -428,8 +428,7 @@ let add_names_of_type decl acc =
 let path_of_mty_alias = function
   | Mty_alias path -> path
   | _ -> assert false
-#else
-#if OCAML_VERSION >= (4, 04, 0)
+#elif OCAML_VERSION >= (4, 04, 0)
 let path_of_mty_alias = function
   | Mty_alias (_, path) -> path
   | _ -> assert false
@@ -437,7 +436,6 @@ let path_of_mty_alias = function
 let path_of_mty_alias = function
   | Mty_alias path -> path
   | _ -> assert false
-#endif
 #endif
 
 let rec names_of_module_type = function
@@ -592,20 +590,16 @@ let list_global_names () =
 #if OCAML_VERSION >= (4, 10, 0)
     | Env.Env_copy_types summary ->
         loop acc summary
-#else
-#if OCAML_VERSION >= (4, 06, 0)
+#elif OCAML_VERSION >= (4, 06, 0)
     | Env.Env_copy_types (summary, _) ->
         loop acc summary
 #endif
-#endif
 #if OCAML_VERSION >= (4, 08, 0)
-      | Env.Env_open(summary, path) ->
+    | Env.Env_open(summary, path) ->
+#elif OCAML_VERSION >= (4, 07, 0)
+    | Env.Env_open(summary, _, path) ->
 #else
-  #if OCAML_VERSION >= (4, 07, 0)
-      | Env.Env_open(summary, _, path) ->
-  #else
-      | Env.Env_open(summary, path) ->
-  #endif
+    | Env.Env_open(summary, path) ->
 #endif
         match try Some (Path_map.find path !local_names_by_path) with Not_found -> None with
           | Some names ->
@@ -671,11 +665,9 @@ let list_global_fields () =
 #if OCAML_VERSION >= (4, 10, 0)
     | Env.Env_copy_types summary ->
         loop acc summary
-#else
-  #if OCAML_VERSION >= (4, 06, 0)
-      | Env.Env_copy_types (summary, _) ->
-          loop acc summary
-  #endif
+#elif OCAML_VERSION >= (4, 06, 0)
+    | Env.Env_copy_types (summary, _) ->
+        loop acc summary
 #endif
 #if OCAML_VERSION >= (4, 07, 0)
   #if OCAML_VERSION >= (4, 08, 0)

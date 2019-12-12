@@ -485,14 +485,12 @@ let rewrite_rules = [
 #if OCAML_VERSION >= (4, 10, 0)
 let lookup_type longident env =
   Env.find_type_by_name longident env
-#else
-#if OCAML_VERSION >= (4, 04, 0)
+#elif OCAML_VERSION >= (4, 04, 0)
 let lookup_type longident env =
   let path = Env.lookup_type longident env in
   (path, Env.find_type path env)
 #else
 let lookup_type = Env.lookup_type
-#endif
 #endif
 
 let rule_path rule =
