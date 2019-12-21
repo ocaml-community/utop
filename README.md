@@ -149,6 +149,13 @@ your `~/.emacs`:
 (setq utop-command "opam config exec -- utop -emacs")
 ```
 
+If you use `dune` and want to launch `dune utop` in emacs, you
+should add this to your `~/.emacs`:
+
+```scheme
+(setq utop-command "opam config exec -- dune utop . -- -emacs")
+```
+
 This was tested with opam 1.2. For older versions of opam, you can
 copy&paste this to your `~/.emacs`:
 
