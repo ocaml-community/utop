@@ -129,7 +129,7 @@ should do.
 If this doesn't work and you installed utop via opam, you can add this
 to your `~/.emacs`:
 
-```scheme
+```elisp
 ;; Add the opam lisp dir to the emacs load path
 (add-to-list
  'load-path
@@ -144,7 +144,7 @@ to your `~/.emacs`:
 In any case, if you installed utop via opam you should add this to
 your `~/.emacs`:
 
-```scheme
+```elisp
 ;; Use the opam installed utop
 (setq utop-command "opam config exec -- utop -emacs")
 ```
@@ -152,14 +152,14 @@ your `~/.emacs`:
 If you use `dune` and want to launch `dune utop` in emacs, you
 should add this to your `~/.emacs`:
 
-```scheme
+```elisp
 (setq utop-command "opam config exec -- dune utop . -- -emacs")
 ```
 
 This was tested with opam 1.2. For older versions of opam, you can
 copy&paste this to your `~/.emacs`:
 
-```scheme
+```elisp
 ;; Setup environment variables using opam
 (dolist (var (car (read-from-string (shell-command-to-string "opam config env --sexp"))))
   (setenv (car var) (cadr var)))
@@ -193,7 +193,7 @@ utop also ships with a minor mode that has the following key-bindings
 You can enable the minor mode using `M-x utop-minor-mode`, or you can
 have it enabled by default with the following configuration:
 
-```scheme
+```elisp
 (autoload 'utop-minor-mode "utop" "Minor mode for utop" t)
 (add-hook 'tuareg-mode-hook 'utop-minor-mode)
 ```
@@ -267,7 +267,7 @@ let () = UTop_main.main ()
 
 and the following dune file:
 
-```scheme
+```elisp
 (executable
  (name myutop)
  (link_flags -linkall)
@@ -290,7 +290,7 @@ them to the `(libraries ...)` field.
 Additionally, if you want to install this toplevel, add the two
 following fields to the executable stanza:
 
-```scheme
+```elisp
   (public_name myutop)
   (modes byte)
 ```
