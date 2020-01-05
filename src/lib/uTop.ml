@@ -126,9 +126,21 @@ let get_ocaml_error_message exn =
     Scanf.sscanf
       str
       "Characters %d-%d:\n%[\000-\255]"
-      (fun start stop msg -> ((start, stop), msg))
+      (fun start stop msg -> ((start, stop), msg, None))
   with _ ->
-    ((0, 0), str)
+  try
+    Scanf.sscanf
+      str
+      "Line %d, characters %d-%d:\n%[\000-\255]"
+      (fun line start stop msg -> ((start, stop), msg, Some(line, line)))
+  with _ ->
+  try
+    Scanf.sscanf
+      str
+      "Lines %d-%d, characters %d-%d:\n%[\000-\255]"
+      (fun start_line stop_line start stop msg -> ((start, stop), msg, Some(start_line,stop_line)))
+  with _ ->
+    ((0, 0), str, None)
 
 let collect_formatters buf pps f =
   (* First flush all formatters. *)
@@ -196,6 +208,7 @@ let discard_formatters pps f =
    +-----------------------------------------------------------------+ *)
 
 type location = int * int
+type lines = int * int
 
 type 'a result =
   | Value of 'a
@@ -365,10 +378,10 @@ let check_phrase phrase =
           None
         with exn ->
           (* The phrase contains errors. *)
-          let loc, msg = get_ocaml_error_message exn in
+          let loc, msg, line = get_ocaml_error_message exn in
           Toploop.toplevel_env := env;
           Btype.backtrack snap;
-          Some ([loc], msg)
+          Some ([loc], msg, [line])
 
 (* +-----------------------------------------------------------------+
    | Prompt                                                          |

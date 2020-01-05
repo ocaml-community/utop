@@ -254,6 +254,9 @@ type location = int * int
     (** Type of a string-location. It is composed of a start and stop
         offsets (in bytes). *)
 
+type lines = int * int
+    (** Type for lines in a buffer. Start and stop values *)
+
 (** Result of a function processing a programx. *)
 type 'a result =
   | Value of 'a
@@ -310,12 +313,12 @@ val get_message : (Format.formatter -> 'a -> unit) -> 'a -> string
   (** [get_message printer x] applies [printer] on [x] and
       returns everything it prints as a string. *)
 
-val get_ocaml_error_message : exn -> location * string
+val get_ocaml_error_message : exn -> location * string * (lines option)
   (** [get_ocaml_error_message exn] returns the location and error
       message for the exception [exn] which must be an exception from
       the compiler. *)
 
-val check_phrase : Parsetree.toplevel_phrase -> (location list * string) option
+val check_phrase : Parsetree.toplevel_phrase -> (location list * string * lines option list) option
   (** [check_phrase phrase] checks that [phrase] can be executed
       without typing or compilation errors. It returns [None] if
       [phrase] is OK and an error message otherwise.

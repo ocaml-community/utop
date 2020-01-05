@@ -79,6 +79,39 @@ let index_of_offset src ofs =
 
 let convert_locs str locs = List.map (fun (a, b) -> (index_of_offset str a, index_of_offset str b)) locs
 
+let convert_loc str (a, b) = (index_of_offset str a, index_of_offset str b)
+
+let get_line src line =
+  let rec aux line' ofs skipped =
+    if ofs >= String.length src then
+      ("", 0)
+    else if line' = line then
+      (String.sub src ofs (String.length src - ofs), skipped)
+    else
+      let ch, next_ofs = Zed_utf8.unsafe_extract_next src ofs in
+      if Zed_utf8.escaped_char ch = "\\n" then
+        aux (line' + 1) next_ofs (skipped + 1)
+      else
+        aux line' next_ofs (skipped + 1)
+  in
+  aux 1 0 0
+
+let convert_one_line str line ofs=
+  let selected, skipped = get_line str line in
+  index_of_offset selected ofs + skipped
+
+let convert_line str (start_ofs, end_ofs) (start_line, end_line) =
+  (convert_one_line str start_line start_ofs,
+  convert_one_line str end_line end_ofs)
+
+let convert_loc_line input locs lines =
+  List.map2 (fun loc line ->
+    match line with
+    | None ->
+      convert_loc input loc
+    | Some line ->
+      convert_line input loc line) locs lines
+
 (* +-----------------------------------------------------------------+
    | The read-line class                                             |
    +-----------------------------------------------------------------+ *)
@@ -127,8 +160,8 @@ let parse_and_check input eos_is_error =
                  match UTop.check_phrase phrase with
                    | None ->
                        UTop.Value phrase
-                   | Some (locs, msg) ->
-                       UTop.Error (convert_locs input locs, msg)
+                   | Some (locs, msg, lines) ->
+                       UTop.Error (convert_loc_line input locs lines, msg)
                with Pparse.Error error ->
                  Pparse.report_error Format.str_formatter error;
                  UTop.Error ([], "Error: " ^ Format.flush_str_formatter () ^ "\n"))
@@ -1039,7 +1072,7 @@ module Emacs(M : sig end) = struct
     let typecheck phrase =
       match UTop.check_phrase phrase with
         | None -> None
-        | Some (locs, msg) -> Some (convert_locs input locs, msg)  (* FIXME *)
+        | Some (locs, msg, lines) -> Some (convert_loc_line input locs lines, msg)
     in
     match result with
       | UTop.Value phrases ->
