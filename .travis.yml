@@ -5,6 +5,8 @@ script: bash -ex .travis-opam.sh
 env:
   global:
   - PACKAGE=utop
+  - FORK_USER=kit-ty-kate
+  - FORK_BRANCH=410
   matrix:
   - OCAML_VERSION=4.03
   - OCAML_VERSION=4.04
@@ -12,6 +14,8 @@ env:
   - OCAML_VERSION=4.06
   - OCAML_VERSION=4.07
   - OCAML_VERSION=4.08
+  - OCAML_VERSION=4.09
+  - OPAM_SWITCH=4.10.0+beta1 OCAML_BETA=enable
 os:
   - linux
   - osx
