@@ -1449,20 +1449,34 @@ let common_init ~initial_env =
       if !autoload && !UTop_private.autoload && Sys.file_exists autoload_dir then
         load_init_files autoload_dir
     | None -> ());
-  (* Load user's .ocamlinit file. *)
-  (match !Clflags.init_file with
+  (* Load user's init file. *)
+  let init_fn =
+    match !Clflags.init_file with
      | Some fn ->
          if Sys.file_exists fn then
-           ignore (Toploop.use_silently Format.err_formatter fn : bool)
-         else
-           Printf.eprintf "Init file not found: \"%s\".\n" fn
+           Some fn
+         else (
+           Printf.eprintf "Init file not found: \"%s\".\n" fn;
+           None
+         )
      | None ->
          if Sys.file_exists ".ocamlinit" then
-           ignore (Toploop.use_silently Format.err_formatter ".ocamlinit" : bool)
+           Some ".ocamlinit"
          else
-           let fn = Filename.concat LTerm_resources.home ".ocamlinit" in
-           if Sys.file_exists fn then
-             ignore (Toploop.use_silently Format.err_formatter fn));
+           let xdg_fn = LTerm_resources.xdgbd_file ~loc:LTerm_resources.Config "utop/init.ml" in
+           if Sys.file_exists xdg_fn then
+             Some xdg_fn
+           else
+             let fn = Filename.concat LTerm_resources.home ".ocamlinit" in
+             if Sys.file_exists fn then
+               Some fn
+             else
+               None
+  in
+  (match init_fn with
+   | None -> ()
+   | Some fn ->
+     ignore (Toploop.use_silently Format.err_formatter fn : bool));
   (* Load history after the initialization file so the user can change
      the history file name. *)
   Lwt_main.run (init_history ());
