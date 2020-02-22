@@ -58,10 +58,10 @@ utop. For that type:
         UTop.set_profile UTop.Light;;
 
 You can then add this line to your
-.I ~/.ocamlinit
+.I ~/.config/utop/init.ml
 file.
 
-To turn off utop's advanced prompt features, add the following to .ocamlinit 
+To turn off utop's advanced prompt features, add the following to init.ml 
 to turn off respectively (a) colors and the upper information line, and 
 (b) the lower boxed list of possible completions:
 
@@ -95,9 +95,13 @@ Same as
 .BR ocaml (1).
 
 .SH FILES
-.I ~/.ocamlinit
+.I ~/.config/utop/init.ml
 .RS
 The initialization file of the toplevel.
+.RE
+.I ~/.ocamlinit
+.RS
+The alternative initialization file of the toplevel.
 .RE
 .I ~/.utoprc
 .RS
