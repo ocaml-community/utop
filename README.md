@@ -86,12 +86,12 @@ You can customize the prompt of utop by setting the reference
 `UTop.prompt`.
 
 To turn off all colors and remove the line above the prompt
-that lists time, etc., add this to your .ocamlinit file:
+that lists time, etc., add this to ~/.config/utop/init.ml:
 ```OCaml
-#utop_prompt_dummy;; 
+#utop_prompt_dummy;;
 ```
-To turn off the line of boxes listing possible completions that appears under 
-the prompt, add this to .ocamlinit:
+To turn off the line of boxes listing possible completions that appears under
+the prompt, add this to ~/.config/utop/init.ml:
 ```OCaml
 UTop.set_show_box false
 ```

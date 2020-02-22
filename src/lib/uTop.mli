@@ -157,7 +157,7 @@ val set_auto_run_async : bool -> unit
 val end_and_accept_current_phrase : LTerm_read_line.action
  (** Action that add the phrase terminator at the end of the current phrase
      and accepts it. For instance to avoid typing [;;], add this to your
-     ~/.ocamlinit:
+     ~/.config/utop/init.ml:
 
      {[
        #require "lambda-term";;
@@ -179,7 +179,7 @@ val history : LTerm_history.t
       [LTerm_history] module.
 
       For example if you want to limit the history to 1000 line, add
-      these lines to your ~/.ocamlinit file:
+      these lines to your ~/.config/utop/init.ml file:
 
       {[
         #require "lambda-term";;
