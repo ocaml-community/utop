@@ -2,6 +2,7 @@ next
 ----
 
 - Load init file from ~/.config/utop/init.ml as per XDG conventions (@copy, #144)
+- Backport the #use_output directive (@diml, #...)
 
 2.4.3 (2019-12-31)
 ------------------

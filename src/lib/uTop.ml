@@ -744,6 +744,34 @@ let () =
        (fun str -> require (split_words str)))
 
 (* +-----------------------------------------------------------------+
+   | Backports                                                       |
+   +-----------------------------------------------------------------+ *)
+
+
+let use_output command =
+  let fn = Filename.temp_file "ocaml" "_toploop.ml" in
+  Misc.try_finally ~always:(fun () ->
+    try Sys.remove fn with Sys_error _ -> ())
+    (fun () ->
+       match
+         Printf.ksprintf Sys.command "%s > %s"
+           command
+           (Filename.quote fn)
+       with
+       | 0 ->
+         ignore (Toploop.use_file Format.std_formatter fn : bool)
+       | n ->
+         Format.printf "Command exited with code %d.@." n)
+
+let () =
+  let name = "use_output" in
+  if not (Hashtbl.mem Toploop.directive_table name) then
+    Hashtbl.add
+      Toploop.directive_table
+      name
+      (Toploop.Directive_string use_output)
+
+(* +-----------------------------------------------------------------+
    | Initialization                                                  |
    +-----------------------------------------------------------------+ *)
 
