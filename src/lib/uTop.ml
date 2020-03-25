@@ -748,9 +748,16 @@ let () =
    +-----------------------------------------------------------------+ *)
 
 
+let try_finally ~always work=
+#if OCAML_VERSION >= (4, 08, 0)
+    Misc.try_finally ~always work
+#else
+    Misc.try_finally work always
+#endif
+
 let use_output command =
   let fn = Filename.temp_file "ocaml" "_toploop.ml" in
-  Misc.try_finally ~always:(fun () ->
+  try_finally ~always:(fun () ->
     try Sys.remove fn with Sys_error _ -> ())
     (fun () ->
        match
