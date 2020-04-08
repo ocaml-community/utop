@@ -175,7 +175,7 @@ class read_phrase ~term = object(self)
     in
     super#send_action action
 
-  method! exec = function
+  method! exec ?(keys=[]) = function
     | action :: actions when S.value self#mode = LTerm_read_line.Edition &&
                              is_accept action  -> begin
         Zed_macro.add self#macro action;
@@ -205,11 +205,11 @@ class read_phrase ~term = object(self)
               UTop_history.add_warnings UTop.stashable_session_history warnings;
               UTop_history.add_error UTop.stashable_session_history msg;
           end;
-          return result
+          return (LTerm_read_line.Result result)
         with UTop.Need_more ->
           (* Input not finished, continue. *)
           self#insert (UChar.of_char '\n');
-          self#exec actions
+          self#exec ~keys actions
       end
     | actions ->
       super_term#exec actions
