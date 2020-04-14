@@ -234,6 +234,11 @@ val time : float ref
 val prompt : LTerm_text.t React.signal ref
   (** The prompt. *)
 
+(** {6 Edit mode configuration} *)
+
+val edit_mode : LTerm_editor.mode ref
+  (** The edit mode. *)
+
 (** {6 Hooks} *)
 
 val new_command_hooks : (unit -> unit) LTerm_dlist.t

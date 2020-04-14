@@ -467,6 +467,8 @@ let default_prompt =
 
 let prompt = ref default_prompt
 
+let edit_mode= ref LTerm_editor.Default
+
 let () =
   Hashtbl.add Toploop.directive_table "utop_prompt_simple"
     (Toploop.Directive_none
@@ -488,7 +490,17 @@ let () =
     (Toploop.Directive_none
        (fun () ->
          set_profile Dark;
-         prompt := default_prompt))
+         prompt := default_prompt));
+
+  Hashtbl.add Toploop.directive_table "edit_mode_default"
+    (Toploop.Directive_none
+       (fun () ->
+         edit_mode:= LTerm_editor.Default));
+
+  Hashtbl.add Toploop.directive_table "edit_mode_vi"
+    (Toploop.Directive_none
+       (fun () ->
+         edit_mode:= LTerm_editor.Vi))
 
 (* +-----------------------------------------------------------------+
    | Help                                                            |

@@ -712,7 +712,12 @@ let execute_phrase = Toploop.execute_phrase
 
 let rec read_phrase term =
   Lwt.catch
-    (fun () -> (new read_phrase ~term)#run)
+    (fun () ->
+       let read_line= new read_phrase ~term in
+       (match !UTop.edit_mode with
+       | LTerm_editor.Default-> ()
+       | LTerm_editor.Vi as mode-> read_line#set_editor_mode mode);
+       read_line#run)
     (function
     | Sys.Break ->
       LTerm.fprintl term "Interrupted." >>= fun () ->
