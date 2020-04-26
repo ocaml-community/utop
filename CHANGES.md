@@ -1,8 +1,16 @@
-next
-----
+2.5.0 (2020-04-26)
+------------------
 
-- Load init file from ~/.config/utop/init.ml as per XDG conventions (@copy, #144)
-- Backport the #use_output directive (@diml, #313)
+### Additions
+
+* add `#edit_mode_vi` and `#edit_mode_default` mode to set the editing mode(@kandu)
+* Backport the `#use_output` directive (@diml, #313)
+
+### General
+
+* Load init file from ~/.config/utop/init.ml as per XDG conventions (@copy, #144)
+* Add OCaml 4.09 and 4.10 to the CI matrix (@kit-ty-kate, #310)
+* Add documentation for dune utop usage in emacs (@samarthkishor, #307)
 
 2.4.3 (2019-12-31)
 ------------------
