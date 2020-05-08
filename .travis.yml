@@ -13,7 +13,8 @@ env:
   - OCAML_VERSION=4.07
   - OCAML_VERSION=4.08
   - OCAML_VERSION=4.09
-  - OPAM_SWITCH=4.10.0+rc2 OCAML_BETA=enable
+  - OCAML_VERSION=4.10
+  - OCAML_VERSION=4.11.0+trunk OCAML_BETA=enable
 os:
   - linux
   - osx
