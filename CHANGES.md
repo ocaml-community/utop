@@ -1,3 +1,9 @@
+next
+------------------
+
+* compatible with OCaml 4.11
+* switch to the exposed parser
+
 2.5.0 (2020-04-26)
 ------------------
 

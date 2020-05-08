@@ -892,6 +892,14 @@ and find_context_in_quotation = function
    | Completion                                                      |
    +-----------------------------------------------------------------+ *)
 
+#if OCAML_VERSION < (4, 11, 0)
+let longident_parse= Longident.parse
+#else
+let longident_parse str=
+  let lexbuf= Lexing.from_string str in
+  Parse.longident lexbuf
+#endif
+
 let complete ~phrase_terminator ~input =
   let true_name, false_name = ("true", "false") in
   let tokens = UTop_lexer.lex_string input in
@@ -924,7 +932,7 @@ let complete ~phrase_terminator ~input =
 
     | [(Symbol "#", _); (Lident "typeof", _); (String (tlen, false), loc)] ->
       let prefix = String.sub input (loc.ofs1 + tlen) (String.length input - loc.ofs1 - tlen) in
-      begin match Longident.parse prefix [@ocaml.warning "-3"] with
+      begin match longident_parse prefix with
       | Longident.Ldot (lident, last_prefix) ->
         let set = names_of_module lident in
         let compls = lookup last_prefix (String_set.elements set) in

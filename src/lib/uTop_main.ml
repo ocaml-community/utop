@@ -437,6 +437,14 @@ type rewrite_rule = {
   (* Whether the rule is enabled or not. *)
 }
 
+#if OCAML_VERSION < (4, 11, 0)
+let longident_parse= Longident.parse
+#else
+let longident_parse str=
+  let lexbuf= Lexing.from_string str in
+  Parse.longident lexbuf
+#endif
+
 let longident_lwt_main_run = Longident.Ldot (Longident.Lident "Lwt_main", "run")
 let longident_async_thread_safe_block_on_async_exn =
   Longident.(Ldot (Ldot (Lident "Async", "Thread_safe"), "block_on_async_exn"))
@@ -1182,7 +1190,7 @@ end
    +-----------------------------------------------------------------+ *)
 
 let typeof sid =
-  let id  = Longident.parse sid [@ocaml.warning "-3"] in
+  let id  = longident_parse sid in
   let env = !Toploop.toplevel_env in
 #if OCAML_VERSION >= (4, 10, 0)
   let lookup_value= Env.find_value_by_name
