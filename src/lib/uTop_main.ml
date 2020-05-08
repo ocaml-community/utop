@@ -439,7 +439,7 @@ type rewrite_rule = {
 
 let longident_lwt_main_run = Longident.Ldot (Longident.Lident "Lwt_main", "run")
 let longident_async_thread_safe_block_on_async_exn =
-  Longident.parse "Async.Thread_safe.block_on_async_exn"
+  Longident.(Ldot (Ldot (Lident "Async", "Thread_safe"), "block_on_async_exn"))
 let longident_unit = Longident.Lident "()"
 
 #if OCAML_VERSION >= (4, 03, 0)
@@ -451,7 +451,7 @@ let nolabel = ""
 let rewrite_rules = [
   (* Rewrite Lwt.t expressions to Lwt_main.run <expr> *)
   {
-    type_to_rewrite = Longident.parse "Lwt.t";
+    type_to_rewrite = Longident.(Ldot (Lident "Lwt", "t"));
     path_to_rewrite = None;
     required_values = [longident_lwt_main_run];
     rewrite = (fun loc e ->
@@ -466,7 +466,7 @@ let rewrite_rules = [
   (* Rewrite Async.Defered.t expressions to
      Async.Thread_safe.block_on_async_exn (fun () -> <expr>). *)
   {
-    type_to_rewrite = Longident.parse "Async.Deferred.t";
+    type_to_rewrite = Longident.(Ldot (Ldot (Lident "Async", "Deferred"), "t"));
     path_to_rewrite = None;
     required_values = [longident_async_thread_safe_block_on_async_exn];
     rewrite = (fun loc e ->
@@ -1182,7 +1182,7 @@ end
    +-----------------------------------------------------------------+ *)
 
 let typeof sid =
-  let id  = Longident.parse sid in
+  let id  = Longident.parse sid [@ocaml.warning "-3"] in
   let env = !Toploop.toplevel_env in
 #if OCAML_VERSION >= (4, 10, 0)
   let lookup_value= Env.find_value_by_name

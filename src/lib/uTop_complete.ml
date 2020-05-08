@@ -924,7 +924,7 @@ let complete ~phrase_terminator ~input =
 
     | [(Symbol "#", _); (Lident "typeof", _); (String (tlen, false), loc)] ->
       let prefix = String.sub input (loc.ofs1 + tlen) (String.length input - loc.ofs1 - tlen) in
-      begin match Longident.parse prefix with
+      begin match Longident.parse prefix [@ocaml.warning "-3"] with
       | Longident.Ldot (lident, last_prefix) ->
         let set = names_of_module lident in
         let compls = lookup last_prefix (String_set.elements set) in
