@@ -176,6 +176,12 @@ copy&paste this to your `~/.emacs`:
 (autoload 'utop "utop" "Toplevel for OCaml" t)
 ```
 
+Utop in emacs also supports TAB-completion. If your version of emacs includes `company` completion will appear at the code point. Otherwise completion will appear in a seperate buffer. If your emacs supports company but you aren't seeing the completion drop-down please try adding a global hook for company mode to your `~/.emacs`:
+
+```elisp`
+(add-hook 'after-init-hook 'global-company-mode)
+```
+
 ### Usage
 
 Then you can execute utop inside emacs with: `M-x utop`.
