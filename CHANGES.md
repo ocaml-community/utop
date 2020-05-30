@@ -1,8 +1,9 @@
-next
+2.6.0 (2020-05-30)
 ------------------
 
-* compatible with OCaml 4.11
-* switch to the exposed parser
+* compatible with OCaml 4.11 (@kit-ty-kate, #322)
+* switch to the new parser exposed since 4.11
+* Vi edit mode: register support
 
 2.5.0 (2020-04-26)
 ------------------
