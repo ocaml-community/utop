@@ -718,14 +718,20 @@ let execute_phrase = Toploop.execute_phrase
    | Main loop                                                       |
    +-----------------------------------------------------------------+ *)
 
+let registers= ref LTerm_vi.Vi.Interpret.RegisterMap.empty
+
 let rec read_phrase term =
   Lwt.catch
     (fun () ->
-       let read_line= new read_phrase ~term in
-       (match !UTop.edit_mode with
-       | LTerm_editor.Default-> ()
-       | LTerm_editor.Vi as mode-> read_line#set_editor_mode mode);
-       read_line#run)
+      let read_line= new read_phrase ~term in
+      (match !UTop.edit_mode with
+      | LTerm_editor.Default-> ()
+      | LTerm_editor.Vi as mode-> read_line#set_editor_mode mode);
+      let vi_state= read_line#vi_state in
+      vi_state#set_registers !registers;
+      read_line#run >>= fun result->
+      registers:= vi_state#get_registers;
+      return result)
     (function
     | Sys.Break ->
       LTerm.fprintl term "Interrupted." >>= fun () ->
