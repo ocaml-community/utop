@@ -33,8 +33,9 @@ Dependencies
 * [react](http://erratique.ch/software/react)
 * [lwt](http://ocsigen.org/lwt/) (>= 2.4.0) built with react support
 * [Camomile](http://github.com/yoriyuki/Camomile) (>= 0.8)
-* [zed](http://github.com/diml/zed) (>= 2.0)
-* [lambda-term](http://github.com/diml/lambda-term) (>= 2.0)
+* [zed](http://github.com/ocaml-community/zed) (>= 3.0)
+* [lambda-term](http://github.com/ocaml-community/lambda-term) (>= 3.0)
+* [mew\_vi](http://github.com/kandu/mew_vi)
 
 Installation from sources
 -------------------------
@@ -110,6 +111,14 @@ If manual pages are correctly installed you can see a description of
 this file by executing:
 
     $ man 5 lambda-term-inputrc
+
+### Vi edit mode
+
+You can turn on the vi edit mode by `#edit_mode_vi`. It currently supports
+three vi modes: normal, insert, visual mode, and you can get/set content
+with vim-like registers.
+
+This special edit mode is evolving rapidly, see the CHANGES of lambda-term for the rapidly changing information.
 
 ### UTop API
 
