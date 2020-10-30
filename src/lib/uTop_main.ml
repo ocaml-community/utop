@@ -589,15 +589,21 @@ let rewrite_str_item pstr_item tstr_item =
     | _ ->
       pstr_item
 
+let type_structure env pstr =
+#if OCAML_VERSION >= (4, 12, 0)
+  let tstr, _, _, _ = Typemod.type_structure env pstr in
+#elif OCAML_VERSION >= (4, 08, 0)
+  let tstr, _, _, _ = Typemod.type_structure env pstr Location.none in
+#else
+  let tstr, _, _ = Typemod.type_structure env pstr Location.none in
+#endif
+  tstr
+
 let rewrite phrase =
   match phrase with
     | Parsetree.Ptop_def pstr ->
       if (UTop.get_auto_run_lwt () || UTop.get_auto_run_async ()) && List.exists is_eval pstr then
-#if OCAML_VERSION >= (4, 08, 0)
-        let tstr, _, _, _ = Typemod.type_structure !Toploop.toplevel_env pstr Location.none in
-#else
-        let tstr, _, _ = Typemod.type_structure !Toploop.toplevel_env pstr Location.none in
-#endif
+        let tstr = type_structure !Toploop.toplevel_env pstr in
         Parsetree.Ptop_def (List.map2 rewrite_str_item pstr tstr.Typedtree.str_items)
       else
         phrase
