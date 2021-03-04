@@ -5,7 +5,7 @@
 ;; URL: https://github.com/diml/utop
 ;; Licence: BSD3
 ;; Version: 1.11
-;; Package-Requires: ((emacs "24"))
+;; Package-Requires: ((emacs "24") (tuareg "2.2.0"))
 ;; Keywords: ocaml languages
 
 ;; This file is a part of utop.
@@ -20,6 +20,7 @@
 (require 'easymenu)
 (require 'pcase)
 (require 'tabulated-list)
+(require 'tuareg)
 
 ;; +-----------------------------------------------------------------+
 ;; | License                                                         |
@@ -269,12 +270,18 @@ modes you need to set these variables:
 
 (defun utop-tuareg-next-phrase ()
   "Move to the next phrase after point."
-  (let* ((pos (tuareg--after-double-colon))
+  (let* ((pos (save-excursion
+                (when (looking-at-p "[;[:blank:]]*$")
+                  (skip-chars-backward ";[:blank:]")
+                  (when (> (point) 1)
+                    (- (point) 1)))))
          (pos (if pos pos (point)))
          (phrase (tuareg-discover-phrase pos)))
     (when phrase
       (goto-char (caddr phrase))
-      (tuareg--skip-double-colon)
+      (tuareg-skip-blank-and-comments)
+      (when (looking-at ";;[ \t\n]*")
+        (goto-char (match-end 0)))
       (tuareg-skip-blank-and-comments))))
 
 (defun utop-compat-next-phrase-beginning ()
