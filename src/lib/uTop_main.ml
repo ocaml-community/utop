@@ -1442,7 +1442,7 @@ let args = Arg.align [
 #endif
   "-version", Arg.Unit print_version, " Print version and exit";
   "-vnum", Arg.Unit print_version_num, " Print version number and exit";
-  "-w", Arg.String (Warnings.parse_options false),
+  "-w", Arg.String (fun opt -> ignore (Warnings.parse_options false opt)),
   Printf.sprintf
     "<list>  Enable or disable warnings according to <list>:\n\
     \        +<spec>   enable warnings in <spec>\n\
@@ -1453,7 +1453,7 @@ let args = Arg.align [
     \        <num1>..<num2>    a range of consecutive warning numbers\n\
     \        <letter>          a predefined set\n\
     \     default setting is %S" Warnings.defaults_w;
-  "-warn-error", Arg.String (Warnings.parse_options true),
+  "-warn-error", Arg.String (fun opt -> ignore (Warnings.parse_options true opt)),
   Printf.sprintf
     "<list>  Enable or disable error status for warnings according to <list>\n\
     \     See option -w for the syntax of <list>.\n\
