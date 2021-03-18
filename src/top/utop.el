@@ -1074,8 +1074,8 @@ defaults to 0."
   "Return the arguments of the utop command to run."
   ;; Read the command to run
   (when utop-edit-command
-    (setq utop-command (read-shell-command "utop command line: " utop-command))
-    (utop-arguments)))
+    (setq utop-command (read-shell-command "utop command line: " utop-command)))
+  (utop-arguments))
 
 (defun utop-start (arguments)
   "Start utop given ARGUMENTS."
