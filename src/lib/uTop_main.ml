@@ -1572,6 +1572,7 @@ let main_aux ~initial_env =
   exit 0
 
 let main_internal ~initial_env =
+  let exit_status = ref 2 in
   try
     main_aux ~initial_env
   with exn ->
@@ -1579,12 +1580,15 @@ let main_internal ~initial_env =
        | Unix.Unix_error (error, func, "") ->
            Printf.eprintf "%s: %s: %s\n" app_name func (Unix.error_message error)
        | Unix.Unix_error (error, func, arg) ->
-           Printf.eprintf "%s: %s(%S): %s\n" app_name func arg (Unix.error_message error)
+         Printf.eprintf "%s: %s(%S): %s\n" app_name func arg (Unix.error_message error)
+#if OCAML_VERSION >= (4,12,0)
+       | Compenv.Exit_with_status e -> exit_status := e
+#endif
        | exn ->
            Printf.eprintf "Fatal error: exception %s\n" (Printexc.to_string exn));
     Printexc.print_backtrace stderr;
     flush stderr;
-    exit 2
+    exit !exit_status
 
 let main () = main_internal ~initial_env:None
 
