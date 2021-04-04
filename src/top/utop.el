@@ -1139,6 +1139,8 @@ See https://github.com/diml/utop for configuration information."))
   ;; Load local file variables
   (add-hook 'hack-local-variables-hook 'utop-hack-local-variables))
 
+(defvar company-backends)
+
 ;;;###autoload
 (define-derived-mode utop-mode fundamental-mode "utop"
   "Set the buffer mode to utop."
@@ -1222,6 +1224,9 @@ Special keys for utop:
         ;; Put it in utop mode
         (with-current-buffer buf (utop-mode)))))
     buf))
+
+(declare-function company-begin-backend "ext:company")
+(declare-function company-grab-symbol-cons "ext:company")
 
 (defun utop-company-backend (command &optional _arg &rest ignored)
   "company backend for utop completions"
