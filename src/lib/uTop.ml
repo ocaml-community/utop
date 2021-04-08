@@ -104,6 +104,15 @@ let keywords = ref (String_set.of_list default_keywords)
 let add_keyword kwd = keywords := String_set.add kwd !keywords
 
 (* +-----------------------------------------------------------------+
+   | Span of Lines                                                   |
+   +-----------------------------------------------------------------+ *)
+
+type lines = {
+  start: int;
+  stop:  int;
+}
+
+(* +-----------------------------------------------------------------+
    | Error reporting                                                 |
    +-----------------------------------------------------------------+ *)
 
@@ -126,9 +135,22 @@ let get_ocaml_error_message exn =
     Scanf.sscanf
       str
       "Characters %d-%d:\n%[\000-\255]"
-      (fun start stop msg -> ((start, stop), msg))
-  with _ ->
-    ((0, 0), str)
+      (fun start stop msg -> ((start, stop), msg, None))
+  with Scanf.Scan_failure(_) ->
+  try
+    Scanf.sscanf
+      str
+      "Line %d, characters %d-%d:\n%[\000-\255]"
+      (fun line start stop msg -> ((start, stop), msg, Some{start=line; stop=line}))
+  with Scanf.Scan_failure(_) ->
+  try
+    Scanf.sscanf
+      str
+      "Lines %d-%d, characters %d-%d:\n%[\000-\255]"
+      (fun start_line stop_line start stop msg -> ((start, stop),
+                                                   msg, Some{start=start_line;stop=stop_line}))
+  with Scanf.Scan_failure(_) ->
+    ((0, 0), str, None)
 
 let collect_formatters buf pps f =
   (* First flush all formatters. *)
@@ -365,10 +387,10 @@ let check_phrase phrase =
           None
         with exn ->
           (* The phrase contains errors. *)
-          let loc, msg = get_ocaml_error_message exn in
+          let loc, msg, line = get_ocaml_error_message exn in
           Toploop.toplevel_env := env;
           Btype.backtrack snap;
-          Some ([loc], msg)
+          Some ([loc], msg, [line])
 
 (* +-----------------------------------------------------------------+
    | Prompt                                                          |
