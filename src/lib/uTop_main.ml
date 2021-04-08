@@ -1519,7 +1519,7 @@ let common_init ~initial_env =
            None
          )
      | None ->
-         if Sys.file_exists ".ocamlinit" then
+         if Sys.file_exists ".ocamlinit" && Sys.getcwd () <> LTerm_resources.home then
            Some ".ocamlinit"
          else
            let xdg_fn = LTerm_resources.xdgbd_file ~loc:LTerm_resources.Config "utop/init.ml" in
