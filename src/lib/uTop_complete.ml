@@ -1042,77 +1042,82 @@ let complete ~phrase_terminator ~input =
         let result = lookup name list in
         (loc.idx2 - Zed_utf8.length name, List.map (function dir -> (dir, "")) result)
 
-    (* Generic completion on directives. *)
-    | [(Symbol "#", _); ((Lident dir | Uident dir), _); (Blanks, { idx2 = stop })] ->
-        (stop,
-         match try Some (Hashtbl.find Toploop.directive_table dir) with Not_found -> None with
-           | Some (Toploop.Directive_none _) -> [(phrase_terminator, "")]
-           | Some (Toploop.Directive_string _) -> [(" \"", "")]
-           | Some (Toploop.Directive_bool _) -> [(true_name, phrase_terminator); (false_name, phrase_terminator)]
-           | Some (Toploop.Directive_int _) -> []
-           | Some (Toploop.Directive_ident _) -> List.map (fun w -> (w, "")) (String_set.elements (global_names ()))
-           | None -> [])
-    | (Symbol "#", _) :: ((Lident dir | Uident dir), _) :: tokens -> begin
-        match try Some (Hashtbl.find Toploop.directive_table dir) with Not_found -> None with
-          | Some (Toploop.Directive_none _) ->
-              (0, [])
-          | Some (Toploop.Directive_string _) ->
-              (0, [])
-          | Some (Toploop.Directive_bool _) -> begin
-              match tokens with
-                | [(Lident id, { idx1 = start })] ->
-                    (start, lookup_assoc id [(true_name, phrase_terminator); (false_name, phrase_terminator)])
-                | _ ->
-                    (0, [])
-            end
-          | Some (Toploop.Directive_int _) ->
-              (0, [])
-          | Some (Toploop.Directive_ident _) -> begin
-              match parse_longident (List.rev tokens) with
-                | Some (Value, None, start, id) ->
-                    (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (global_names ()))))
-                | Some (Value, Some longident, start, id) ->
-                    (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (names_of_module longident))))
-                | _ ->
-                    (0, [])
-            end
-          | None ->
-              (0, [])
-      end
+    | _-> match Ocp_index_hook.complete input names_of_module global_names tokens with
+      | Some r-> r
+      | None->
+        match tokens with
 
-    (* Completion on identifiers. *)
-    | _ ->
-        match find_context tokens tokens with
-          | None ->
-              (0, [])
-          | Some [] ->
-              (0, List.map (fun w -> (w, "")) (String_set.elements (String_set.union !UTop.keywords (global_names ()))))
-          | Some tokens ->
-              match parse_method tokens with
-                | Some (longident, meths, start, meth) ->
-                    (start, List.map (fun w -> (w, "")) (lookup meth (methods_of_object longident meths)))
-                | None ->
-                    match parse_label tokens with
-                      | Some (Fun, longident, meths, Optional, start, label) ->
-                          (start, List.map (fun (w, kind) -> (w, ":")) (lookup_assoc label (List.filter (function (w, Optional) -> true | (w, Required) -> false) (labels_of_function longident meths))))
-                      | Some (Fun, longident, meths, Required, start, label) ->
-                          (start, List.map (fun (w, kind) -> (w, ":")) (lookup_assoc label (labels_of_function longident meths)))
-                      | Some (New, longident, meths, Optional, start, label) ->
-                          (start, List.map (fun (w, kind) -> (w, ":")) (lookup_assoc label (List.filter (function (w, Optional) -> true | (w, Required) -> false) (labels_of_newclass longident))))
-                      | Some (New, longident, meths, Required, start, label) ->
-                          (start, List.map (fun (w, kind) -> (w, ":")) (lookup_assoc label (labels_of_newclass longident)))
-                      | None ->
-                          match parse_longident tokens with
-                            | None ->
-                                (0, [])
-                            | Some (Value, None, start, id) ->
-                                (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (String_set.union !UTop.keywords (global_names ())))))
-                            | Some (Value, Some longident, start, id) ->
-                                (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (names_of_module longident))))
-                            | Some (Field, None, start, id) ->
-                                (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (global_fields ()))))
-                            | Some (Field, Some longident, start, id) ->
-                                (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (fields_of_module longident))))
+        (* Generic completion on directives. *)
+        | [(Symbol "#", _); ((Lident dir | Uident dir), _); (Blanks, { idx2 = stop })] ->
+            (stop,
+            match try Some (Hashtbl.find Toploop.directive_table dir) with Not_found -> None with
+              | Some (Toploop.Directive_none _) -> [(phrase_terminator, "")]
+              | Some (Toploop.Directive_string _) -> [(" \"", "")]
+              | Some (Toploop.Directive_bool _) -> [(true_name, phrase_terminator); (false_name, phrase_terminator)]
+              | Some (Toploop.Directive_int _) -> []
+              | Some (Toploop.Directive_ident _) -> List.map (fun w -> (w, "")) (String_set.elements (global_names ()))
+              | None -> [])
+        | (Symbol "#", _) :: ((Lident dir | Uident dir), _) :: tokens -> begin
+            match try Some (Hashtbl.find Toploop.directive_table dir) with Not_found -> None with
+              | Some (Toploop.Directive_none _) ->
+                  (0, [])
+              | Some (Toploop.Directive_string _) ->
+                  (0, [])
+              | Some (Toploop.Directive_bool _) -> begin
+                  match tokens with
+                    | [(Lident id, { idx1 = start })] ->
+                        (start, lookup_assoc id [(true_name, phrase_terminator); (false_name, phrase_terminator)])
+                    | _ ->
+                        (0, [])
+                end
+              | Some (Toploop.Directive_int _) ->
+                  (0, [])
+              | Some (Toploop.Directive_ident _) -> begin
+                  match parse_longident (List.rev tokens) with
+                    | Some (Value, None, start, id) ->
+                        (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (global_names ()))))
+                    | Some (Value, Some longident, start, id) ->
+                        (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (names_of_module longident))))
+                    | _ ->
+                        (0, [])
+                end
+              | None ->
+                  (0, [])
+          end
+
+        (* Completion on identifiers. *)
+        | _ ->
+            match find_context tokens tokens with
+              | None ->
+                  (0, [])
+              | Some [] ->
+                  (0, List.map (fun w -> (w, "")) (String_set.elements (String_set.union !UTop.keywords (global_names ()))))
+              | Some tokens ->
+                  match parse_method tokens with
+                    | Some (longident, meths, start, meth) ->
+                        (start, List.map (fun w -> (w, "")) (lookup meth (methods_of_object longident meths)))
+                    | None ->
+                        match parse_label tokens with
+                          | Some (Fun, longident, meths, Optional, start, label) ->
+                              (start, List.map (fun (w, kind) -> (w, ":")) (lookup_assoc label (List.filter (function (w, Optional) -> true | (w, Required) -> false) (labels_of_function longident meths))))
+                          | Some (Fun, longident, meths, Required, start, label) ->
+                              (start, List.map (fun (w, kind) -> (w, ":")) (lookup_assoc label (labels_of_function longident meths)))
+                          | Some (New, longident, meths, Optional, start, label) ->
+                              (start, List.map (fun (w, kind) -> (w, ":")) (lookup_assoc label (List.filter (function (w, Optional) -> true | (w, Required) -> false) (labels_of_newclass longident))))
+                          | Some (New, longident, meths, Required, start, label) ->
+                              (start, List.map (fun (w, kind) -> (w, ":")) (lookup_assoc label (labels_of_newclass longident)))
+                          | None ->
+                              match parse_longident tokens with
+                                | None ->
+                                    (0, [])
+                                | Some (Value, None, start, id) ->
+                                    (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (String_set.union !UTop.keywords (global_names ())))))
+                                | Some (Value, Some longident, start, id) ->
+                                    (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (names_of_module longident))))
+                                | Some (Field, None, start, id) ->
+                                    (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (global_fields ()))))
+                                | Some (Field, Some longident, start, id) ->
+                                    (start, List.map (fun w -> (w, "")) (lookup id (String_set.elements (fields_of_module longident))))
 
 let complete ~phrase_terminator ~input =
   try

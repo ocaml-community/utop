@@ -1341,6 +1341,8 @@ let () =
   Hashtbl.add Toploop.directive_table "typeof"
     (Toploop.Directive_string typeof)
 
+let ()= Ocp_index_hook.add_directive Toploop.directive_table render_out_phrase print_error
+
 (* +-----------------------------------------------------------------+
    | Entry point                                                     |
    +-----------------------------------------------------------------+ *)
@@ -1624,7 +1626,13 @@ let main_internal ~initial_env =
     flush stderr;
     exit !exit_status
 
-let main () = main_internal ~initial_env:None
+let main () =
+  let child_ocp_index= Ocp_index_hook.init_ocp_index () in
+  let children= [child_ocp_index] in
+  let children= List.filter (fun child-> child > 0) children in
+  Lwt_main.at_exit (fun ()->
+    List.iter (fun child-> Unix.kill child Sys.sigterm) children; Lwt.return ());
+  main_internal ~initial_env:None
 
 type value = V : string * _ -> value
 
