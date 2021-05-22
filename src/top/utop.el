@@ -175,6 +175,9 @@ This hook is only run if exiting actually kills the buffer."
 (defvar utop-completion nil
   "Current completion.")
 
+(defvar utop-completion-prefixes nil
+  "Prefixes for current completion.")
+
 (defvar utop-inhibit-check nil
   "When set to a non-nil value, always insert text, even if it is
 before the end of prompt.")
@@ -645,7 +648,11 @@ it is started."
        (setq utop-completion nil))
       ;; A new possible completion
       ("completion"
-       (push argument utop-completion))
+       (catch 'done
+         (dolist (prefix utop-completion-prefixes)
+           (when (string-prefix-p prefix argument)
+             (push argument utop-completion)
+             (throw 'done t)))))
       ;; End of completion
       ("completion-stop"
        (utop-set-state 'edit)
@@ -757,6 +764,9 @@ If ADD-TO-HISTORY is t then the input will be added to history."
      (if (utop--supports-company)
          "complete-company:\n"
        "complete:\n"))
+    ;; Keep track of the prefixes, so we can avoid returning
+    ;; completion which don't have a match.
+    (setq utop-completion-prefixes lines)
     (dolist (line lines)
       ;; Send the line
       (utop-send-string (concat "data:" line "\n")))
