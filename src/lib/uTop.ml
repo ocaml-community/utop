@@ -17,6 +17,13 @@ open LTerm_style
 
 let (>>=) = Lwt.(>>=)
 
+let toploop_get_directive name =
+#if OCAML_VERSION >= (4, 13, 0)
+  Toploop.get_directive name
+#else
+  try Some (Hashtbl.find Toploop.directive_table name) with Not_found -> None
+#endif
+
 module String_set = Set.Make(String)
 
 let version = "%%VERSION%%"
@@ -491,38 +498,49 @@ let prompt = ref default_prompt
 
 let edit_mode= ref LTerm_editor.Default
 
+let default_info = {
+  Toploop.section = "UTop";
+  doc = ""; (* TODO: have some kind of documentation *)
+}
+
 let () =
-  Hashtbl.add Toploop.directive_table "utop_prompt_simple"
+  Toploop.add_directive "utop_prompt_simple"
     (Toploop.Directive_none
        (fun () ->
-         prompt := S.map (Printf.ksprintf LTerm_text.of_utf8 "utop [%d]: ") count));
+         prompt := S.map (Printf.ksprintf LTerm_text.of_utf8 "utop [%d]: ") count))
+    default_info;
 
-  Hashtbl.add Toploop.directive_table "utop_prompt_dummy"
+  Toploop.add_directive "utop_prompt_dummy"
     (Toploop.Directive_none
        (fun () ->
-         prompt := S.const (LTerm_text.of_utf8 "# ")));
+         prompt := S.const (LTerm_text.of_utf8 "# ")))
+    default_info;
 
-  Hashtbl.add Toploop.directive_table "utop_prompt_fancy_light"
+  Toploop.add_directive "utop_prompt_fancy_light"
     (Toploop.Directive_none
        (fun () ->
          set_profile Light;
-         prompt := default_prompt));
+         prompt := default_prompt))
+    default_info;
 
-  Hashtbl.add Toploop.directive_table "utop_prompt_fancy_dark"
+  Toploop.add_directive "utop_prompt_fancy_dark"
     (Toploop.Directive_none
        (fun () ->
          set_profile Dark;
-         prompt := default_prompt));
+         prompt := default_prompt))
+    default_info;
 
-  Hashtbl.add Toploop.directive_table "edit_mode_default"
+  Toploop.add_directive "edit_mode_default"
     (Toploop.Directive_none
        (fun () ->
-         edit_mode:= LTerm_editor.Default));
+         edit_mode:= LTerm_editor.Default))
+    default_info;
 
-  Hashtbl.add Toploop.directive_table "edit_mode_vi"
+  Toploop.add_directive "edit_mode_vi"
     (Toploop.Directive_none
        (fun () ->
          edit_mode:= LTerm_editor.Vi))
+    default_info
 
 (* +-----------------------------------------------------------------+
    | Help                                                            |
@@ -544,7 +562,7 @@ let doc_of_action action =
     LTerm_read_line.doc_of_action action
 
 let () =
-  Hashtbl.add Toploop.directive_table "utop_help"
+  Toploop.add_directive "utop_help"
     (Toploop.Directive_none
        (fun () ->
           print_endline "If you can't see the prompt properly try: #utop_prompt_simple
@@ -559,9 +577,10 @@ utop defines the following directives:
 #topfind_log     : display messages recorded from findlib since the beginning of the session
 #topfind_verbose : enable/disable topfind verbosity
 
-For a complete description of utop, look at the utop(1) manual page."));
+For a complete description of utop, look at the utop(1) manual page."))
+    default_info;
 
-  Hashtbl.add Toploop.directive_table "utop_bindings"
+  Toploop.add_directive "utop_bindings"
     (Toploop.Directive_none
        (fun () ->
           let make_lines keys actions acc =
@@ -630,9 +649,10 @@ For a complete description of utop, look at the utop(1) manual page."));
             output_string stdout (Buffer.contents buf)
           in
           List.iter format_line table;
-          flush stdout));
+          flush stdout))
+    default_info;
 
-  Hashtbl.add Toploop.directive_table "utop_macro"
+  Toploop.add_directive "utop_macro"
     (Toploop.Directive_none
        (fun () ->
           let macro = Zed_macro.contents LTerm_read_line.macro in
@@ -642,11 +662,13 @@ For a complete description of utop, look at the utop(1) manual page."));
                output_char stdout '\n')
             macro;
           flush stdout))
+    default_info
 
 let () =
-  Hashtbl.add Toploop.directive_table "pwd"
+  Toploop.add_directive "pwd"
     (Toploop.Directive_none
        (fun () -> print_endline (Sys.getcwd ())))
+    default_info
 
 let make_stash_directive entry_formatter fname =
   if get_ui () = Emacs then
@@ -682,7 +704,7 @@ let () =
     Printf.sprintf "(* %s *)" out
   end
   in
-  Hashtbl.add Toploop.directive_table "utop_stash" (Toploop.Directive_string fn)
+  Toploop.add_directive "utop_stash" (Toploop.Directive_string fn) default_info
 
 let () =
   let fn = make_stash_directive begin function
@@ -692,7 +714,7 @@ let () =
     out
   end
   in
-  Hashtbl.add Toploop.directive_table "utop_save" (Toploop.Directive_string fn)
+  Toploop.add_directive "utop_save" (Toploop.Directive_string fn) default_info
 
 (* +-----------------------------------------------------------------+
    | Findlib stuff                                                   |
@@ -724,19 +746,19 @@ let () =
     if S.value topfind_verbose then real_log str
 
 let () =
-  Hashtbl.add
-    Toploop.directive_table
+  Toploop.add_directive
     "topfind_log"
     (Toploop.Directive_none
        (fun () ->
          List.iter (fun str -> print_string str; print_char '\n')
            (S.value topfind_log);
-         flush  stdout));
+         flush  stdout))
+    default_info;
 
-  Hashtbl.add
-    Toploop.directive_table
+  Toploop.add_directive
     "topfind_verbose"
     (Toploop.Directive_bool set_topfind_verbose)
+    default_info
 
 let split_words str =
   let len = String.length str in
@@ -771,11 +793,11 @@ let require packages =
     handle_findlib_error exn
 
 let () =
-  Hashtbl.add
-    Toploop.directive_table
+  Toploop.add_directive
     "require"
     (Toploop.Directive_string
        (fun str -> require (split_words str)))
+    default_info
 
 (* +-----------------------------------------------------------------+
    | Backports                                                       |
@@ -806,11 +828,11 @@ let use_output command =
 
 let () =
   let name = "use_output" in
-  if not (Hashtbl.mem Toploop.directive_table name) then
-    Hashtbl.add
-      Toploop.directive_table
+  if toploop_get_directive name = None then
+    Toploop.add_directive
       name
       (Toploop.Directive_string use_output)
+      default_info
 
 (* +-----------------------------------------------------------------+
    | Initialization                                                  |

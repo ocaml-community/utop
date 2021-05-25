@@ -22,6 +22,20 @@ let set_of_list = List.fold_left (fun set x -> String_set.add x set) String_set.
    | Utils                                                           |
    +-----------------------------------------------------------------+ *)
 
+let toploop_get_directive name =
+#if OCAML_VERSION >= (4, 13, 0)
+  Toploop.get_directive name
+#else
+  try Some (Hashtbl.find Toploop.directive_table name) with Not_found -> None
+#endif
+
+let toploop_all_directive_names () =
+#if OCAML_VERSION >= (4, 13, 0)
+  Toploop.all_directive_names ()
+#else
+  Hashtbl.fold (fun dir _ acc -> dir::acc) Toploop.directive_table []
+#endif
+
 (* Transform a non-empty list of strings into a long-identifier. *)
 let longident_of_list = function
   | [] ->
@@ -254,17 +268,18 @@ let parse_label tokens =
 
 let list_directives phrase_terminator =
   String_map.bindings
-    (Hashtbl.fold
-       (fun dir kind map ->
+    (List.fold_left
+       (fun map dir ->
           let suffix =
-            match kind with
-              | Toploop.Directive_none _ -> phrase_terminator
-              | Toploop.Directive_string _ -> " \""
-              | Toploop.Directive_bool _  | Toploop.Directive_int _ | Toploop.Directive_ident _ -> " "
+            match toploop_get_directive dir with
+              | Some (Toploop.Directive_none _) -> phrase_terminator
+              | Some (Toploop.Directive_string _) -> " \""
+              | Some (Toploop.Directive_bool _  | Toploop.Directive_int _ | Toploop.Directive_ident _) -> " "
+              | None -> assert false
           in
           String_map.add dir suffix map)
-       Toploop.directive_table
-       String_map.empty)
+       String_map.empty
+       (toploop_all_directive_names ()))
 
 (* +-----------------------------------------------------------------+
    | File listing                                                    |
@@ -1045,7 +1060,7 @@ let complete ~phrase_terminator ~input =
     (* Generic completion on directives. *)
     | [(Symbol "#", _); ((Lident dir | Uident dir), _); (Blanks, { idx2 = stop })] ->
         (stop,
-         match try Some (Hashtbl.find Toploop.directive_table dir) with Not_found -> None with
+         match toploop_get_directive dir with
            | Some (Toploop.Directive_none _) -> [(phrase_terminator, "")]
            | Some (Toploop.Directive_string _) -> [(" \"", "")]
            | Some (Toploop.Directive_bool _) -> [(true_name, phrase_terminator); (false_name, phrase_terminator)]
@@ -1053,7 +1068,7 @@ let complete ~phrase_terminator ~input =
            | Some (Toploop.Directive_ident _) -> List.map (fun w -> (w, "")) (String_set.elements (global_names ()))
            | None -> [])
     | (Symbol "#", _) :: ((Lident dir | Uident dir), _) :: tokens -> begin
-        match try Some (Hashtbl.find Toploop.directive_table dir) with Not_found -> None with
+        match toploop_get_directive dir with
           | Some (Toploop.Directive_none _) ->
               (0, [])
           | Some (Toploop.Directive_string _) ->

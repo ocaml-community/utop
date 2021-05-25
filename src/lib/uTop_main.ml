@@ -1337,9 +1337,15 @@ let typeof sid =
     let str = Buffer.contents buf in
     Lwt_main.run (Lazy.force LTerm.stdout >>= fun term -> render_out_phrase term str)
 
+let default_info = {
+  Toploop.section = "UTop";
+  doc = ""; (* TODO: have some kind of documentation *)
+}
+
 let () =
-  Hashtbl.add Toploop.directive_table "typeof"
+  Toploop.add_directive "typeof"
     (Toploop.Directive_string typeof)
+    default_info
 
 (* +-----------------------------------------------------------------+
    | Entry point                                                     |
@@ -1355,7 +1361,12 @@ let prepare () =
       List.for_all
         (function
           | `Packages l -> UTop.require l; true
-          | `Object fn -> Topdirs.load_file Format.err_formatter fn)
+          | `Object fn ->
+#if OCAML_VERSION >= (4, 13, 0)
+            Toploop.load_file Format.err_formatter fn)
+#else
+            Topdirs.load_file Format.err_formatter fn)
+#endif
         (List.rev !preload)
     in
     if ok then !Toploop.toplevel_startup_hook ();
