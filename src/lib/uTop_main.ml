@@ -1337,9 +1337,15 @@ let typeof sid =
     let str = Buffer.contents buf in
     Lwt_main.run (Lazy.force LTerm.stdout >>= fun term -> render_out_phrase term str)
 
+let default_info = {
+  Toploop.section = "UTop";
+  doc = ""; (* TODO: have some kind of documentation *)
+}
+
 let () =
-  Hashtbl.add Toploop.directive_table "typeof"
+  Toploop.add_directive "typeof"
     (Toploop.Directive_string typeof)
+    default_info
 
 (* +-----------------------------------------------------------------+
    | Entry point                                                     |
@@ -1355,7 +1361,12 @@ let prepare () =
       List.for_all
         (function
           | `Packages l -> UTop.require l; true
-          | `Object fn -> Topdirs.load_file Format.err_formatter fn)
+          | `Object fn ->
+#if OCAML_VERSION >= (4, 13, 0)
+            Toploop.load_file Format.err_formatter fn)
+#else
+            Topdirs.load_file Format.err_formatter fn)
+#endif
         (List.rev !preload)
     in
     if ok then !Toploop.toplevel_startup_hook ();
@@ -1442,7 +1453,7 @@ let args = Arg.align [
 #endif
   "-version", Arg.Unit print_version, " Print version and exit";
   "-vnum", Arg.Unit print_version_num, " Print version number and exit";
-  "-w", Arg.String (Warnings.parse_options false),
+  "-w", Arg.String (fun opt -> ignore (Warnings.parse_options false opt)),
   Printf.sprintf
     "<list>  Enable or disable warnings according to <list>:\n\
     \        +<spec>   enable warnings in <spec>\n\
@@ -1453,7 +1464,7 @@ let args = Arg.align [
     \        <num1>..<num2>    a range of consecutive warning numbers\n\
     \        <letter>          a predefined set\n\
     \     default setting is %S" Warnings.defaults_w;
-  "-warn-error", Arg.String (Warnings.parse_options true),
+  "-warn-error", Arg.String (fun opt -> ignore (Warnings.parse_options true opt)),
   Printf.sprintf
     "<list>  Enable or disable error status for warnings according to <list>\n\
     \     See option -w for the syntax of <list>.\n\
