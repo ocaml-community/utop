@@ -419,7 +419,11 @@ let constructor_name { cd_id = id } = Ident.name id
 
 let add_fields_of_type decl acc =
   match decl.type_kind with
+#if OCAML_VERSION >= (4, 13, 0)
+    | Type_variant (constructors, _) ->
+#else
     | Type_variant constructors ->
+#endif
         acc
     | Type_record (fields, _) ->
         List.fold_left (fun acc field -> add (field_name field) acc) acc fields
@@ -430,7 +434,11 @@ let add_fields_of_type decl acc =
 
 let add_names_of_type decl acc =
   match decl.type_kind with
+#if OCAML_VERSION >= (4, 13, 0)
+    | Type_variant (constructors, _) ->
+#else
     | Type_variant constructors ->
+#endif
         List.fold_left (fun acc cstr -> add (constructor_name cstr) acc) acc constructors
     | Type_record (fields, _) ->
         List.fold_left (fun acc field -> add (field_name field) acc) acc fields
