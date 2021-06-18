@@ -1,3 +1,19 @@
+2.8.0 (2021-06-18)
+------------------
+
+* If the current working directory is the home directory, then
+  do not load `.ocamlinit` (@hyphenrf @copy #338)
+* With OCaml 4.12.0 and later, the toplevel uses the toplevel
+  state to exit with the right status code (#348 @octachron)
+* Fix color highlight for errors (#350 @chripell)
+* Add support for OCaml 4.13 (#353 @kit-ty-kate)
+
+Emacs mode fixes:
+* Company text-completion fixes (@leungbk #340)
+* `utop-query-arguments` always returns `(utop-arguments)` whether
+  it sets the utop-command or not (@dansanduleac #347)
+* Fix completion returning bogus candidates (#352 @chripell @rgrinberg)
+
 2.7.0 (2021-01-06)
 ------------------
 

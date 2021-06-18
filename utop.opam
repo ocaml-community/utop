@@ -1,7 +1,7 @@
 opam-version: "2.0"
 maintainer: "jeremie@dimino.org"
 authors: "Jérémie Dimino"
-license: "BSD3"
+license: "BSD-3-Clause"
 homepage: "https://github.com/ocaml-community/utop"
 bug-reports: "https://github.com/ocaml-community/utop/issues"
 doc: "https://ocaml-community.github.io/utop/"
@@ -19,7 +19,7 @@ depends: [
   "dune" {>= "1.0"}
 ]
 build: [
-  ["dune" "subst"] {pinned}
+  ["dune" "subst"] {dev}
   ["dune" "build" "-p" name "-j" jobs]
   ["dune" "runtest" "-p" name "-j" jobs] {with-test}
 ]
