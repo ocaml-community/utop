@@ -19,6 +19,20 @@ open UTop_token
 open UTop_styles
 open UTop_private
 
+let get_desc x =
+#if OCAML_VERSION >= (4, 14, 0)
+  Types.get_desc x
+#else
+  x.Types.desc
+#endif
+
+let toploop_use_silently fmt name =
+#if OCAML_VERSION >= (4, 14, 0)
+  Toploop.use_silently fmt (File name)
+#else
+  Toploop.use_silently fmt name
+#endif
+
 let return, (>>=) = Lwt.return, Lwt.(>>=)
 
 module String_set = Set.Make(String)
@@ -547,8 +561,8 @@ let rule_path rule =
                 ; Types.type_private  = Asttypes.Public
                 ; Types.type_manifest = Some ty
                 } -> begin
-            match Ctype.expand_head env ty with
-            | { Types.desc = Types.Tconstr (path, _, _) } -> path
+            match get_desc (Ctype.expand_head env ty) with
+            | Types.Tconstr (path, _, _) -> path
             | _ -> path
           end
         | path, _ -> path
@@ -598,7 +612,7 @@ let is_eval = function
 
 (* Returns the rewrite rule associated to a type, if any. *)
 let rule_of_type typ =
-  match (Ctype.expand_head !Toploop.toplevel_env typ).Types.desc with
+  match get_desc (Ctype.expand_head !Toploop.toplevel_env typ) with
   | Types.Tconstr (path, _, _) -> begin
       try
         Some (List.find (fun rule -> rule_matches rule path) rewrite_rules)
@@ -624,7 +638,9 @@ let rewrite_str_item pstr_item tstr_item =
       pstr_item
 
 let type_structure env pstr =
-#if OCAML_VERSION >= (4, 12, 0)
+#if OCAML_VERSION >= (4, 14, 0)
+  let tstr, _, _, _, _ = Typemod.type_structure env pstr in
+#elif OCAML_VERSION >= (4, 12, 0)
   let tstr, _, _, _ = Typemod.type_structure env pstr in
 #elif OCAML_VERSION >= (4, 08, 0)
   let tstr, _, _, _ = Typemod.type_structure env pstr Location.none in
@@ -1281,7 +1297,7 @@ let typeof sid =
     with Not_found ->
     try
       let lbl_desc = lookup_label id env in
-      let (path, ty_decl) = from_type_desc lbl_desc.Types.lbl_res.Types.desc in
+      let (path, ty_decl) = from_type_desc (get_desc lbl_desc.Types.lbl_res) in
 #if OCAML_VERSION >= (4, 08, 0)
       let id = Ident.create_local (Path.name path) in
 #else
@@ -1315,7 +1331,7 @@ let typeof sid =
       #endif
       match cstr_desc.Types.cstr_tag with
       | _ ->
-        let (path, ty_decl) = from_type_desc cstr_desc.Types.cstr_res.Types.desc in
+        let (path, ty_decl) = from_type_desc (get_desc cstr_desc.Types.cstr_res) in
 #if OCAML_VERSION >= (4, 08, 0)
         let id = Ident.create_local (Path.name path) in
 #else
@@ -1403,7 +1419,7 @@ let run_script name =
   override_argv ();
   Toploop.initialize_toplevel_env ();
   Location.input_name := UTop.input_name;
-  if Toploop.use_silently Format.err_formatter name then
+  if toploop_use_silently Format.err_formatter name then
     exit 0
   else
     exit 2
@@ -1498,7 +1514,7 @@ let load_init_files dir =
   Array.iter
     (fun fn ->
        if Filename.check_suffix fn ".ml" then
-         ignore (Toploop.use_silently Format.err_formatter (Filename.concat dir fn) : bool))
+         ignore (toploop_use_silently Format.err_formatter (Filename.concat dir fn) : bool))
     files
 ;;
 
@@ -1546,7 +1562,7 @@ let common_init ~initial_env =
   (match init_fn with
    | None -> ()
    | Some fn ->
-     ignore (Toploop.use_silently Format.err_formatter fn : bool));
+     ignore (toploop_use_silently Format.err_formatter fn : bool));
   (* Load history after the initialization file so the user can change
      the history file name. *)
   Lwt_main.run (init_history ());
