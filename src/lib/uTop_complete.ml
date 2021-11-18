@@ -22,6 +22,13 @@ let set_of_list = List.fold_left (fun set x -> String_set.add x set) String_set.
    | Utils                                                           |
    +-----------------------------------------------------------------+ *)
 
+let get_desc x =
+#if OCAML_VERSION >= (4, 14, 0)
+  Types.get_desc x
+#else
+  x.Types.desc
+#endif
+
 let toploop_get_directive name =
 #if OCAML_VERSION >= (4, 13, 0)
   Toploop.get_directive name
@@ -726,7 +733,7 @@ let global_fields () = get_cached global_fields list_global_fields
    +-----------------------------------------------------------------+ *)
 
 let rec find_method meth type_expr =
-  match type_expr.desc with
+  match get_desc type_expr with
     | Tlink type_expr ->
         find_method meth type_expr
     | Tobject (type_expr, _) ->
@@ -750,7 +757,7 @@ let rec find_method meth type_expr =
         None
 
 let rec methods_of_type acc type_expr =
-  match type_expr.desc with
+  match get_desc type_expr with
     | Tlink type_expr ->
         methods_of_type acc type_expr
     | Tobject (type_expr, _) ->
@@ -804,7 +811,7 @@ let methods_of_object longident meths =
    +-----------------------------------------------------------------+ *)
 
 let rec labels_of_type acc type_expr =
-  match type_expr.desc with
+  match get_desc type_expr with
     | Tlink te ->
         labels_of_type acc te
     | Tpoly (te, _) ->
