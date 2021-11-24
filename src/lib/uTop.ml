@@ -15,6 +15,8 @@ open LTerm_text
 open LTerm_geom
 open LTerm_style
 
+module M = Directories.Base_dirs ()
+
 let (>>=) = Lwt.(>>=)
 
 let toploop_get_directive name =
@@ -33,7 +35,10 @@ let version = "%%VERSION%%"
    +-----------------------------------------------------------------+ *)
 
 let history = LTerm_history.create []
-let history_file_name = ref (Some (Filename.concat LTerm_resources.home ".utop-history"))
+let unopt = function
+        | None -> "None"
+        | Some(v) -> v
+let history_file_name = ref(Some(unopt(M.cache_dir) ^ "/.utop_history"))
 let history_file_max_size = ref None
 let history_file_max_entries = ref None
 let stashable_session_history = UTop_history.create ()
