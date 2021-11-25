@@ -15,7 +15,6 @@ open LTerm_text
 open LTerm_geom
 open LTerm_style
 
-module H = Directories.User_dirs ()
 module M = Directories.Project_dirs (struct
     let qualifier = "org"
     let application = "utop"
@@ -41,7 +40,7 @@ let version = "%%VERSION%%"
 
 let history = LTerm_history.create []
 
-let rec unopt = function
+let unopt = function
         | Some(v) -> v
         | None -> "~/"
 
