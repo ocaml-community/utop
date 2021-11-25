@@ -15,7 +15,12 @@ open LTerm_text
 open LTerm_geom
 open LTerm_style
 
-module M = Directories.Base_dirs ()
+module H = Directories.User_dirs ()
+module M = Directories.Project_dirs (struct
+    let qualifier = "org"
+    let application = "utop"
+    let organization = "ocaml-community"
+end)
 
 let (>>=) = Lwt.(>>=)
 
@@ -35,8 +40,8 @@ let version = "%%VERSION%%"
    +-----------------------------------------------------------------+ *)
 
 let history = LTerm_history.create []
-let unopt = function
-        | None -> "None"
+let rec unopt = function
+        | None -> unopt(H.home_dir)
         | Some(v) -> v
 let history_file_name = ref(Some(Filename.concat (unopt(M.cache_dir)) ".utop_history"))
 let history_file_max_size = ref None
