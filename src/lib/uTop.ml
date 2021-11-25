@@ -40,10 +40,12 @@ let version = "%%VERSION%%"
    +-----------------------------------------------------------------+ *)
 
 let history = LTerm_history.create []
+
 let rec unopt = function
-        | None -> unopt(H.home_dir)
         | Some(v) -> v
-let history_file_name = ref(Some(Filename.concat (unopt(M.cache_dir)) ".utop_history"))
+        | None -> "~/"
+
+let history_file_name = ref(Some(Filename.concat (unopt M.cache_dir) ".utop_history"))
 let history_file_max_size = ref None
 let history_file_max_entries = ref None
 let stashable_session_history = UTop_history.create ()
