@@ -40,14 +40,14 @@ let version = "%%VERSION%%"
 
 let history = LTerm_history.create []
 
-let unopt = function
-    | None -> ""
-    | Some(v) -> v
-
-let () =
-    try ignore(Sys.is_directory (unopt M.cache_dir)) with Sys_error(_) -> Sys.mkdir (unopt M.cache_dir) 755
-
 let history_file_name = ref (Option.map (fun cache_dir -> Filename.concat cache_dir "history") M.cache_dir)
+
+let () = Option.iter (fun cache_file ->
+    let dir = Filename.dirname cache_file in
+    if not (Sys.file_exists dir) then begin
+        ignore(Bos.OS.Dir.create ~path:true ~mode:0o755 (Fpath.v dir))
+    end) !history_file_name
+
 let history_file_max_size = ref None
 let history_file_max_entries = ref None
 let stashable_session_history = UTop_history.create ()
