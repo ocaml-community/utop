@@ -91,8 +91,17 @@ file:
         (add-hook 'tuareg-mode-hook 'utop-minor-mode)
 
 .SH OPTIONS
-Same as
+See
+.B utop --help
+for the the list of available options. There is considerable overlap
+with options available for
 .BR ocaml (1).
+
+A commonly used option is
+\fB--require\fI package\fR
+to load \fIpackage\fR into the execution environment. It is equivalent
+to using \fb#require\fR from inside
+.BR utop (1).
 
 .SH FILES
 .I ~/.config/utop/init.ml
