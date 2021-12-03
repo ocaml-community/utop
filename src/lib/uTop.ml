@@ -38,6 +38,19 @@ let version = "%%VERSION%%"
    | History                                                         |
    +-----------------------------------------------------------------+ *)
 
+(** create a directory but doesn't raise an exception if the directory already exist *)
+let mkdir_safe dir perm =
+    try Unix.mkdir dir perm with Unix.Unix_error (Unix.EEXIST, _, _) -> ()
+
+(** create a directory, and create parent if doesn't exist *)
+let mkdir dir perm =
+    let rec p_mkdir dir =
+        let p_name = Filename.dirname dir in
+        if p_name <> "/" && p_name <> "."
+    then p_mkdir p_name;
+    mkdir_safe dir perm in
+    p_mkdir dir
+
 let history = LTerm_history.create []
 
 let history_file_name = ref (Option.map (fun cache_dir -> Filename.concat cache_dir "history") M.cache_dir)
@@ -45,7 +58,7 @@ let history_file_name = ref (Option.map (fun cache_dir -> Filename.concat cache_
 let () = Option.iter (fun cache_file ->
     let dir = Filename.dirname cache_file in
     if not (Sys.file_exists dir) then begin
-        ignore(Bos.OS.Dir.create ~path:true ~mode:0o755 (Fpath.v dir))
+        mkdir dir 0o755
     end) !history_file_name
 
 let history_file_max_size = ref None
