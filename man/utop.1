@@ -91,8 +91,121 @@ file:
         (add-hook 'tuareg-mode-hook 'utop-minor-mode)
 
 .SH OPTIONS
-Same as
+See
+.B utop --help
+for the the list of available options. There is considerable overlap
+with options available for
 .BR ocaml (1).
+
+A commonly used option is
+\fB-require\fI package\fR
+to load \fIpackage\fR into the execution environment. It is equivalent
+to using \fb#require\fR from inside
+.BR utop (1).
+
+.PP
+.TP
+.BI -absname
+Show absolute filenames in error message.
+.TP
+.BI -I " dir"
+Add \fIdir\fR to the list of include directories.
+.TP
+.BI -init " file"
+Load \fIfile\fR instead of default init file.
+.TP
+.BI -labels
+Use commuting label mode.
+.TP
+.BI -no-app-funct
+Deactivate applicative functors.
+.TP
+.BI -noassert
+Do not compile assertion checks.
+.TP
+.BI -nolabels
+Ignore non-optional labels in types.
+.TP
+.BI -nostdlib
+Do not add default directory to the list of include directories.
+.TP
+.BI -ppx " command"
+Pipe abstract syntax trees through preprocessor \fIcommand\fR.
+.TP
+.BI -principal
+Check principality of type inference.
+.TP
+.BI -safe-string
+Make strings immutable.
+.TP
+.BI -short-paths
+Shorten paths in types (the default).
+.TP
+.BI -no-short-paths
+Do not shorten paths in types.
+.TP
+.BI -rectypes
+Allow arbitrary recursive types.
+.TP
+.BI -stdin
+Read script from standard input.
+.TP
+.BI -strict-sequence
+Left-hand part of a sequence must have type unit.
+.TP
+.BI -unsafe
+Do not compile bounds checking on array and string access.
+.TP
+.BI -version
+Print version and exit.
+.TP
+.BI -vnum
+Print version number and exit.
+.TP
+.BI -w " list"
+Enable or disable warnings according to \fIlist\fR.
+.TP
+.BI -warn-error " list"
+Enable or disable error status for warnings according to \fIlist\fR.
+See option \fB-w\fR for the syntax of \fIlist\fR.
+Default setting is \fB-a+31\fR.
+.TP
+.BI -warn-help
+Show description of warning numbers.
+.TP
+.BI -emacs
+Run in emacs mode.
+.TP
+.BI -hide-reserved
+Hide identifiers starting with a '_' (the default).
+.TP
+.BI -show-reserved
+Show identifiers starting with a '_'.
+.TP
+.BI -no-implicit-bindings
+Don't add implicit bindings for expressions (the default).
+.TP
+.BI -implicit-bindings
+Add implicit bindings: \fIexpr\fR;; -> let _0 = \fIexpr\fR;;
+.TP
+.BI -no-autoload
+Disable autoloading of files in 
+.I $OCAML_TOPLEVEL_PATH/autoload.
+.TP
+.BI -require " package"
+Load this package.
+.TP
+.BI -dparsetree
+Dump OCaml AST after rewriting.
+.TP
+.BI -dsource
+Dump OCaml source after rewriting.
+.TP
+.BI -help
+Display this list of options.
+.TP
+.BI --help
+Display this list of options.
 
 .SH FILES
 .I ~/.config/utop/init.ml
