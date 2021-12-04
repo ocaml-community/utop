@@ -15,7 +15,7 @@ open LTerm_text
 open LTerm_geom
 open LTerm_style
 
-module M = Directories.Project_dirs (struct
+module Project_dirs = Directories.Project_dirs (struct
     let qualifier = "org"
     let application = "utop"
     let organization = "ocaml-community"
@@ -53,11 +53,11 @@ let mkdir dir perm =
 
 let history = LTerm_history.create []
 
-let history_file_name = ref (Option.map (fun cache_dir -> Filename.concat cache_dir "history") M.cache_dir)
+let history_file_name = ref (Option.map (fun cache_dir -> Filename.concat cache_dir "history") Project_dirs.cache_dir)
 
 let () = Option.iter (fun cache_file ->
     let dir = Filename.dirname cache_file in
-    if not (Sys.file_exists dir) then begin
+    begin
         mkdir dir 0o755
     end) !history_file_name
 
