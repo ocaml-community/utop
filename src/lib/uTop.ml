@@ -46,10 +46,9 @@ let mkdir_safe dir perm =
 let mkdir dir perm =
     let rec p_mkdir dir =
         let p_name = Filename.dirname dir in
-        if p_name <> "/" && p_name <> "."
-    then p_mkdir p_name;
-    mkdir_safe dir perm in
-    p_mkdir dir
+            if p_name <> "/" && p_name <> "." then p_mkdir p_name;
+            mkdir_safe dir perm in
+                p_mkdir dir
 
 let history = LTerm_history.create []
 
@@ -57,9 +56,7 @@ let history_file_name = ref (Option.map (fun cache_dir -> Filename.concat cache_
 
 let () = Option.iter (fun cache_file ->
     let dir = Filename.dirname cache_file in
-    begin
-        mkdir dir 0o755
-    end) !history_file_name
+      mkdir dir 0o755) !history_file_name
 
 let history_file_max_size = ref None
 let history_file_max_entries = ref None
