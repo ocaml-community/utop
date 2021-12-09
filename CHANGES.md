@@ -1,3 +1,9 @@
+2.9.0 (2021-12-09)
+------------------
+
+* Add support for OCaml 4.14 (#360 @kit-ty-kate)
+* Document options in utop(1) manpage (#364 #365 @lindig)
+
 2.8.0 (2021-06-18)
 ------------------
 
