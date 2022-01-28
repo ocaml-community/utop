@@ -56,8 +56,8 @@ let history = LTerm_history.create []
 let history_file_name =
   ref
     (Option.map
-       (fun cache_dir -> Filename.concat cache_dir "history")
-       Project_dirs.cache_dir)
+       (fun state_dir -> Filename.concat state_dir "history")
+       Project_dirs.state_dir)
 
 let () =
   Option.iter
