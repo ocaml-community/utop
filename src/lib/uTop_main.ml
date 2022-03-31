@@ -1456,7 +1456,9 @@ let args = Arg.align [
   "-nostdlib", Arg.Set Clflags.no_std_include, " Do not add default directory to the list of include directories";
   "-ppx", Arg.String (fun ppx -> Clflags.all_ppx := ppx :: !Clflags.all_ppx), "<command> Pipe abstract syntax trees through preprocessor <command>";
   "-principal", Arg.Set Clflags.principal, " Check principality of type inference";
+#if OCAML_VERSION < (5, 0, 0)
   "-safe-string", Arg.Clear Clflags.unsafe_string, " Make strings immutable";
+#endif
   "-short-paths", Arg.Clear Clflags.real_paths, " Shorten paths in types (the default)";
   "-no-short-paths", Arg.Set Clflags.real_paths, " Do not shorten paths in types";
   "-rectypes", Arg.Set Clflags.recursive_types, " Allow arbitrary recursive types";
