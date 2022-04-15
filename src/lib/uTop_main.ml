@@ -1596,6 +1596,9 @@ let protocol_version = 1
 
 let main_aux ~initial_env =
   Arg.parse args file_argument usage;
+#if OCAML_VERSION >= (5, 0, 0)
+  Topcommon.load_topdirs_signature ();
+#endif
   if not (prepare ()) then exit 2;
   if !emacs_mode then begin
     Printf.printf "protocol-version:%d\n%!" protocol_version;
