@@ -1453,7 +1453,7 @@ let args = Arg.align [
   "-no-app-funct", Arg.Clear Clflags.applicative_functors, " Deactivate applicative functors";
   "-noassert", Arg.Set Clflags.noassert, " Do not compile assertion checks";
   "-nolabels", Arg.Set Clflags.classic, " Ignore non-optional labels in types";
-  "-nostdlib", Arg.Set Clflags.no_std_include, " Do not add default directory to the list of include directories";
+  "-nostdlib", Arg.Set Clflags.no_std_include, " Do not add default directory to the list of include directories and prevent utop from loading otherlibs (e.g., str and unix)";
   "-ppx", Arg.String (fun ppx -> Clflags.all_ppx := ppx :: !Clflags.all_ppx), "<command> Pipe abstract syntax trees through preprocessor <command>";
   "-principal", Arg.Set Clflags.principal, " Check principality of type inference";
 #if OCAML_VERSION < (5, 0, 0)
