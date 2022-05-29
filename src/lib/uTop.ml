@@ -850,10 +850,23 @@ let () =
   Topdirs.dir_directory (Findlib.package_directory "utop")
 
  (* +-----------------------------------------------------------------+
-   | Compiler-libs re-exports                                        |
-   +-----------------------------------------------------------------+ *)
+    | Compiler-libs re-exports and helpers                            |
+    +-----------------------------------------------------------------+ *)
 
-#if OCAML_VERSION >= (4, 08, 0)
+let otherlibs = ["dynlink"; "runtime_events"; "str"; "threads"; "unix"]
+
+(* Explicitly add otherlibs as many components live in different directories since OCaml 5.0. *)
+let load_otherlibs () =
+  List.iter (fun lib -> Topdirs.dir_directory (Findlib.package_directory lib)) otherlibs
+
+#if OCAML_VERSION >= (5, 0, 0)
+let get_load_path ()= Load_path.get_paths ()
+let set_load_path ?otherlibs path=
+  let otherlibs = match otherlibs with None -> not !Clflags.no_std_include | Some b -> b in
+  (* [load_otherlibs] should have eliminated the need of auto-include. *)
+  Load_path.init path ~auto_include:(fun _ _ -> raise Not_found);
+  if otherlibs then load_otherlibs ()
+#elif OCAML_VERSION >= (4, 08, 0)
 let get_load_path ()= Load_path.get_paths ()
 let set_load_path path= Load_path.init path
 #else

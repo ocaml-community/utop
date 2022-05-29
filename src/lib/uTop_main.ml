@@ -1596,6 +1596,7 @@ let protocol_version = 1
 
 let main_aux ~initial_env =
   Arg.parse args file_argument usage;
+  if not !Clflags.no_std_include then UTop.load_otherlibs ();
 #if OCAML_VERSION >= (5, 0, 0)
   Topcommon.load_topdirs_signature ();
 #endif

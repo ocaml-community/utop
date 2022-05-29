@@ -339,14 +339,23 @@ val discard_formatters : Format.formatter list -> (unit -> 'a) -> 'a
 
 val split_words : string -> string list
 
- (** {6 compiler-libs reexports} *)
+ (** {6 compiler-libs reexports and helpers} *)
+
+val otherlibs : string list
+  (** The list of packages in otherlibs that will be loaded by [load_otherlibs]. *)
+
+val load_otherlibs : unit -> unit
+  (** [load_otherlibs] explicitly loads packages from OCaml otherlibs (e.g., str and unix). *)
 
 val get_load_path : unit -> string list
-val set_load_path : string list -> unit
+val set_load_path : ?otherlibs:bool -> string list -> unit
   (** [get_load_path] and [set_load_path] manage the include directories.
 
       The internal variable contains the list of directories added by findlib-required packages
-      and [#directory] directives. *)
+      and [#directory] directives.
+
+      @params otherlibs Whether to additionally load OCaml otherlibs (e.g., str and unix).
+      The default is [not !Clflags.no_std_include]. *)
 
 (**/**)
 
