@@ -342,7 +342,7 @@ val split_words : string -> string list
  (** {6 compiler-libs reexports and helpers} *)
 
 val otherlibs : string list
-  (** The list of packages in otherlibs that will be loaded by [load_otherlibs]. *)
+  (** The list of packages in otherlibs that will be loaded by {!val:load_otherlibs}. *)
 
 val load_otherlibs : unit -> unit
   (** [load_otherlibs] explicitly loads packages from OCaml otherlibs (e.g., str and unix). *)
