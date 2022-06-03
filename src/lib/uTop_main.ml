@@ -309,6 +309,126 @@ class read_phrase ~term = object(self)
 end
 
 (* +-----------------------------------------------------------------+
+   | Handling of [@@toplevel_printer] attributes                     |
+   +-----------------------------------------------------------------+ *)
+
+module Autoprinter = struct
+  open Types
+
+#if OCAML_VERSION >= (4, 09, 0)
+  module Persistent_signature = Persistent_env.Persistent_signature
+#else
+  module Persistent_signature = Env.Persistent_signature
+#endif
+
+  let cons_path path id =
+    let comp = Ident.name id in
+    match path with
+    | None -> Longident.Lident comp
+    | Some path -> Longident.Ldot (path, comp)
+
+  let is_auto_printer_attribute (attr : Parsetree.attribute) =
+    let name = attr.attr_name in
+    match name.txt with
+    | "toplevel_printer" | "ocaml.toplevel_printer" -> true
+    | _ -> false
+
+  let rec walk_sig pp ?path signature =
+    List.iter (walk_sig_item pp path) signature
+
+  and walk_sig_item pp path = function
+    | Sig_module (id, _, {md_type = mty; _}, _, _) ->
+        walk_mty pp (cons_path path id) mty
+    | Sig_value (id, vd, _) ->
+      if List.exists is_auto_printer_attribute vd.val_attributes then
+        Topdirs.dir_install_printer pp (cons_path path id)
+    | _ -> ()
+
+  and walk_mty pp path = function
+    | Mty_signature s -> walk_sig pp ~path s
+    | _ -> ()
+
+  let find_module id env =
+    let name = Longident.Lident (Ident.name id) in
+#if OCAML_VERSION >= (4, 10, 0)
+    let path, md = Env.find_module_by_name name env in
+#else
+    let path = Env.lookup_module name env ~load:true in
+    let path, md = (path, Env.find_module path env) in
+#endif
+    (path, md)
+
+  let scan_cmis =
+    let new_cmis = ref [] in
+    let default_load = !Persistent_signature.load in
+    let load ~unit_name =
+      let res = default_load ~unit_name in
+      (match res with None -> () | Some x -> new_cmis := x.cmi :: !new_cmis);
+      res
+    in
+    Persistent_signature.load := load;
+
+    fun pp ->
+      List.iter (fun (cmi : Cmi_format.cmi_infos) ->
+        walk_sig pp ~path:(Longident.Lident cmi.cmi_name) cmi.cmi_sign
+      ) !new_cmis;
+      new_cmis := []
+
+  let scan_env =
+    let last_globals = ref (Env.get_required_globals ()) in
+    let last_summary = ref Env.Env_empty in
+    fun pp ->
+      let env = !Toploop.toplevel_env in
+      let scan_module env id =
+        let path, md = find_module id env in
+        if path = Path.Pident id then
+          walk_mty pp (Longident.Lident (Ident.name id)) md.md_type
+      in
+      let rec scan_globals last = function
+        | [] -> ()
+        | x when x == last -> ()
+        | x :: xs ->
+          scan_globals last xs;
+          scan_module env x
+      in
+      let rec scan_summary last = function
+        | Env.Env_empty -> ()
+        | x when x == last -> ()
+        | Env.Env_module (s, id, _, _) ->
+          scan_summary last s;
+          scan_module env id
+#if OCAML_VERSION >= (4, 10, 0)
+        | Env.Env_copy_types s
+#else
+        | Env.Env_copy_types (s, _)
+#endif
+#if OCAML_VERSION >= (4, 10, 0)
+        | Env.Env_value_unbound (s, _, _)
+        | Env.Env_module_unbound (s, _, _)
+#endif
+        | Env.Env_persistent (s, _)
+        | Env.Env_value (s, _, _)
+        | Env.Env_type (s, _, _)
+        | Env.Env_extension (s, _, _)
+        | Env.Env_modtype (s, _, _)
+        | Env.Env_class (s, _, _)
+        | Env.Env_cltype (s, _, _)
+        | Env.Env_open (s, _)
+        | Env.Env_functor_arg (s, _)
+        | Env.Env_constraints (s, _) ->
+          scan_summary last s
+  in
+  let globals = Env.get_required_globals () in
+  let last_globals' = !last_globals in
+  last_globals := globals;
+  scan_globals last_globals' globals;
+  let summary = Env.summary env in
+  let last_summary' = !last_summary in
+  last_summary := summary;
+  scan_summary last_summary' summary
+end
+
+(* +-----------------------------------------------------------------+
    | Out phrase printing                                             |
    +-----------------------------------------------------------------+ *)
 
@@ -433,6 +553,7 @@ let print_out_signature pp items =
     orig_print_out_signature pp items
 
 let print_out_phrase pp phrase =
+  Autoprinter.scan_env pp;
   if UTop.get_hide_reserved () then
     let phrase =
       match phrase with
@@ -661,62 +782,11 @@ let bind_expressions name phrase =
     | Parsetree.Ptop_dir _ ->
       phrase
 
-(* +-----------------------------------------------------------------+
-   | Handling of [@@toplevel_printer] attributes                     |
-   +-----------------------------------------------------------------+ *)
-
-#if OCAML_VERSION >= (4, 09, 0)
-  module Persistent_signature = Persistent_env.Persistent_signature
-#else
-  module Persistent_signature = Env.Persistent_signature
-#endif
-
-let execute_phrase =
-  let new_cmis = ref []in
-  let default_load = !Persistent_signature.load in
-  let load ~unit_name =
-    let res = default_load ~unit_name in
-    (match res with None -> () | Some x -> new_cmis := x.cmi :: !new_cmis);
-    res
-  in
-  Persistent_signature.load := load;
-
-  let rec collect_printers path signature acc =
-    List.fold_left (fun acc item ->
-      match (item : Types.signature_item) with
-      | Sig_module (id, _, {md_type = Mty_signature s; _}, _, _) ->
-        collect_printers (Longident.Ldot (path, Ident.name id)) s acc
-      | Sig_value (id, vd, _) ->
-        if List.exists (fun attr->
-          let open Parsetree in
-          match attr.attr_name with
-          | {Asttypes.txt = "toplevel_printer" | "ocaml.toplevel_printer"; _} ->
-            true
-          | _ -> false)
-          vd.val_attributes
-        then
-          Longident.Ldot (path, Ident.name id) :: acc
-        else acc
-      | _ -> acc)
-      acc signature
-  in
-
-  let acknowledge_new_cmis () =
-    let l = !new_cmis in
-    new_cmis := [];
-    let printers =
-    List.fold_left (fun acc (cmi : Cmi_format.cmi_infos) ->
-        collect_printers (Longident.Lident cmi.cmi_name) cmi.cmi_sign acc )
-      [] l
-    in
-    List.iter (Topdirs.dir_install_printer Format.err_formatter) printers
-  in
-
-  fun b pp phrase ->
-    acknowledge_new_cmis ();
-    let res = Toploop.execute_phrase b pp phrase in
-    acknowledge_new_cmis ();
-    res
+let execute_phrase b ppf phrase =
+  Autoprinter.scan_cmis ppf;
+  let res = Toploop.execute_phrase b ppf phrase in
+  Autoprinter.scan_cmis ppf;
+  res
 
 (* +-----------------------------------------------------------------+
    | Main loop                                                       |
