@@ -854,11 +854,16 @@ let () =
    +-----------------------------------------------------------------+ *)
 
 #if OCAML_VERSION >= (4, 08, 0)
-let get_load_path ()= Load_path.get_paths ()
-let set_load_path path= Load_path.init path
+let get_load_path () = Load_path.get_paths ()
+#if OCAML_VERSION >= (5, 0, 0)
+let set_load_path path =
+  Load_path.init path ~auto_include:Load_path.no_auto_include
 #else
-let get_load_path ()= !Config.load_path
-let set_load_path path= Config.load_path := path
+let set_load_path path = Load_path.init path
+#endif
+#else
+let get_load_path () = !Config.load_path
+let set_load_path path = Config.load_path := path
 #endif
 
 (* +-----------------------------------------------------------------+
