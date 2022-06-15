@@ -1371,7 +1371,11 @@ let emacs_mode = ref false
 let preload = ref []
 
 let prepare () =
+#if OCAML_VERSION >= (5, 0, 0)
+  Toploop.set_paths ~auto_include:Load_path.no_auto_include ();
+#else
   Toploop.set_paths ();
+#endif
   try
     let ok =
       List.for_all
