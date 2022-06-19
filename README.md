@@ -100,7 +100,7 @@ UTop.set_show_box false
 ### Key bindings
 
 Key bindings in the terminal can be changed by writing a
-`~/.lambda-term-inputrc` file. For example:
+`~/.config/lambda-term-inputrc` file. For example:
 
     [read-line]
     C-left: complete-bar-prev
