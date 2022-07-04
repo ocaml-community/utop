@@ -414,11 +414,7 @@ let visible_modules () =
               (Sys.readdir (if dir = "" then Filename.current_dir_name else dir))
           with Sys_error _ ->
             acc)
-#if OCAML_VERSION >= (4, 08, 0)
         String_set.empty @@ Load_path.get_paths ()
-#else
-        String_set.empty !Config.load_path
-#endif
     )
 
 let field_name { ld_id = id } = Ident.name id
@@ -454,45 +450,22 @@ let add_names_of_type decl acc =
     | Type_open ->
         acc
 
-#if OCAML_VERSION >= (4, 08, 0)
 let path_of_mty_alias = function
   | Mty_alias path -> path
   | _ -> assert false
-#elif OCAML_VERSION >= (4, 04, 0)
-let path_of_mty_alias = function
-  | Mty_alias (_, path) -> path
-  | _ -> assert false
-#else
-let path_of_mty_alias = function
-  | Mty_alias path -> path
-  | _ -> assert false
-#endif
 
 let rec names_of_module_type = function
   | Mty_signature decls ->
       List.fold_left
         (fun acc decl -> match decl with
-#if OCAML_VERSION >= (4, 08, 0)
            | Sig_value (id, _, _)
            | Sig_typext (id, _, _, _)
            | Sig_module (id, _, _, _, _)
            | Sig_modtype (id, _, _)
            | Sig_class (id, _, _, _)
            | Sig_class_type (id, _, _, _) ->
-#else
-           | Sig_value (id, _)
-           | Sig_typext (id, _, _)
-           | Sig_module (id, _, _)
-           | Sig_modtype (id, _)
-           | Sig_class (id, _, _)
-           | Sig_class_type (id, _, _) ->
-#endif
                add (Ident.name id) acc
-#if OCAML_VERSION >= (4, 08, 0)
            | Sig_type (id, decl, _, _) ->
-#else
-           | Sig_type (id, decl, _) ->
-#endif
                add_names_of_type decl (add (Ident.name id) acc))
         String_set.empty decls
   | Mty_ident path -> begin
@@ -521,11 +494,7 @@ let rec fields_of_module_type = function
            | Sig_class _
            | Sig_class_type _ ->
                acc
-#if OCAML_VERSION >= (4, 08, 0)
            | Sig_type (_, decl, _, _) ->
-#else
-           | Sig_type (_, decl, _) ->
-#endif
                add_fields_of_type decl acc)
         String_set.empty decls
   | Mty_ident path -> begin
@@ -595,11 +564,7 @@ let list_global_names () =
         loop (add_names_of_type decl (add (Ident.name id) acc)) summary
     | Env.Env_extension(summary, id, _) ->
         loop (add (Ident.name id) acc) summary
-#if OCAML_VERSION >= (4, 08, 0)
     | Env.Env_module(summary, id, _, _) ->
-#else
-    | Env.Env_module(summary, id, _) ->
-#endif
         loop (add (Ident.name id) acc) summary
     | Env.Env_modtype(summary, id, _) ->
         loop (add (Ident.name id) acc) summary
@@ -609,28 +574,18 @@ let list_global_names () =
         loop (add (Ident.name id) acc) summary
     | Env.Env_functor_arg(summary, id) ->
         loop (add (Ident.name id) acc) summary
-#if OCAML_VERSION >= (4, 08, 0)
     | Env.Env_persistent (summary, id) ->
         loop (add (Ident.name id) acc) summary
-#endif
-#if OCAML_VERSION >= (4, 04, 0)
     | Env.Env_constraints (summary, _) ->
         loop acc summary
-#endif
 #if OCAML_VERSION >= (4, 10, 0)
     | Env.Env_copy_types summary ->
         loop acc summary
-#elif OCAML_VERSION >= (4, 06, 0)
+#else
     | Env.Env_copy_types (summary, _) ->
         loop acc summary
 #endif
-#if OCAML_VERSION >= (4, 08, 0)
     | Env.Env_open(summary, path) ->
-#elif OCAML_VERSION >= (4, 07, 0)
-    | Env.Env_open(summary, _, path) ->
-#else
-    | Env.Env_open(summary, path) ->
-#endif
         match try Some (Path_map.find path !local_names_by_path) with Not_found -> None with
           | Some names ->
               loop (String_set.union acc names) summary
@@ -670,11 +625,7 @@ let list_global_fields () =
         loop (add_fields_of_type decl (add (Ident.name id) acc)) summary
     | Env.Env_extension(summary, id, _) ->
         loop (add (Ident.name id) acc) summary
-#if OCAML_VERSION >= (4, 08, 0)
     | Env.Env_module(summary, id, _, _) ->
-#else
-    | Env.Env_module(summary, id, _) ->
-#endif
         loop (add (Ident.name id) acc) summary
     | Env.Env_functor_arg(summary, id) ->
         loop (add (Ident.name id) acc) summary
@@ -684,30 +635,18 @@ let list_global_fields () =
         loop (add (Ident.name id) acc) summary
     | Env.Env_cltype(summary, id, _) ->
         loop (add (Ident.name id) acc) summary
-#if OCAML_VERSION >= (4, 08, 0)
     | Env.Env_persistent (summary, id) ->
         loop (add (Ident.name id) acc) summary
-#endif
-#if OCAML_VERSION >= (4, 04, 0)
     | Env.Env_constraints (summary, _) ->
         loop acc summary
-#endif
 #if OCAML_VERSION >= (4, 10, 0)
     | Env.Env_copy_types summary ->
         loop acc summary
-#elif OCAML_VERSION >= (4, 06, 0)
+#else
     | Env.Env_copy_types (summary, _) ->
         loop acc summary
 #endif
-#if OCAML_VERSION >= (4, 07, 0)
-  #if OCAML_VERSION >= (4, 08, 0)
-      | Env.Env_open(summary, path) ->
-  #else
-      | Env.Env_open(summary, _, path) ->
-  #endif
-#else
     | Env.Env_open(summary, path) ->
-#endif
         match try Some (Path_map.find path !local_fields_by_path) with Not_found -> None with
           | Some fields ->
               loop (String_set.union acc fields) summary
@@ -817,14 +756,6 @@ let rec labels_of_type acc type_expr =
     | Tpoly (te, _) ->
         labels_of_type acc te
     | Tarrow(label, _, te, _) ->
-#if OCAML_VERSION < (4, 03, 0)
-        if label = "" then
-          labels_of_type acc te
-        else if label.[0] = '?' then
-          labels_of_type (String_map.add (String.sub label 1 (String.length label - 1)) Optional acc) te
-        else
-          labels_of_type (String_map.add label Required acc) te
-#else
       (match label with
       | Nolabel ->
         labels_of_type acc te
@@ -832,7 +763,6 @@ let rec labels_of_type acc type_expr =
         labels_of_type (String_map.add label Optional acc) te
       | Labelled label ->
         labels_of_type (String_map.add label Required acc) te)
-#endif
     | Tconstr(path, _, _) -> begin
         match lookup_env Env.find_type path !Toploop.toplevel_env with
           | None
@@ -985,11 +915,7 @@ let complete ~phrase_terminator ~input =
               (fun acc d -> add_files filter acc (Filename.concat d dir))
               String_map.empty
               (Filename.current_dir_name ::
-#if OCAML_VERSION >= (4, 08, 0)
                 (Load_path.get_paths ())
-#else
-                !Config.load_path
-#endif
               )
 
           else
@@ -1049,11 +975,7 @@ let complete ~phrase_terminator ~input =
               (fun acc d -> add_files filter acc (Filename.concat d dir))
               String_map.empty
               (Filename.current_dir_name ::
-#if OCAML_VERSION >= (4, 08, 0)
                 (Load_path.get_paths ())
-#else
-                !Config.load_path
-#endif
               )
           else
             add_files filter String_map.empty (Filename.dirname file)

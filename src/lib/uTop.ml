@@ -204,10 +204,7 @@ let discard_formatters pps f =
   (* Output functions. *)
   let out_functions = {
     Format.out_string = (fun _ _ _ -> ()); out_flush = ignore;
-    out_newline = ignore; out_spaces = ignore
-#if OCAML_VERSION >= (4, 06, 0)
-      ; out_indent = ignore
-#endif
+    out_newline = ignore; out_spaces = ignore ; out_indent = ignore
   } in
   (* Replace formatter functions. *)
   List.iter (fun pp -> Format.pp_set_formatter_out_functions pp out_functions) pps;
@@ -270,14 +267,10 @@ let parse_default parse str eos_is_error =
         (* If the string is empty, do not report an error. *)
         raise Need_more
     | Lexer.Error (error, loc) ->
-#if OCAML_VERSION >= (4, 08, 0)
         (match Location.error_of_exn (Lexer.Error (error, loc)) with
         | Some (`Ok error)->
           Error ([mkloc loc], get_message Location.print_report error)
         | _-> raise Need_more)
-#else
-        Error ([mkloc loc], get_message Lexer.report_error error)
-#endif
     | Syntaxerr.Error error -> begin
       match error with
       | Syntaxerr.Unclosed (opening_loc, opening, closing_loc, closing) ->
@@ -301,11 +294,9 @@ let parse_default parse str eos_is_error =
       | Syntaxerr.Ill_formed_ast (loc, s) ->
           Error ([mkloc loc],
                  Printf.sprintf "Error: broken invariant in parsetree: %s" s)
-#if OCAML_VERSION >= (4, 03, 0)
       | Syntaxerr.Invalid_package_type (loc, s) ->
           Error ([mkloc loc],
                  Printf.sprintf "Invalid package type: %s" s)
-#endif
 #if OCAML_VERSION >= (5, 0, 0)
       | Syntaxerr.Removed_string_set loc ->
           Error ([mkloc loc],
@@ -345,12 +336,6 @@ let with_loc loc str = {
   Location.loc = loc;
 }
 
-#if OCAML_VERSION >= (4, 03, 0)
-let nolabel = Asttypes.Nolabel
-#else
-let nolabel = ""
-#endif
-
 (* Check that the given phrase can be evaluated without typing/compile
    errors. *)
 let check_phrase phrase =
@@ -377,7 +362,7 @@ let check_phrase phrase =
           with_default_loc loc
             (fun () ->
                Str.eval
-                 (Exp.fun_ nolabel None (Pat.construct unit None)
+                 (Exp.fun_ Nolabel None (Pat.construct unit None)
                    (Exp.letmodule (with_loc loc
                         #if OCAML_VERSION >= (4, 10, 0)
                         (Some "_")
@@ -810,17 +795,9 @@ let () =
    | Backports                                                       |
    +-----------------------------------------------------------------+ *)
 
-
-let try_finally ~always work=
-#if OCAML_VERSION >= (4, 08, 0)
-    Misc.try_finally ~always work
-#else
-    Misc.try_finally work always
-#endif
-
 let use_output command =
   let fn = Filename.temp_file "ocaml" "_toploop.ml" in
-  try_finally ~always:(fun () ->
+  Misc.try_finally ~always:(fun () ->
     try Sys.remove fn with Sys_error _ -> ())
     (fun () ->
        match
@@ -860,17 +837,12 @@ let () =
    | Compiler-libs re-exports                                        |
    +-----------------------------------------------------------------+ *)
 
-#if OCAML_VERSION >= (4, 08, 0)
 let get_load_path () = Load_path.get_paths ()
 #if OCAML_VERSION >= (5, 0, 0)
 let set_load_path path =
   Load_path.init path ~auto_include:Load_path.no_auto_include
 #else
 let set_load_path path = Load_path.init path
-#endif
-#else
-let get_load_path () = !Config.load_path
-let set_load_path path = Config.load_path := path
 #endif
 
 (* +-----------------------------------------------------------------+

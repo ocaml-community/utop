@@ -130,17 +130,11 @@ let convert_loc_line input locs lines =
    | The read-line class                                             |
    +-----------------------------------------------------------------+ *)
 
-#if OCAML_VERSION >= (4, 04, 0)
-let ast_impl_kind = Pparse.Structure
-#else
-let ast_impl_kind = Config.ast_impl_magic_number
-#endif
-
 let preprocess input =
   match input with
     | Parsetree.Ptop_def pstr ->
         Parsetree.Ptop_def
-          (Pparse.apply_rewriters ~tool_name:"ocaml" ast_impl_kind pstr)
+          (Pparse.apply_rewriters ~tool_name:"ocaml" Pparse.Structure pstr)
     | _ -> input
 
 let parse_input_multi input =
@@ -383,14 +377,9 @@ let map_items unwrap wrap items =
             (name, rs)
          | Outcometree.Osig_typext ({ Outcometree.oext_name = name}, _)
          | Outcometree.Osig_modtype (name, _)
-#if OCAML_VERSION < (4, 03, 0)
-         | Outcometree.Osig_value (name, _, _) ->
-            (name, Outcometree.Orec_not)
-#else
          | Outcometree.Osig_value { oval_name = name; _ } ->
             (name, Outcometree.Orec_not)
          | Outcometree.Osig_ellipsis -> ("", Outcometree.Orec_not)
-#endif
        in
        let keep =
          name = "" || name.[0] <> '_' ||
@@ -428,9 +417,7 @@ let map_items unwrap wrap items =
                  else
                    items
               | Outcometree.Osig_typext _
-#if OCAML_VERSION >= (4, 03, 0)
               | Outcometree.Osig_ellipsis
-#endif
               | Outcometree.Osig_modtype _
               | Outcometree.Osig_value _ ->
                  items
@@ -497,12 +484,6 @@ let longident_async_thread_safe_block_on_async_exn =
   Longident.(Ldot (Ldot (Lident "Async", "Thread_safe"), "block_on_async_exn"))
 let longident_unit = Longident.Lident "()"
 
-#if OCAML_VERSION >= (4, 03, 0)
-let nolabel = Asttypes.Nolabel
-#else
-let nolabel = ""
-#endif
-
 let rewrite_rules = [
   (* Rewrite Lwt.t expressions to Lwt_main.run <expr> *)
   {
@@ -512,7 +493,7 @@ let rewrite_rules = [
     rewrite = (fun loc e ->
       let open Ast_helper in
       with_default_loc loc (fun () ->
-        Exp.apply (Exp.ident (with_loc loc longident_lwt_main_run)) [(nolabel, e)]
+        Exp.apply (Exp.ident (with_loc loc longident_lwt_main_run)) [(Nolabel, e)]
       )
     );
     enabled = UTop.auto_run_lwt;
@@ -530,7 +511,7 @@ let rewrite_rules = [
       with_default_loc loc (fun () ->
         Exp.apply
           (Exp.ident (with_loc loc longident_async_thread_safe_block_on_async_exn))
-          [(nolabel, Exp.fun_ nolabel None punit e)]
+          [(Nolabel, Exp.fun_ Nolabel None punit e)]
       )
     );
     enabled = UTop.auto_run_async;
@@ -540,12 +521,10 @@ let rewrite_rules = [
 #if OCAML_VERSION >= (4, 10, 0)
 let lookup_type longident env =
   Env.find_type_by_name longident env
-#elif OCAML_VERSION >= (4, 04, 0)
+#else
 let lookup_type longident env =
   let path = Env.lookup_type longident env in
   (path, Env.find_type path env)
-#else
-let lookup_type = Env.lookup_type
 #endif
 
 let rule_path rule =
@@ -575,11 +554,7 @@ let rule_path rule =
 (* Returns whether the given path is persistent. *)
 let rec is_persistent_path = function
   | Path.Pident id -> Ident.persistent id
-#if OCAML_VERSION >= (4, 08, 0)
   | Path.Pdot (p, _) -> is_persistent_path p
-#else
-  | Path.Pdot (p, _, _) -> is_persistent_path p
-#endif
   | Path.Papply (_, p) -> is_persistent_path p
 
 (* Check that the given long identifier is present in the environment
@@ -641,10 +616,8 @@ let type_structure env pstr =
   let tstr, _, _, _, _ = Typemod.type_structure env pstr in
 #elif OCAML_VERSION >= (4, 12, 0)
   let tstr, _, _, _ = Typemod.type_structure env pstr in
-#elif OCAML_VERSION >= (4, 08, 0)
-  let tstr, _, _, _ = Typemod.type_structure env pstr Location.none in
 #else
-  let tstr, _, _ = Typemod.type_structure env pstr Location.none in
+  let tstr, _, _, _ = Typemod.type_structure env pstr Location.none in
 #endif
   tstr
 
@@ -669,9 +642,7 @@ let add_let binding_name def =
         {
           pvb_pat = {
             ppat_desc = Ppat_var { txt = binding_name; loc = pstr_loc; };
-#if OCAML_VERSION >= (4, 08, 0)
             ppat_loc_stack= [];
-#endif
             ppat_loc = pstr_loc;
             ppat_attributes = [];
           };
@@ -694,8 +665,6 @@ let bind_expressions name phrase =
    | Handling of [@@toplevel_printer] attributes                     |
    +-----------------------------------------------------------------+ *)
 
-#if OCAML_VERSION >= (4, 04, 0)
-
 #if OCAML_VERSION >= (4, 09, 0)
   module Persistent_signature = Persistent_env.Persistent_signature
 #else
@@ -715,27 +684,13 @@ let execute_phrase =
   let rec collect_printers path signature acc =
     List.fold_left (fun acc item ->
       match (item : Types.signature_item) with
-#if OCAML_VERSION >= (4, 08, 0)
       | Sig_module (id, _, {md_type = Mty_signature s; _}, _, _) ->
-#else
-      | Sig_module (id, {md_type = Mty_signature s; _}, _) ->
-#endif
         collect_printers (Longident.Ldot (path, Ident.name id)) s acc
-#if OCAML_VERSION >= (4, 08, 0)
       | Sig_value (id, vd, _) ->
-#else
-      | Sig_value (id, vd) ->
-#endif
-#if OCAML_VERSION >= (4, 08, 0)
         if List.exists (fun attr->
           let open Parsetree in
           match attr.attr_name with
           | {Asttypes.txt = "toplevel_printer" | "ocaml.toplevel_printer"; _} ->
-#else
-        if List.exists (function
-          | {Asttypes.txt = "toplevel_printer" | "ocaml.toplevel_printer"; _},
-            _ ->
-#endif
             true
           | _ -> false)
           vd.val_attributes
@@ -762,12 +717,6 @@ let execute_phrase =
     let res = Toploop.execute_phrase b pp phrase in
     acknowledge_new_cmis ();
     res
-
-#else
-
-let execute_phrase = Toploop.execute_phrase
-
-#endif
 
 (* +-----------------------------------------------------------------+
    | Main loop                                                       |
@@ -1278,48 +1227,28 @@ let typeof sid =
   let out_sig_item =
     try
       let (path, ty_decl) = lookup_type id env in
-#if OCAML_VERSION >= (4, 08, 0)
       let id = Ident.create_local (Path.name path) in
-#else
-      let id = Ident.create (Path.name path) in
-#endif
       Some (Printtyp.tree_of_type_declaration id ty_decl Types.Trec_not)
     with Not_found ->
     try
       let (path, val_descr) = lookup_value id env in
-#if OCAML_VERSION >= (4, 08, 0)
       let id = Ident.create_local (Path.name path) in
-#else
-      let id = Ident.create (Path.name path) in
-#endif
       Some (Printtyp.tree_of_value_description id val_descr)
     with Not_found ->
     try
       let lbl_desc = lookup_label id env in
       let (path, ty_decl) = from_type_desc (get_desc lbl_desc.Types.lbl_res) in
-#if OCAML_VERSION >= (4, 08, 0)
       let id = Ident.create_local (Path.name path) in
-#else
-      let id = Ident.create (Path.name path) in
-#endif
       Some (Printtyp.tree_of_type_declaration id ty_decl Types.Trec_not)
     with Not_found ->
     try
       let path, mod_typ = lookup_module id env in
-#if OCAML_VERSION >= (4, 08, 0)
       let id = Ident.create_local (Path.name path) in
-#else
-      let id = Ident.create (Path.name path) in
-#endif
       Some (Printtyp.tree_of_module id mod_typ Types.Trec_not)
     with Not_found ->
     try
       let (path, mty_decl) = lookup_modtype id env in
-#if OCAML_VERSION >= (4, 08, 0)
       let id = Ident.create_local (Path.name path) in
-#else
-      let id = Ident.create (Path.name path) in
-#endif
       Some (Printtyp.tree_of_modtype_declaration id mty_decl)
     with Not_found ->
     try
@@ -1331,11 +1260,7 @@ let typeof sid =
       match cstr_desc.Types.cstr_tag with
       | _ ->
         let (path, ty_decl) = from_type_desc (get_desc cstr_desc.Types.cstr_res) in
-#if OCAML_VERSION >= (4, 08, 0)
         let id = Ident.create_local (Path.name path) in
-#else
-        let id = Ident.create (Path.name path) in
-#endif
         Some (Printtyp.tree_of_type_declaration id ty_decl Types.Trec_not)
     with Not_found ->
       None
@@ -1445,11 +1370,7 @@ let print_version_num () =
 let autoload = ref true
 
 let args = Arg.align [
-#if OCAML_VERSION >= (4, 08, 0)
   "-absname", Arg.Set Clflags.absname, " Show absolute filenames in error message";
-#else
-  "-absname", Arg.Set Location.absname, " Show absolute filenames in error message";
-#endif
   "-I", Arg.String (fun dir ->  Clflags.include_dirs := dir :: !Clflags.include_dirs), "<dir> Add <dir> to the list of include directories";
   "-init", Arg.String (fun s -> Clflags.init_file := Some s), "<file> Load <file> instead of default init file";
   "-labels", Arg.Clear Clflags.classic, " Use commuting label mode";
@@ -1467,11 +1388,7 @@ let args = Arg.align [
   "-rectypes", Arg.Set Clflags.recursive_types, " Allow arbitrary recursive types";
   "-stdin", Arg.Unit (fun () -> run_script ""), " Read script from standard input";
   "-strict-sequence", Arg.Set Clflags.strict_sequence, " Left-hand part of a sequence must have type unit";
-#if OCAML_VERSION >= (4, 08, 0)
   "-unsafe", Arg.Set Clflags.unsafe, " Do not compile bounds checking on array and string access";
-#else
-  "-unsafe", Arg.Set Clflags.fast, " Do not compile bounds checking on array and string access";
-#endif
   "-version", Arg.Unit print_version, " Print version and exit";
   "-vnum", Arg.Unit print_version_num, " Print version number and exit";
   "-w", Arg.String (fun opt -> ignore (Warnings.parse_options false opt)),
@@ -1665,18 +1582,10 @@ type value = V : string * _ -> value
 
 exception Found of Env.t
 
-#if OCAML_VERSION >= (4, 03, 0)
 let get_required_label name args =
   match List.find (fun (lab, _) -> lab = Asttypes.Labelled name) args with
   | _, x -> x
   | exception Not_found -> None
-#else
-let get_required_label name args =
-  match List.find (fun (lab, _, k) -> lab = "loc" && k = Typedtree.Required) args with
-  | _, x, _ -> x
-  | _ -> None
-  | exception Not_found -> None
-#endif
 
 let walk dir ~init ~f =
   let rec loop dir acc =
