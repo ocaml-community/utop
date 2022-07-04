@@ -9,7 +9,6 @@
 
 [@@@warning "-7-9-27-32-33"]
 
-open CamomileLibraryDefault.Camomile
 open Lwt_react
 open LTerm_dlist
 open LTerm_text
@@ -256,7 +255,7 @@ class read_phrase ~term = object(self)
           return (LTerm_read_line.Result result)
         with UTop.Need_more ->
           (* Input not finished, continue. *)
-          self#insert (UChar.of_char '\n');
+          self#insert (Uchar.of_char '\n');
           self#exec ~keys actions
       end
     | actions ->
@@ -328,7 +327,7 @@ let fix_string str =
     let buf = Buffer.create (len + 128) in
     if ofs > 0 then Buffer.add_substring buf str 0 ofs;
     let rec loop ofs =
-      Zed_utf8.add buf (UChar.of_char str.[ofs]);
+      Zed_utf8.add buf (Uchar.of_char str.[ofs]);
       let ofs1 = ofs + 1 in
       let ofs2, _, _ = Zed_utf8.next_error str ofs1 in
       if ofs1 < ofs2 then
