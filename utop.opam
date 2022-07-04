@@ -13,7 +13,7 @@ depends: [
   "lambda-term" {>= "3.1.0" & < "4.0"}
   "lwt"
   "lwt_react"
-  "camomile"
+  "zed" { >= "3.2.0" }
   "react" {>= "1.0.0"}
   "cppo" {build & >= "1.1.2"}
   "dune" {>= "1.0"}
