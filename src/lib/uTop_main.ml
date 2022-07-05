@@ -53,7 +53,7 @@ let save_history () =
                         ?max_entries:!UTop.history_file_max_entries fn)
           (function
           | Unix.Unix_error (error, func, arg) ->
-              Lwt_log.error_f "cannot save history to %S: %s: %s" fn func (Unix.error_message error)
+              Logs_lwt.err (fun m -> m "cannot save history to %S: %s: %s" fn func (Unix.error_message error))
           | exn -> Lwt.fail exn)
 
 let init_history () =
@@ -68,8 +68,8 @@ let init_history () =
           (fun () -> LTerm_history.load UTop.history fn)
           (function
           | Unix.Unix_error (error, func, arg) ->
-              Lwt_log.error_f "cannot load history from %S: %s: %s"
-                              fn func (Unix.error_message error)
+              Logs_lwt.err (fun m -> m "cannot load history from %S: %s: %s"
+                                fn func (Unix.error_message error))
           | exn -> Lwt.fail exn)
 
 (* +-----------------------------------------------------------------+
@@ -1590,9 +1590,9 @@ let load_inputrc () =
     LTerm_inputrc.load
     (function
     | Unix.Unix_error (error, func, arg) ->
-      Lwt_log.error_f "cannot load key bindings from %S: %s: %s" LTerm_inputrc.default func (Unix.error_message error)
+      Logs_lwt.err (fun m -> m "cannot load key bindings from %S: %s: %s" LTerm_inputrc.default func (Unix.error_message error))
     | LTerm_inputrc.Parse_error (fname, line, msg) ->
-      Lwt_log.error_f "error in key bindings file %S, line %d: %s" fname line msg
+      Logs_lwt.err (fun m -> m "error in key bindings file %S, line %d: %s" fname line msg)
     | exn -> Lwt.fail exn)
 
 let protocol_version = 1

@@ -11,6 +11,7 @@ depends: [
   "base-threads"
   "ocamlfind" {>= "1.7.2"}
   "lambda-term" {>= "3.1.0" & < "4.0"}
+  "logs"
   "lwt"
   "lwt_react"
   "zed" { >= "3.2.0" }
