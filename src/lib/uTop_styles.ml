@@ -95,7 +95,7 @@ let load () =
     | Unix.Unix_error(Unix.ENOENT, _, _) ->
         return ()
     | Unix.Unix_error (error, func, _arg) ->
-        Lwt_log.error_f "cannot load styles from %S: %s: %s" fn func (Unix.error_message error)
+        Logs_lwt.err (fun m -> m "cannot load styles from %S: %s: %s" fn func (Unix.error_message error))
     | exn -> Lwt.fail exn)
 
 let stylise_filter_layout stylise tokens =
