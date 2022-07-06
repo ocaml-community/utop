@@ -1,3 +1,10 @@
+2.10.0 (2022-10-06)
+------------------
+
+* Use dependencies compatible with OCaml 5:
+  - Use zed 3.2.0, based on uucp, uutf, and uuseg instead of camomile
+  - Use logs.lwt instead of `lwt_logs`
+
 2.9.2 (2022-06-15)
 ------------------
 
