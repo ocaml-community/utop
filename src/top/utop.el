@@ -2,7 +2,7 @@
 
 ;; Copyright: (c) 2011, Jeremie Dimino <jeremie@dimino.org>
 ;; Author: Jeremie Dimino <jeremie@dimino.org>
-;; URL: https://github.com/diml/utop
+;; URL: https://github.com/ocaml-community/utop
 ;; Licence: BSD3
 ;; Version: 1.11
 ;; Package-Requires: ((emacs "24") (tuareg "2.2.0"))
@@ -13,7 +13,7 @@
 ;;; Commentary:
 
 ;; See the README for more info;
-;; https://github.com/diml/utop
+;; https://github.com/ocaml-community/utop
 
 ;;; Code:
 
@@ -243,7 +243,7 @@ backend")
 
 (defun utop--supports-company ()
   (and
-   ;; version< only works on version numbers 
+   ;; version< only works on version numbers
    (condition-case nil
        (version<= "1" utop-protocol-version)
      (error t))
@@ -1133,7 +1133,7 @@ defaults to 0."
   (error "`utop-setup-ocaml-buffer' is deprecated, you need to
 replace it by `utop-minor-mode'.
 
-See https://github.com/diml/utop for configuration information."))
+See https://github.com/ocaml-community/utop for configuration information."))
 
 ;;;###autoload
 (define-minor-mode utop-minor-mode
@@ -1199,7 +1199,7 @@ See https://github.com/diml/utop for configuration information."))
 (defun utop ()
   "A universal toplevel for OCaml.
 
-url: https://forge.ocamlcore.org/projects/utop/
+url: https://github.com/ocaml-community/utop
 
 utop is a enhanced toplevel for OCaml with many features,
 including context sensitive completion.
