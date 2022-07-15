@@ -1,3 +1,5 @@
+[![Build Status](https://github.com/ocaml-community/utop/workflows/Test%20in%20Nix/badge.svg)](https://github.com/ocaml-community/utop/actions/workflows/test-in-nix.yml)
+
 utop — a universal toplevel (i.e., REPL) for OCaml
 ==================================================
 
@@ -7,8 +9,6 @@ in Emacs. It supports line editing, history, real-time and context
 sensitive completion, colors, and more.
 
 It integrates with the Tuareg and typerex modes in Emacs.
-
-[![Travis build Status](https://travis-ci.org/ocaml-community/utop.svg?branch=master)](https://travis-ci.org/ocaml-community/utop)
 
 ![Screenshot](screenshot.png)
 
