@@ -12,7 +12,7 @@
 
 ;;; Commentary:
 
-;; This package provides interaction with an Ocaml utop toplevel (REPL).
+;; This package provides interaction with an OCaml utop toplevel (REPL).
 ;;
 ;; utop.el has two components - a nice OCaml REPL with auto-completion and a
 ;; minor mode (`utop-minor-mode'), which extends OCaml major modes
@@ -71,17 +71,20 @@ with Emacs to provide an enhanced environment."
 
 (defcustom utop-command "utop -emacs"
   "The command to execute for utop."
-  :type 'string)
+  :type 'string
+  :safe 'stringp)
 
 (defcustom utop-edit-command t
   "Whether to read the command from the minibuffer before running utop.
 
 If nil, `utop-command' will be used without modification."
-  :type 'boolean)
+  :type 'boolean
+  :safe 'booleanp)
 
-(defcustom utop-prompt 'utop-default-prompt
+(defcustom utop-prompt #'utop-default-prompt
   "The function which create the prompt for utop."
-  :type 'function)
+  :type 'function
+  :safe 'functionp)
 
 (defcustom utop-mode-hook nil
   "A hook that gets run when `utop-mode' is entered."
@@ -94,7 +97,8 @@ This hook is only run if exiting actually kills the buffer."
 
 (defcustom utop-load-packages-without-asking nil
   "Load packages from file local variables without asking"
-  :type 'boolean)
+  :type 'boolean
+  :safe 'booleanp)
 
 (defface utop-prompt
   '((((background dark)) (:foreground "Cyan1"))
