@@ -71,52 +71,43 @@ with Emacs to provide an enhanced environment."
 
 (defcustom utop-command "utop -emacs"
   "The command to execute for utop."
-  :type 'string
-  :group 'utop)
+  :type 'string)
 
 (defcustom utop-edit-command t
   "Whether to read the command from the minibuffer before running utop.
 
 If nil, `utop-command' will be used without modification."
-  :type 'boolean
-  :group 'utop)
+  :type 'boolean)
 
 (defcustom utop-prompt 'utop-default-prompt
   "The function which create the prompt for utop."
-  :type 'function
-  :group 'utop)
+  :type 'function)
 
 (defcustom utop-mode-hook nil
   "A hook that gets run when `utop-mode' is entered."
-  :type 'hook
-  :group 'utop)
+  :type 'hook)
 
 (defcustom utop-exit-hook nil
   "A hook that is run whenever `utop' is exited.
 This hook is only run if exiting actually kills the buffer."
-  :type 'hook
-  :group 'utop)
+  :type 'hook)
 
 (defcustom utop-load-packages-without-asking nil
   "Load packages from file local variables without asking"
-  :type 'boolean
-  :group 'utop)
+  :type 'boolean)
 
 (defface utop-prompt
   '((((background dark)) (:foreground "Cyan1"))
     (((background light)) (:foreground "blue")))
-  "The face used to highlight the prompt."
-  :group 'utop)
+  "The face used to highlight the prompt.")
 
 (defface utop-stdout
   nil
-  "The face used to highlight messages comming from stdout."
-  :group 'utop)
+  "The face used to highlight messages comming from stdout.")
 
 (defface utop-stderr
   nil
-  "The face used to highlight messages comming from stderr."
-  :group 'utop)
+  "The face used to highlight messages comming from stderr.")
 
 (defface utop-frozen
   '((t (:bold t)))
@@ -124,8 +115,7 @@ This hook is only run if exiting actually kills the buffer."
 
 (defface utop-error
   '((t (:foreground "#ff4040" :bold t :underline t)))
-  "The face used to highlight errors in phrases."
-  :group 'utop)
+  "The face used to highlight errors in phrases.")
 
 ;; +-----------------------------------------------------------------+
 ;; | Constants                                                       |
