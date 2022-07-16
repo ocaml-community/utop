@@ -12,8 +12,14 @@
 
 ;;; Commentary:
 
-;; See the README for more info;
-;; https://github.com/ocaml-community/utop
+;; This package provides interaction with an Ocaml utop toplevel (REPL).
+;;
+;; utop.el has two components - a nice OCaml REPL with auto-completion and a
+;; minor mode (`utop-minor-mode'), which extends OCaml major modes
+;; (e.g. `caml-mode' and `tuareg-mode') with commands to evaluate forms directly
+;; in the REPL.
+;;
+;; See the "Integration with Emacs" section of the README for more info.
 
 ;;; Code:
 
@@ -57,11 +63,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.")
 ;; +-----------------------------------------------------------------+
 
 (defgroup utop nil
-  "A toplevel for the ocaml programming language which interact
+  "A toplevel for the ocaml programming language which interacts
 with Emacs to provide an enhanced environment."
-  :tag "The Caml Emacs-Lisp Toplevel"
-  :version "1.0"
-  :group 'applications)
+  :group 'applications
+  :link '(url-link :tag "GitHub" "https://github.com/ocaml-community/utop")
+  :link '(emacs-commentary-link :tag "Commentary" "utop"))
 
 (defcustom utop-command "utop -emacs"
   "The command to execute for utop."
