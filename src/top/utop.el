@@ -652,9 +652,14 @@ it is started."
       ("completion"
        (catch 'done
          (dolist (prefix utop-completion-prefixes)
-           (when (string-prefix-p prefix argument)
-             (push argument utop-completion)
-             (throw 'done t)))))
+           ;; We need to handle specially prefixes like "List.m" as
+           ;; the responses from utop don't include the module prefix.
+           (let ((prefix (if (string-match-p "\\." prefix)
+                             (cadr (split-string prefix "\\."))
+                           prefix)))
+             (when (string-prefix-p prefix argument)
+              (push argument utop-completion)
+              (throw 'done t))))))
       ;; End of completion
       ("completion-stop"
        (utop-set-state 'edit)
