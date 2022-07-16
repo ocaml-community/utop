@@ -547,7 +547,8 @@ it is started."
   "Insert the phrase terminator at the end of buffer."
   ;; Search the longest suffix of the input which is a prefix of the
   ;; phrase terminator
-  (let* ((end (point-max)) (pos (max utop-prompt-max (- end (length utop-phrase-terminator)))))
+  (let* ((end (point-max))
+         (pos (max utop-prompt-max (- end (length utop-phrase-terminator)))))
     (while (not (string-prefix-p (buffer-substring-no-properties pos end) utop-phrase-terminator))
       (setq pos (1+ pos)))
     ;; Insert only the missing part
@@ -557,7 +558,8 @@ it is started."
   "Process one line from the utop sub-process."
   ;; Extract the command and its argument
   (string-match "\\`\\([a-z-]*\\):\\(.*\\)\\'" line)
-  (let ((command (match-string 1 line)) (argument (match-string 2 line)))
+  (let ((command (match-string 1 line))
+        (argument (match-string 2 line)))
     (pcase command
       ;; Output on stdout
       ("stdout"
