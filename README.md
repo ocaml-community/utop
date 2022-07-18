@@ -111,17 +111,58 @@ This special edit mode is evolving rapidly, see the CHANGES of lambda-term for t
 UTop exposes several more settings through its API; see
 [documentation](http://ocaml-community.github.io/utop).
 
-Integration with emacs
+Integration with Emacs
 ----------------------
+
+### Overview
+
+`utop.el` is a package that provides `utop` integration with Emacs.
+The package allows you to run `utop` inside Emacs and to evaluate
+code in it straight from your source buffers (with the help with `utop-minor-mode`).
+
+Those features are covered in more details in the ["Usage"](#usage-emacs) section.
+
+### Requirements
+
+`utop.el` requires Emacs 26.1 or newer. You'll also have to install
+`utop` and make sure it's on Emacs's `exec-path`, so that it could be
+started from within Emacs.
 
 ### Main setup
 
-To use utop in emacs, first you need to make sure emacs can find the
-command `utop` and the file `utop.el`. `utop.el` is available through
-[melpa](https://melpa.org/), so `M-x package-install RET utop RET`
-should do.
+The recommended way to install `utop.el` is via Emacs's built-in package manager `package.el`.
 
-If this doesn't work and you installed utop via opam, you can add this
+`utop.el` is available on the community-maintained
+[MELPA Stable](https://stable.melpa.org) and [MELPA](https://melpa.org) `package.el` repositories. If you're not using them already, please follow the setup instructions [here](https://melpa.org/#/getting-started).
+
+**Note:** Using MELPA Stable is recommended as it has the latest stable version.
+MELPA has a development snapshot for users who don't mind breakage but
+don't want to run `utop.el` from a git checkout.
+
+Once you've enabled MELPA (Stable), you can install `utop.el` using the following command:
+
+<kbd>M-x package-install [RET] utop [RET]</kbd>
+
+or if you'd rather keep it in your Emacs config:
+
+```emacs-lisp
+(unless (package-installed-p 'utop)
+  (package-refresh-contents)
+  (package-install 'utop))
+```
+
+`use-package` users can do something like this:
+
+```emacs-lisp
+(use-package utop
+  :ensure t)
+```
+
+If the installation doesn't work try refreshing the package list:
+
+<kbd>M-x package-refresh-contents</kbd>
+
+Alternatively, if you have installed utop via opam, you can add this
 to your `~/.emacs`:
 
 ```elisp
@@ -171,11 +212,11 @@ copy&paste this to your `~/.emacs`:
 (autoload 'utop "utop" "Toplevel for OCaml" t)
 ```
 
-### Usage
+### [Usage](#usage-emacs)
 
-Then you can execute utop inside emacs with: `M-x utop`.
+You can start utop inside Emacs with: `M-x utop`.
 
-utop also ships with a minor mode that has the following key-bindings
+`utop.el` also ships with a minor mode that has the following key-bindings:
 
 | key-binding | function          | Description                  |
 |-------------|-------------------|------------------------------|
