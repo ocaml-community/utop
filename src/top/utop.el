@@ -135,35 +135,35 @@ This hook is only run if exiting actually kills the buffer."
 ;; | Variables                                                       |
 ;; +-----------------------------------------------------------------+
 
-(defvar utop-process nil
+(defvar-local utop-process nil
   "The Lisp-object for the utop sub-process")
 
-(defvar utop-prompt-min 0
+(defvar-local utop-prompt-min 0
   "The point at the beginning of the current prompt.")
 
-(defvar utop-prompt-max 0
+(defvar-local utop-prompt-max 0
   "The point at the end of the current prompt.")
 
-(defvar utop-input-prompt-max 0
+(defvar-local utop-input-prompt-max 0
   "The point at the end of the last input prompt.")
 
-(defvar utop-output ""
+(defvar-local utop-output ""
   "The output of the utop sub-process not yet processed.")
 
-(defvar utop-command-number 0
+(defvar-local utop-command-number 0
   "The number of the current command.")
 
-(defvar utop-completion nil
+(defvar-local utop-completion nil
   "Current completion.")
 
-(defvar utop-completion-prefixes nil
+(defvar-local utop-completion-prefixes nil
   "Prefixes for current completion.")
 
-(defvar utop-inhibit-check nil
+(defvar-local utop-inhibit-check nil
   "When set to a non-nil value, always insert text, even if it is
 before the end of prompt.")
 
-(defvar utop-state nil
+(defvar-local utop-state nil
   "State of utop. It is one of:
 
 - edit: the user is typing a command
@@ -172,55 +172,54 @@ before the end of prompt.")
 - wait: ocaml is evaluating a phrase
 - done: ocaml has died.")
 
-(defvar utop-complete-buffer nil
+(defvar-local utop-complete-buffer nil
   "The buffer that requested completion.")
 
-(defvar utop-initial-command nil
+(defvar-local utop-initial-command nil
   "Initial phrase to evaluate.")
 
-(defvar utop-initial-mode nil
+(defvar-local utop-initial-mode nil
   "Mode to evaluate utop-initial-command in (nil or :multi).")
 
-(defvar utop-phrase-terminator ";;"
+(defvar-local utop-phrase-terminator ";;"
   "The OCaml phrase terminator.")
 
-(defvar utop-pending-entry nil
+(defvar-local utop-pending-entry nil
   "History entry")
 
-(defvar utop-pending-position nil
+(defvar-local utop-pending-position nil
   "The position of the cursor in the phrase sent to OCaml (where
 to add the newline character if it is not accepted).")
 
-(make-variable-buffer-local
- (defvar utop-package-list nil
-   "List of packages to load when visiting OCaml buffer.
-Useful as file variable."))
+(defvar-local utop-package-list nil
+  "List of packages to load when visiting OCaml buffer.
+Useful as file variable.")
 
-(defvar utop-next-phrase-beginning 'utop-compat-next-phrase-beginning
+(defvar-local utop-next-phrase-beginning 'utop-compat-next-phrase-beginning
   "The function used to find the beginning of the next phrase.")
 
-(defvar utop-discover-phrase 'utop-compat-discover-phrase
+(defvar-local utop-discover-phrase 'utop-compat-discover-phrase
   "The function used to discover a phrase.
 It should return a triple (begin-pos, end-pos,
 end-pos-with-comments)." )
 
-(defvar utop-skip-after-eval-phrase t
+(defvar-local utop-skip-after-eval-phrase t
   "Whether to skip to next phrase after evaluation.
 
 Non-nil means skip to the end of the phrase after evaluation in the
 Caml toplevel")
 
-(defvar utop--complete-k (lambda (_candidates) '())
+(defvar-local utop--complete-k (lambda (_candidates) '())
   "continuation function to populate the candidates for the company
 backend")
 
-(defvar utop-protocol-version "0"
+(defvar-local utop-protocol-version "0"
   "detected version of utop protocol. 0 for unknown or version pre")
 
-(defvar utop--read-version nil
+(defvar-local utop--read-version nil
   "whether we've tried to detect the utop version")
 
-(defvar utop--company-loaded nil)
+(defvar-local utop--company-loaded nil)
 
 (defun utop--supports-company ()
   (and
@@ -1162,27 +1161,6 @@ See https://github.com/ocaml-community/utop for configuration information."))
 ;;;###autoload
 (define-derived-mode utop-mode fundamental-mode "utop"
   "Set the buffer mode to utop."
-
-  ;; Local variables
-  (make-local-variable 'utop-process)
-  (make-local-variable 'utop-prompt-min)
-  (make-local-variable 'utop-prompt-max)
-  (make-local-variable 'utop-input-prompt-max)
-  (make-local-variable 'utop-last-prompt)
-  (make-local-variable 'utop-output)
-  (make-local-variable 'utop-command-number)
-  (make-local-variable 'utop-inhibit-check)
-  (make-local-variable 'utop-state)
-  (make-local-variable 'utop-complete-buffer)
-  (make-local-variable 'utop-initial-command)
-  (make-local-variable 'utop-initial-mode)
-  (make-local-variable 'utop-phrase-terminator)
-  (make-local-variable 'utop-pending-position)
-  (make-local-variable 'utop-pending-entry)
-  (make-local-variable 'utop-protocol-version)
-
-  (make-local-variable 'utop--complete-k)
-  (make-local-variable 'utop--read-version)
 
   ;; Set the hook to call before changing the buffer
   (add-hook 'before-change-functions 'utop-before-change nil t)
