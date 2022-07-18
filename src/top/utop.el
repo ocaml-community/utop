@@ -25,6 +25,7 @@
 
 (require 'easymenu)
 (require 'pcase)
+(require 'seq)
 (require 'tabulated-list)
 (require 'tuareg)
 
@@ -886,6 +887,32 @@ If ADD-TO-HISTORY is t then the input will be added to history."
       (move-beginning-of-line 1))))
 
 ;; +-----------------------------------------------------------------+
+;; | Switch to REPL                                                  |
+;; +-----------------------------------------------------------------+
+
+(defun utop-switch-to-repl (eob-p)
+  "Switch to the inferior utop process buffer.
+With prefix argument EOB-P, positions cursor at end of buffer."
+  (interactive "P")
+  (if (get-buffer-process utop-buffer-name)
+      (pop-to-buffer utop-buffer-name)
+    (call-interactively #'utop))
+  (when eob-p
+    (push-mark)
+    (goto-char (point-max))))
+
+(defun utop-switch-to-recent-buffer ()
+  "Switch to the most recently used `utop-minor-mode' buffer."
+  (interactive)
+  (let ((recent-utop-minor-mode-buffer (seq-find (lambda (buf)
+                                                          (with-current-buffer buf (bound-and-true-p utop-minor-mode)))
+                                                        (buffer-list))))
+    (if recent-utop-minor-mode-buffer
+        (pop-to-buffer recent-utop-minor-mode-buffer)
+      (message "utop: No recent OCaml buffer found."))))
+
+
+;; +-----------------------------------------------------------------+
 ;; | Process control                                                 |
 ;; +-----------------------------------------------------------------+
 
@@ -1100,6 +1127,25 @@ See https://github.com/ocaml-community/utop for configuration information."))
             (define-key map (kbd "C-x C-r") #'utop-eval-region)
             (define-key map (kbd "C-c C-b") #'utop-eval-buffer)
             (define-key map (kbd "C-c C-k") #'utop-kill)
+            (define-key map (kbd "C-c C-z") #'utop-switch-to-repl)
+            (easy-menu-define
+              utop-minor-mode-menu map
+              "utop menu."
+              '("utop"
+                ["Start utop" utop t]
+                ["Switch to utop" utop-switch-to-repl t]
+                ["Interrupt utop" utop-interrupt :active (utop-is-running)]
+                ["Kill utop" utop-kill :active (utop-is-running)]
+                ["Exit utop gracefully" utop-exit :active (utop-is-running)]
+                "---"
+                ["Evaluate phrase" utop-eval-phrase :active (and (utop-is-running) (eq utop-state 'edit))]
+                ["Evaluate region" utop-eval-region :active (and (utop-is-running) (eq utop-state 'edit))]
+                ["Evaluate buffer" utop-eval-buffer :active (and (utop-is-running) (eq utop-state 'edit))]
+                "---"
+                ["Customize utop" (customize-group 'utop) t]
+                "---"
+                ["About" utop-about t]
+                ["Help" utop-help t]))
             map)
   ;; Load local file variables
   (add-hook 'hack-local-variables-hook 'utop-hack-local-variables))
@@ -1128,11 +1174,13 @@ See https://github.com/ocaml-community/utop for configuration information."))
   utop-menu utop-mode-map
   "utop menu."
   '("utop"
-    ["Start OCaml" utop t]
-    ["Interrupt OCaml" utop-interrupt :active (utop-is-running)]
-    ["Kill OCaml" utop-kill :active (utop-is-running)]
+    ["Start utop" utop t]
+    ["Interrupt utop" utop-interrupt :active (utop-is-running)]
+    ["Kill utop" utop-kill :active (utop-is-running)]
     ["Exit utop gracefully" utop-exit :active (utop-is-running)]
+    "---"
     ["Evaluate Phrase" utop-eval-input-auto-end :active (and (utop-is-running) (eq utop-state 'edit))]
+    ["Switch to OCaml source buffer" utop-switch-to-recent-buffer t]
     "---"
     ["Customize utop" (customize-group 'utop) t]
     "---"

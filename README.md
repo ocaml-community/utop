@@ -218,13 +218,14 @@ You can start utop inside Emacs with: `M-x utop`.
 
 `utop.el` also ships with a minor mode that has the following key-bindings:
 
-| key-binding | function          | Description                  |
-|-------------|-------------------|------------------------------|
-| C-c C-s     | utop              | Start a utop buffer          |
-| C-x C-e     | utop-eval-phrase  | Evaluate the current phrase  |
-| C-x C-r     | utop-eval-region  | Evaluate the selected region |
-| C-c C-b     | utop-eval-buffer  | Evaluate the current buffer  |
-| C-c C-k     | utop-kill         | Kill a running utop process  |
+| key-binding | function            | Description                  |
+|-------------|---------------------|------------------------------|
+| C-c C-s     | utop                | Start a utop buffer          |
+| C-x C-e     | utop-eval-phrase    | Evaluate the current phrase  |
+| C-x C-r     | utop-eval-region    | Evaluate the selected region |
+| C-c C-b     | utop-eval-buffer    | Evaluate the current buffer  |
+| C-c C-k     | utop-kill           | Kill a running utop process  |
+| C-c C-z     | utop-switch-to-repl | Switch to utop process       |
 
 You can enable the minor mode using `M-x utop-minor-mode`, or you can
 have it enabled by default with the following configuration:
