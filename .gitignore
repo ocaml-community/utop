@@ -3,5 +3,6 @@ _build/
 *.install
 *.elc
 .*.swp
+.eldev
 
 /result*
