@@ -138,25 +138,6 @@ This hook is only run if exiting actually kills the buffer."
 (defvar utop-process nil
   "The Lisp-object for the utop sub-process")
 
-(defvar utop-mode-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "RET")     #'utop-eval-input-or-newline)
-    (define-key map (kbd "C-m")     #'utop-eval-input-or-newline)
-    (define-key map (kbd "C-j")     #'utop-eval-input-auto-end)
-    (define-key map (kbd "<home>")  #'utop-bol)
-    (define-key map (kbd "C-a")     #'utop-bol)
-    (define-key map (kbd "M-p")     #'utop-history-goto-prev)
-    (define-key map (kbd "M-n")     #'utop-history-goto-next)
-    (define-key map (kbd "TAB")     #'utop-complete)
-    (define-key map (kbd "C-c C-c") #'utop-interrupt)
-    (define-key map (kbd "C-c C-i") #'utop-interrupt)
-    (define-key map (kbd "C-c C-k") #'utop-kill)
-    (define-key map (kbd "C-c C-g") #'utop-exit)
-    (define-key map (kbd "C-c C-s") #'utop)
-    (define-key map (kbd "C-c m")   #'utop-copy-old-input)
-    map)
-  "The utop local keymap.")
-
 (defvar utop-prompt-min 0
   "The point at the beginning of the current prompt.")
 
@@ -1049,41 +1030,9 @@ defaults to 0."
   "Perform actions defined by local variables"
   (utop-query-load-package-list))
 
-;; +-----------------------------------------------------------------+
-;; | Menu                                                            |
-;; +-----------------------------------------------------------------+
-
-(defun utop-is-running ()
-  (let ((buf (get-buffer utop-buffer-name)))
-    (when buf
-      (with-current-buffer buf
-        (and utop-process (eq (process-status utop-process) 'run))))))
-
-(defun utop-about ()
-  (interactive)
-  (describe-variable 'utop-license))
-
-(defun utop-help ()
-  (interactive)
-  (describe-function 'utop))
-
-(easy-menu-define
-  utop-menu utop-mode-map
-  "utop menu."
-  '("utop"
-    ["Start OCaml" utop t]
-    ["Interrupt OCaml" utop-interrupt :active (utop-is-running)]
-    ["Kill OCaml" utop-kill :active (utop-is-running)]
-    ["Exit utop gracefully" utop-exit :active (utop-is-running)]
-    ["Evaluate Phrase" utop-eval-input-auto-end :active (and (utop-is-running) (eq utop-state 'edit))]
-    "---"
-    ["Customize utop" (customize-group 'utop) t]
-    "---"
-    ["About" utop-about t]
-    ["Help" utop-help t]))
 
 ;; +-----------------------------------------------------------------+
-;; | The mode                                                        |
+;; | The minor mode                                                  |
 ;; +-----------------------------------------------------------------+
 
 (defun utop-arguments ()
@@ -1158,6 +1107,58 @@ See https://github.com/ocaml-community/utop for configuration information."))
 
 (defvar company-backends)
 
+;; +-----------------------------------------------------------------+
+;; | The major mode                                                  |
+;; +-----------------------------------------------------------------+
+
+(defun utop-is-running ()
+  (let ((buf (get-buffer utop-buffer-name)))
+    (when buf
+      (with-current-buffer buf
+        (and utop-process (eq (process-status utop-process) 'run))))))
+
+(defun utop-about ()
+  (interactive)
+  (describe-variable 'utop-license))
+
+(defun utop-help ()
+  (interactive)
+  (describe-function 'utop))
+
+(easy-menu-define
+  utop-menu utop-mode-map
+  "utop menu."
+  '("utop"
+    ["Start OCaml" utop t]
+    ["Interrupt OCaml" utop-interrupt :active (utop-is-running)]
+    ["Kill OCaml" utop-kill :active (utop-is-running)]
+    ["Exit utop gracefully" utop-exit :active (utop-is-running)]
+    ["Evaluate Phrase" utop-eval-input-auto-end :active (and (utop-is-running) (eq utop-state 'edit))]
+    "---"
+    ["Customize utop" (customize-group 'utop) t]
+    "---"
+    ["About" utop-about t]
+    ["Help" utop-help t]))
+
+(defvar utop-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "RET")     #'utop-eval-input-or-newline)
+    (define-key map (kbd "C-m")     #'utop-eval-input-or-newline)
+    (define-key map (kbd "C-j")     #'utop-eval-input-auto-end)
+    (define-key map (kbd "<home>")  #'utop-bol)
+    (define-key map (kbd "C-a")     #'utop-bol)
+    (define-key map (kbd "M-p")     #'utop-history-goto-prev)
+    (define-key map (kbd "M-n")     #'utop-history-goto-next)
+    (define-key map (kbd "TAB")     #'utop-complete)
+    (define-key map (kbd "C-c C-c") #'utop-interrupt)
+    (define-key map (kbd "C-c C-i") #'utop-interrupt)
+    (define-key map (kbd "C-c C-k") #'utop-kill)
+    (define-key map (kbd "C-c C-g") #'utop-exit)
+    (define-key map (kbd "C-c C-s") #'utop)
+    (define-key map (kbd "C-c m")   #'utop-copy-old-input)
+    map)
+  "The utop local keymap.")
+
 ;;;###autoload
 (define-derived-mode utop-mode fundamental-mode "utop"
   "Set the buffer mode to utop."
@@ -1198,6 +1199,7 @@ See https://github.com/ocaml-community/utop for configuration information."))
 
   ;; Start utop
   (utop-start (utop-arguments)))
+
 ;; +-----------------------------------------------------------------+
 ;; | Starting utop                                                   |
 ;; +-----------------------------------------------------------------+
