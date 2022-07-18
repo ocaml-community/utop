@@ -5,7 +5,7 @@
 ;; URL: https://github.com/ocaml-community/utop
 ;; Licence: BSD3
 ;; Version: 1.11
-;; Package-Requires: ((emacs "24") (tuareg "2.2.0"))
+;; Package-Requires: ((emacs "26") (tuareg "2.2.0"))
 ;; Keywords: ocaml languages
 
 ;; This file is a part of utop.
