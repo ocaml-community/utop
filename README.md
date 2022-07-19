@@ -1,4 +1,4 @@
-[![Build Status](https://github.com/ocaml-community/utop/workflows/Test%20in%20Nix/badge.svg)](https://github.com/ocaml-community/utop/actions/workflows/test-in-nix.yml)
+[![OCaml-CI Build Status](https://img.shields.io/endpoint?url=https%3A%2F%2Fci.ocamllabs.io%2Fbadge%2Focaml-community%2Futop%2Fmaster&logo=ocaml&style=flat-square)](https://ci.ocamllabs.io/github/ocaml-community/utop)
 
 utop — a universal toplevel (i.e., REPL) for OCaml
 ==================================================
