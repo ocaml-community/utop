@@ -393,7 +393,7 @@ val pp_hum : Format.formatter -> t -> unit [@@ocaml.toplevel_printer]
     * add manual pages
     * show more information in the prompt:
         * show the current value of the macro counter
-        * show the nnumber of key pressed since the beginning of a macro
+        * show the number of key pressed since the beginning of a macro
           when recording a macro
         * show intermediate key sequence
     * better support for light colors terminals
