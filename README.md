@@ -212,7 +212,8 @@ copy&paste this to your `~/.emacs`:
 (autoload 'utop "utop" "Toplevel for OCaml" t)
 ```
 
-### [Usage](#usage-emacs)
+### Usage
+<a href="emacs-usage"></a>
 
 You can start utop inside Emacs with: `M-x utop`.
 
