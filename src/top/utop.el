@@ -359,51 +359,6 @@ it is started."
       (utop-send-string (concat "data:" line "\n")))
     (utop-send-string "end:\n")))
 
-(defun utop-last-type ()
-  "Extract last inferred type from the uTop toplevel"
-  (with-current-buffer utop-buffer-name
-    (save-excursion
-      (goto-char utop-prompt-min)
-      (forward-line -1)
-      (let ((line (buffer-substring-no-properties
-                   (line-beginning-position) (line-end-position))))
-        (message line)))))
-
-;; Poor man's identifier at point
-(defun utop-ident-looking (backward)
-  "Find limits of an OCaml identifier"
-  (save-excursion
-    (skip-chars-forward " \n\t")
-    (let ((iterating t)
-          (start-pos (point))
-          end-pos)
-      (while iterating
-        (setq end-pos (point))
-        (if (not backward)
-            (progn
-              (right-word 1)
-              (setq iterating (not (looking-back "[ \t\r\n].*" start-pos))))
-          (progn
-            (left-word 1)
-            (setq iterating (not (save-excursion
-                                   (search-forward-regexp "[ \t\r\n].*" start-pos t)))))))
-      end-pos)))
-
-(defun utop-ident-at-point ()
-  "Identifier at point"
-  (let ((start-pos (utop-ident-looking t))
-        (end-pos (utop-ident-looking nil)))
-    (buffer-substring-no-properties start-pos end-pos)))
-
-;; Currently not working - the communication is asynchronous so how to
-;; make sure without implementing another state that the type
-;; information has been already printed?
-(defun utop-type-at-point ()
-  "Find type of an identifier at point from uTop"
-  (utop-eval-string (utop-ident-at-point)))
-;;  (utop-last-type)
-
-
 ;; +-----------------------------------------------------------------+
 ;; | Edition control                                                 |
 ;; +-----------------------------------------------------------------+
