@@ -306,6 +306,14 @@ let parse_default parse str eos_is_error =
           Error ([mkloc loc],
                  Printf.sprintf "Invalid package type: %s" s)
 #endif
+#if OCAML_VERSION >= (5, 0, 0)
+      | Syntaxerr.Removed_string_set loc ->
+          Error ([mkloc loc],
+            "Syntax error: strings are immutable, there is no assignment \
+             syntax for them.\n\
+             Hint: Mutable sequences of bytes are available in the Bytes module.\n\
+             Hint: Did you mean to use 'Bytes.set'?")
+#endif
     end
     | Syntaxerr.Escape_error | Parsing.Parse_error ->
         Error ([mkloc (Location.curr lexbuf)],
