@@ -297,8 +297,9 @@ modes you need to set these variables:
   (get-buffer utop-buffer-name))
 
 (defun utop-send-string (str)
-  "Send a string to the utop process. This function can only be
-called in the utop buffer and while the state is not 'done."
+  "Send a string to the utop process.
+This function can only be called in the utop buffer and while the
+state is not `done'."
   (process-send-string utop-process str))
 
 (defun utop-send-command (str)
