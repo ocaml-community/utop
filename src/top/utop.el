@@ -1150,13 +1150,13 @@ See https://github.com/ocaml-community/utop for configuration information."))
               '("utop"
                 ["Start utop" utop t]
                 ["Switch to utop" utop-switch-to-repl t]
-                ["Interrupt utop" utop-interrupt :active (utop-is-running)]
-                ["Kill utop" utop-kill :active (utop-is-running)]
-                ["Exit utop gracefully" utop-exit :active (utop-is-running)]
+                ["Interrupt utop" utop-interrupt :active (utop-running-p)]
+                ["Kill utop" utop-kill :active (utop-running-p)]
+                ["Exit utop gracefully" utop-exit :active (utop-running-p)]
                 "---"
-                ["Evaluate phrase" utop-eval-phrase :active (and (utop-is-running) (eq (utop--state) 'edit))]
-                ["Evaluate region" utop-eval-region :active (and (utop-is-running) (eq (utop--state) 'edit))]
-                ["Evaluate buffer" utop-eval-buffer :active (and (utop-is-running) (eq (utop--state) 'edit))]
+                ["Evaluate phrase" utop-eval-phrase :active (and (utop-running-p) (eq (utop--state) 'edit))]
+                ["Evaluate region" utop-eval-region :active (and (utop-running-p) (eq (utop--state) 'edit))]
+                ["Evaluate buffer" utop-eval-buffer :active (and (utop-running-p) (eq (utop--state) 'edit))]
                 "---"
                 ["Customize utop" (customize-group 'utop) t]
                 "---"
@@ -1172,11 +1172,13 @@ See https://github.com/ocaml-community/utop for configuration information."))
 ;; | The major mode                                                  |
 ;; +-----------------------------------------------------------------+
 
-(defun utop-is-running ()
+(defun utop-running-p ()
   (let ((buf (utop-buffer)))
     (when buf
       (with-current-buffer buf
         (and utop-process (eq (process-status utop-process) 'run))))))
+
+(define-obsolete-function-alias 'utop-is-running 'utop-running-p "2.0")
 
 (defun utop-about ()
   (interactive)
@@ -1208,11 +1210,11 @@ See https://github.com/ocaml-community/utop for configuration information."))
       "utop menu."
       '("utop"
         ["Start utop" utop t]
-        ["Interrupt utop" utop-interrupt :active (utop-is-running)]
-        ["Kill utop" utop-kill :active (utop-is-running)]
-        ["Exit utop gracefully" utop-exit :active (utop-is-running)]
+        ["Interrupt utop" utop-interrupt :active (utop-running-p)]
+        ["Kill utop" utop-kill :active (utop-running-p)]
+        ["Exit utop gracefully" utop-exit :active (utop-running-p)]
         "---"
-        ["Evaluate Phrase" utop-eval-input-auto-end :active (and (utop-is-running) (eq utop-state 'edit))]
+        ["Evaluate Phrase" utop-eval-input-auto-end :active (and (utop-running-p) (eq utop-state 'edit))]
         ["Switch to OCaml source buffer" utop-switch-to-recent-buffer t]
         "---"
         ["Customize utop" (customize-group 'utop) t]
