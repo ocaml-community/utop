@@ -1080,13 +1080,6 @@ defaults to 0."
         (with-current-buffer buf
          utop-state)))))
 
-(defun utop-setup-ocaml-buffer ()
-  "Deprecated"
-  (error "`utop-setup-ocaml-buffer' is deprecated, you need to
-replace it by `utop-minor-mode'.
-
-See https://github.com/ocaml-community/utop for configuration information."))
-
 ;;;###autoload
 (define-minor-mode utop-minor-mode
   "Minor mode for utop."
