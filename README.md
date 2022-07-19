@@ -166,7 +166,7 @@ Alternatively, if you have installed utop via opam, you can add this
 to your `~/.emacs`:
 
 ```elisp
-;; Add the opam lisp dir to the emacs load path
+;; Add the opam lisp dir to the Emacs load path
 (add-to-list
  'load-path
  (replace-regexp-in-string
@@ -200,11 +200,11 @@ copy&paste this to your `~/.emacs`:
 (dolist (var (car (read-from-string (shell-command-to-string "opam config env --sexp"))))
   (setenv (car var) (cadr var)))
 
-;; Update the emacs path
+;; Update the Emacs path
 (setq exec-path (append (parse-colon-path (getenv "PATH"))
                         (list exec-directory)))
 
-;; Update the emacs load path
+;; Update the Emacs load path
 (add-to-list 'load-path (expand-file-name "../../share/emacs/site-lisp"
                                           (getenv "OCAML_TOPLEVEL_PATH")))
 
@@ -252,7 +252,7 @@ you want.
 Common error
 ------------
 
-If you get this error when running utop in a terminal or in emacs this
+If you get this error when running utop in a terminal or in Emacs this
 means that the environment variable `CAML_LD_LIBRARY_PATH` is not set
 correctly:
 
@@ -334,7 +334,7 @@ following fields to the executable stanza:
 
 The `(modes ...)` field is to tell dune to install the byte-code
 version of the executable, as currently native toplevels are not fully
-suported.
+supported.
 
 [dune]: https://github.com/ocaml/dune
 

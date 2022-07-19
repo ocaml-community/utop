@@ -108,11 +108,11 @@ This hook is only run if exiting actually kills the buffer."
 
 (defface utop-stdout
   nil
-  "The face used to highlight messages comming from stdout.")
+  "The face used to highlight messages coming from stdout.")
 
 (defface utop-stderr
   nil
-  "The face used to highlight messages comming from stderr.")
+  "The face used to highlight messages coming from stderr.")
 
 (defface utop-frozen
   '((t (:bold t)))
@@ -231,7 +231,7 @@ backend")
    (featurep 'company)))
 
 ;; +-----------------------------------------------------------------+
-;; | Compability with different ocaml major modes                    |
+;; | Compatibility with different ocaml major modes                  |
 ;; +-----------------------------------------------------------------+
 
 (defun utop-compat-resolve (choices)
@@ -931,7 +931,7 @@ With prefix argument EOB-P, positions cursor at end of buffer."
 (defun utop-exit (&optional exit-code)
   "Try to gracefully exit utop.
 
-EXIT-CODE is the exit code that shoud be returned by utop. It
+EXIT-CODE is the exit code that should be returned by utop. It
 defaults to 0."
   (interactive)
   (with-current-buffer utop-buffer-name
@@ -939,7 +939,7 @@ defaults to 0."
       (utop-send-string (format "exit:%d\n" (or exit-code 0))))))
 
 (defun utop-sentinel (_process _msg)
-  "Callback for process' state change."
+  "Callback for process's state change."
   (let ((buffer (get-buffer utop-buffer-name)))
     ;; Do nothing if the buffer does not exist anymore
     (when buffer
