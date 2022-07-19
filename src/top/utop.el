@@ -1185,6 +1185,7 @@ See https://github.com/ocaml-community/utop for configuration information."))
     (define-key map (kbd "C-c C-k") #'utop-kill)
     (define-key map (kbd "C-c C-g") #'utop-exit)
     (define-key map (kbd "C-c C-s") #'utop)
+    (define-key map (kbd "C-c C-z") #'utop-switch-to-recent-buffer)
     (define-key map (kbd "C-c m")   #'utop-copy-old-input)
     (easy-menu-define
       utop-menu map
