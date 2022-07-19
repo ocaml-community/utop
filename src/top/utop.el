@@ -292,6 +292,10 @@ modes you need to set these variables:
          (inhibit-read-only t))
      (progn ,@actions)))
 
+(defun utop-buffer ()
+  "Return the utop buffer."
+  (get-buffer utop-buffer-name))
+
 (defun utop-send-string (str)
   "Send a string to the utop process. This function can only be
 called in the utop buffer and while the state is not 'done."
@@ -300,7 +304,7 @@ called in the utop buffer and while the state is not 'done."
 (defun utop-send-command (str)
   "Send a command to utop. If utop is not running or has exited,
 it is started."
-  (let ((buf (get-buffer utop-buffer-name)))
+  (let ((buf (utop-buffer)))
     (unless buf
       (setq buf (save-excursion (utop))))
     (with-current-buffer buf
@@ -313,7 +317,7 @@ it is started."
 
 (defun utop-goto-point-max-all-windows ()
   "Move the point to the end of buffer in all utop windows."
-  (let ((buffer (get-buffer utop-buffer-name)))
+  (let ((buffer (utop-buffer)))
     (walk-windows
      (lambda (window)
        (when (eq (window-buffer window) buffer)
@@ -497,7 +501,7 @@ it is started."
         (add-text-properties (point-min) utop-prompt-max utop-non-editable-properties)))
     ;; If OCaml is executing a phrase, follow its output
     (when (eq utop-state 'wait)
-      (let ((buffer (get-buffer utop-buffer-name)))
+      (let ((buffer (utop-buffer)))
         (walk-windows
          (lambda (window)
            (when (eq (window-buffer window) buffer)
@@ -778,7 +782,7 @@ If ADD-TO-HISTORY is t then the input will be added to history."
 (defun utop-prepare-for-eval ()
   "Prepare utop for evaluation."
   (save-excursion
-    (let ((buf (get-buffer utop-buffer-name)))
+    (let ((buf (utop-buffer)))
       (cond
        (buf
         ;; Make the buffer appear
@@ -857,7 +861,7 @@ If ADD-TO-HISTORY is t then the input will be added to history."
            (input (buffer-substring-no-properties start end))
            (edit-buffer (current-buffer)))
       ;; Start utop if needed
-      (let ((utop-buffer (get-buffer utop-buffer-name)))
+      (let ((utop-buffer (utop-buffer)))
         (unless utop-buffer
           ;; The buffer does not exist, read arguments before creating
           ;; it so the user can cancel starting utop
@@ -940,7 +944,7 @@ defaults to 0."
 
 (defun utop-sentinel (_process _msg)
   "Callback for process's state change."
-  (let ((buffer (get-buffer utop-buffer-name)))
+  (let ((buffer (utop-buffer)))
     ;; Do nothing if the buffer does not exist anymore
     (when buffer
       (with-current-buffer utop-buffer-name
@@ -1110,6 +1114,17 @@ defaults to 0."
     (utop-insert "\nRestarting...\n\n")
     (utop-start arguments)))
 
+(defun utop--state ()
+  "Retrieve the state of the utop buffer."
+  ;; we can either be in the utop buffer itself
+  (if (derived-mode-p 'utop-mode)
+      utop-state
+    ;; or in another buffer
+    (let ((buf (utop-buffer)))
+      (when buf
+        (with-current-buffer buf
+         utop-state)))))
+
 (defun utop-setup-ocaml-buffer ()
   "Deprecated"
   (error "`utop-setup-ocaml-buffer' is deprecated, you need to
@@ -1139,9 +1154,9 @@ See https://github.com/ocaml-community/utop for configuration information."))
                 ["Kill utop" utop-kill :active (utop-is-running)]
                 ["Exit utop gracefully" utop-exit :active (utop-is-running)]
                 "---"
-                ["Evaluate phrase" utop-eval-phrase :active (and (utop-is-running) (eq utop-state 'edit))]
-                ["Evaluate region" utop-eval-region :active (and (utop-is-running) (eq utop-state 'edit))]
-                ["Evaluate buffer" utop-eval-buffer :active (and (utop-is-running) (eq utop-state 'edit))]
+                ["Evaluate phrase" utop-eval-phrase :active (and (utop-is-running) (eq (utop--state) 'edit))]
+                ["Evaluate region" utop-eval-region :active (and (utop-is-running) (eq (utop--state) 'edit))]
+                ["Evaluate buffer" utop-eval-buffer :active (and (utop-is-running) (eq (utop--state) 'edit))]
                 "---"
                 ["Customize utop" (customize-group 'utop) t]
                 "---"
@@ -1158,7 +1173,7 @@ See https://github.com/ocaml-community/utop for configuration information."))
 ;; +-----------------------------------------------------------------+
 
 (defun utop-is-running ()
-  (let ((buf (get-buffer utop-buffer-name)))
+  (let ((buf (utop-buffer)))
     (when buf
       (with-current-buffer buf
         (and utop-process (eq (process-status utop-process) 'run))))))
@@ -1248,7 +1263,7 @@ To complete an identifier, simply press TAB.
 Special keys for utop:
 \\{utop-mode-map}"
   (interactive)
-  (let ((buf (get-buffer utop-buffer-name)))
+  (let ((buf (utop-buffer)))
     (cond
      (buf
       ;; Jump to the buffer
