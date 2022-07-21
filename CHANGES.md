@@ -1,3 +1,8 @@
+Unreleased
+----------
+
+* Bump the compatibility to 4.08+ (#393 @emillon)
+
 2.10.0 (2022-10-06)
 ------------------
 
