@@ -838,7 +838,7 @@ If ADD-TO-HISTORY is t then the input will be added to history."
   "Go to the beginning of line or to the end of the prompt."
   (interactive)
   (with-current-buffer utop-buffer-name
-    (if (= (point-at-bol) utop-prompt-min)
+    (if (= (line-beginning-position) utop-prompt-min)
         (goto-char utop-prompt-max)
       (move-beginning-of-line 1))))
 
