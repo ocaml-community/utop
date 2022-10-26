@@ -486,14 +486,10 @@ it is started."
 
 (defun utop-insert-phrase-terminator ()
   "Insert the phrase terminator at the end of buffer."
-  ;; Search the longest suffix of the input which is a prefix of the
-  ;; phrase terminator
-  (let* ((end (point-max))
-         (pos (max utop-prompt-max (- end (length utop-phrase-terminator)))))
-    (while (not (string-prefix-p (buffer-substring-no-properties pos end) utop-phrase-terminator))
-      (setq pos (1+ pos)))
-    ;; Insert only the missing part
-    (insert (substring utop-phrase-terminator (- end pos)))))
+  (re-search-forward ";*[ \t\n\r]*\\'")
+  (goto-char (match-beginning 0))
+  (unless (looking-at-p ";;")
+    (insert ";;")))
 
 (defun utop-process-line (line)
   "Process one line from the utop sub-process."
