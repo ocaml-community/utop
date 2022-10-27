@@ -182,17 +182,17 @@ your `~/.emacs`:
 
 ```elisp
 ;; Use the opam installed utop
-(setq utop-command "opam config exec -- utop -emacs")
+(setq utop-command "opam exec -- utop -emacs")
 ```
 
 If you use `dune` and want to launch `dune utop` in emacs, you
 should add this to your `~/.emacs`:
 
 ```elisp
-(setq utop-command "opam config exec -- dune utop . -- -emacs")
+(setq utop-command "opam exec -- dune utop . -- -emacs")
 ```
 
-This was tested with opam 1.2. For older versions of opam, you can
+This was tested with opam 2.1. For older versions of opam, you can
 copy&paste this to your `~/.emacs`:
 
 ```elisp
