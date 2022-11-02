@@ -102,8 +102,7 @@ val set_margin_function : (LTerm_geom.size -> int option) -> unit
   *)
 
 val phrase_terminator : string signal
-  (** The phrase terminator. It is ";;" by default and ";" when you
-      use revised syntax. *)
+  (** The phrase terminator, ";;". *)
 
 val get_phrase_terminator : unit -> string
   (** Returns the value of {!phrase_terminator}. *)

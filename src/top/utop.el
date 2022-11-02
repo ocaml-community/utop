@@ -649,8 +649,8 @@ If ALLOW-INCOMPLETE is non-nil and the phrase is not terminated,
 then a newline character will be inserted and edition will
 continue.
 
-If AUTO-END is non-nill then ALLOW-INCOMPLETE is ignored and a
-phrase terminator (;; or ; if using revised syntax) will be
+If AUTO-END is non-nill then ALLOW-INCOMPLETE is ignored and the
+phrase terminator (;;) will be
 automatically inserted by utop.
 
 If ADD-TO-HISTORY is t then the input will be added to history."
