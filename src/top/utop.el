@@ -649,7 +649,7 @@ If ALLOW-INCOMPLETE is non-nil and the phrase is not terminated,
 then a newline character will be inserted and edition will
 continue.
 
-If AUTO-END is non-nill then ALLOW-INCOMPLETE is ignored and the
+If AUTO-END is non-nil then ALLOW-INCOMPLETE is ignored and the
 phrase terminator (;;) will be
 automatically inserted by utop.
 
