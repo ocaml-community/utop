@@ -1237,7 +1237,7 @@ Special keys for utop:
 (declare-function company-grab-symbol-cons "ext:company")
 
 (defun utop-company-backend (command &optional _arg &rest _ignored)
-  "company backend for utop completions"
+  "Perform an action determined by COMMAND."
   (interactive (list 'interactive))
   (pcase command
     ('interactive (company-begin-backend 'utop-company-backend))
