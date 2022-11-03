@@ -486,14 +486,10 @@ it is started."
 
 (defun utop-insert-phrase-terminator ()
   "Insert the phrase terminator at the end of buffer."
-  ;; Search the longest suffix of the input which is a prefix of the
-  ;; phrase terminator
-  (let* ((end (point-max))
-         (pos (max utop-prompt-max (- end (length utop-phrase-terminator)))))
-    (while (not (string-prefix-p (buffer-substring-no-properties pos end) utop-phrase-terminator))
-      (setq pos (1+ pos)))
-    ;; Insert only the missing part
-    (insert (substring utop-phrase-terminator (- end pos)))))
+  (re-search-forward ";*[ \t\n\r]*\\'")
+  (goto-char (match-beginning 0))
+  (unless (looking-at-p ";;")
+    (insert ";;")))
 
 (defun utop-process-line (line)
   "Process one line from the utop sub-process."
@@ -653,8 +649,8 @@ If ALLOW-INCOMPLETE is non-nil and the phrase is not terminated,
 then a newline character will be inserted and edition will
 continue.
 
-If AUTO-END is non-nill then ALLOW-INCOMPLETE is ignored and a
-phrase terminator (;; or ; if using revised syntax) will be
+If AUTO-END is non-nil then ALLOW-INCOMPLETE is ignored and the
+phrase terminator (;;) will be
 automatically inserted by utop.
 
 If ADD-TO-HISTORY is t then the input will be added to history."
@@ -842,7 +838,7 @@ If ADD-TO-HISTORY is t then the input will be added to history."
   "Go to the beginning of line or to the end of the prompt."
   (interactive)
   (with-current-buffer utop-buffer-name
-    (if (= (point-at-bol) utop-prompt-min)
+    (if (= (line-beginning-position) utop-prompt-min)
         (goto-char utop-prompt-max)
       (move-beginning-of-line 1))))
 
