@@ -101,6 +101,16 @@ This hook is only run if exiting actually kills the buffer."
   :type 'boolean
   :safe 'booleanp)
 
+(defcustom utop-capf-wait-interval 0.01
+  "Length of time to wait when polling for completion candidates."
+  :type 'float
+  :safe 'floatp)
+
+(defcustom utop-capf-max-wait-time 0.1
+  "Maximum time to wait before giving up on completion."
+  :type 'float
+  :safe 'floatp)
+
 (defface utop-prompt
   '((((background dark)) (:foreground "Cyan1"))
     (((background light)) (:foreground "blue")))
@@ -156,6 +166,9 @@ This hook is only run if exiting actually kills the buffer."
 
 (defvar-local utop-completion nil
   "Current completion.")
+
+(defvar-local utop-capf-completion-candidates nil
+  "Current completion when using capf.")
 
 (defvar-local utop-completion-prefixes nil
   "Prefixes for current completion.")
@@ -595,19 +608,14 @@ it is started."
                              (cadr (split-string prefix "\\."))
                            prefix)))
              (when (string-prefix-p prefix argument)
-              (push argument utop-completion)
-              (throw 'done t))))))
+               (push argument utop-completion)
+               (throw 'done t))))))
       ;; End of completion
       ("completion-stop"
        (utop-set-state 'edit)
        (if (utop--supports-company)
            (funcall utop--complete-k (nreverse utop-completion))
-         (progn
-           (if (> (length utop-completion) 1)
-               (with-current-buffer utop-complete-buffer
-                 (with-output-to-temp-buffer "*Completions*"
-                   (display-completion-list (nreverse utop-completion))))
-             (minibuffer-hide-completions))))
+         (setq utop-capf-completion-candidates (nreverse utop-completion)))
        (setq utop-completion nil)))))
 
 (defun utop-process-output (_process output)
@@ -704,10 +712,7 @@ If ADD-TO-HISTORY is t then the input will be added to history."
     ;; We are now waiting for completion
     (utop-set-state 'comp)
     ;; Send all lines to utop
-    (utop-send-string
-     (if (utop--supports-company)
-         "complete-company:\n"
-       "complete:\n"))
+    (utop-send-string "complete-company:\n")
     ;; Keep track of the prefixes, so we can avoid returning
     ;; completion which don't have a match.
     (setq utop-completion-prefixes lines)
@@ -716,9 +721,8 @@ If ADD-TO-HISTORY is t then the input will be added to history."
       (utop-send-string (concat "data:" line "\n")))
     (utop-send-string "end:\n")))
 
-(defun utop-complete ()
-  "Complete current input."
-  (interactive)
+(defun utop-complete-start ()
+  "Conditionally begins to request completion candidates from utop."
   ;; Complete only if the cursor is after the prompt
   (when (and (eq utop-state 'edit) (>= (point) utop-prompt-max))
     ;; Use this buffer
@@ -726,6 +730,30 @@ If ADD-TO-HISTORY is t then the input will be added to history."
     ;; Send the input before the cursor
     (utop-complete-input
      (buffer-substring-no-properties utop-prompt-max (point)))))
+
+(defun utop-completion-at-point ()
+  "Complete thing at point."
+  (setq utop-capf-completion-candidates nil)
+  (utop-complete-start)
+
+  (let ((elapsed-time 0))
+    (while (and (eq utop-state 'comp)
+                (> utop-capf-max-wait-time elapsed-time))
+      (sleep-for utop-capf-wait-interval)
+      (setq elapsed-time (+ elapsed-time utop-capf-wait-interval))))
+
+  (when (>= (length utop-capf-completion-candidates) 1)
+    (list
+     utop-prompt-max
+     (point)
+     utop-capf-completion-candidates)))
+
+(defun utop-complete ()
+  "Complete current input."
+  (interactive)
+  (if (utop--supports-company)
+      (utop-complete-start)
+    (completion-at-point)))
 
 ;; +-----------------------------------------------------------------+
 ;; | Eval                                                            |
@@ -1185,6 +1213,8 @@ defaults to 0."
   ;; add company completion hook:
   (with-eval-after-load 'company
     (add-to-list 'company-backends #'utop-company-backend))
+
+  (add-hook 'completion-at-point-functions #'utop-completion-at-point nil 'local)
 
   ;; Start utop
   (utop-start (utop-arguments)))
