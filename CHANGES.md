@@ -1,3 +1,8 @@
+unreleased
+----------
+
+* emacs: add completion-at-point implementation (#406, fixes #261, @j-shilling)
+
 2.12.0 (2023-04-17)
 -------------------
 
