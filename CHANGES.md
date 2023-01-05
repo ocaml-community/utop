@@ -1,5 +1,5 @@
-Unreleased
-----------
+2.11.0 (2023-01-05)
+-------------------
 
 * Bump the compatibility to 4.08+ (#393 @emillon)
 * Load `@toplevel_printer` annotated printers for functors (#378 @metavinek)
