@@ -11,6 +11,7 @@
 
 open Types
 open LTerm_read_line
+open UTop_compat
 open UTop_token
 
 module String_set = Set.Make(String)
@@ -21,27 +22,6 @@ let set_of_list = List.fold_left (fun set x -> String_set.add x set) String_set.
 (* +-----------------------------------------------------------------+
    | Utils                                                           |
    +-----------------------------------------------------------------+ *)
-
-let get_desc x =
-#if OCAML_VERSION >= (4, 14, 0)
-  Types.get_desc x
-#else
-  x.Types.desc
-#endif
-
-let toploop_get_directive name =
-#if OCAML_VERSION >= (4, 13, 0)
-  Toploop.get_directive name
-#else
-  try Some (Hashtbl.find Toploop.directive_table name) with Not_found -> None
-#endif
-
-let toploop_all_directive_names () =
-#if OCAML_VERSION >= (4, 13, 0)
-  Toploop.all_directive_names ()
-#else
-  Hashtbl.fold (fun dir _ acc -> dir::acc) Toploop.directive_table []
-#endif
 
 (* Transform a non-empty list of strings into a long-identifier. *)
 let longident_of_list = function
@@ -422,11 +402,7 @@ let constructor_name { cd_id = id } = Ident.name id
 
 let add_fields_of_type decl acc =
   match decl.type_kind with
-#if OCAML_VERSION >= (4, 13, 0)
-    | Type_variant (constructors, _) ->
-#else
-    | Type_variant constructors ->
-#endif
+    | Type_variant _ ->
         acc
     | Type_record (fields, _) ->
         List.fold_left (fun acc field -> add (field_name field) acc) acc fields
@@ -511,15 +487,6 @@ let rec fields_of_module_type = function
   end
   | _ ->
       String_set.empty
-
-let lookup_module id env =
-#if OCAML_VERSION >= (4, 10, 0)
-  let path, decl = Env.find_module_by_name id env in
-  (path, decl.md_type)
-#else
-  let path = Env.lookup_module id env ~load:true in
-  (path, (Env.find_module path env).md_type)
-#endif
 
 let find_module path env = (Env.find_module path env).md_type
 
@@ -728,13 +695,6 @@ let rec find_object meths type_expr =
               None
 
 let methods_of_object longident meths =
-  let lookup_value=
-#if OCAML_VERSION >= (4, 10, 0)
-    Env.find_value_by_name
-#else
-    Env.lookup_value
-#endif
-  in
   match lookup_env lookup_value longident !Toploop.toplevel_env with
     | None ->
         []
@@ -775,13 +735,6 @@ let rec labels_of_type acc type_expr =
         String_map.bindings acc
 
 let labels_of_function longident meths =
-  let lookup_value=
-#if OCAML_VERSION >= (4, 10, 0)
-    Env.find_value_by_name
-#else
-    Env.lookup_value
-#endif
-  in
   match lookup_env lookup_value longident !Toploop.toplevel_env with
     | None ->
         []
@@ -793,13 +746,6 @@ let labels_of_function longident meths =
               labels_of_type String_map.empty type_expr
 
 let labels_of_newclass longident =
-  let lookup_class=
-#if OCAML_VERSION >= (4, 10, 0)
-    Env.find_class_by_name
-#else
-    Env.lookup_class
-#endif
-  in
   match lookup_env lookup_class longident !Toploop.toplevel_env with
     | None ->
         []
@@ -851,14 +797,6 @@ and find_context_in_quotation = function
 (* +-----------------------------------------------------------------+
    | Completion                                                      |
    +-----------------------------------------------------------------+ *)
-
-#if OCAML_VERSION < (4, 11, 0)
-let longident_parse= Longident.parse
-#else
-let longident_parse str=
-  let lexbuf= Lexing.from_string str in
-  Parse.longident lexbuf
-#endif
 
 let complete ~phrase_terminator ~input =
   let true_name, false_name = ("true", "false") in

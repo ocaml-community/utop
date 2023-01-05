@@ -16,13 +16,6 @@ open LTerm_style
 
 let (>>=) = Lwt.(>>=)
 
-let toploop_get_directive name =
-#if OCAML_VERSION >= (4, 13, 0)
-  Toploop.get_directive name
-#else
-  try Some (Hashtbl.find Toploop.directive_table name) with Not_found -> None
-#endif
-
 module String_set = Set.Make(String)
 
 let version = "%%VERSION%%"
@@ -812,7 +805,7 @@ let use_output command =
 
 let () =
   let name = "use_output" in
-  if toploop_get_directive name = None then
+  if UTop_compat.toploop_get_directive name = None then
     Toploop.add_directive
       name
       (Toploop.Directive_string use_output)
@@ -838,12 +831,7 @@ let () =
    +-----------------------------------------------------------------+ *)
 
 let get_load_path () = Load_path.get_paths ()
-#if OCAML_VERSION >= (5, 0, 0)
-let set_load_path path =
-  Load_path.init path ~auto_include:Load_path.no_auto_include
-#else
-let set_load_path path = Load_path.init path
-#endif
+let set_load_path = UTop_compat.set_load_path
 
 (* +-----------------------------------------------------------------+
    | Deprecated                                                      |

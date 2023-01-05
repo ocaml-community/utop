@@ -14,23 +14,10 @@ open LTerm_dlist
 open LTerm_text
 open LTerm_geom
 open UTop
+open UTop_compat
 open UTop_token
 open UTop_styles
 open UTop_private
-
-let get_desc x =
-#if OCAML_VERSION >= (4, 14, 0)
-  Types.get_desc x
-#else
-  x.Types.desc
-#endif
-
-let toploop_use_silently fmt name =
-#if OCAML_VERSION >= (4, 14, 0)
-  Toploop.use_silently fmt (File name)
-#else
-  Toploop.use_silently fmt name
-#endif
 
 let return, (>>=) = Lwt.return, Lwt.(>>=)
 
@@ -319,12 +306,6 @@ module Autoprinter : sig
 end = struct
   open Types
 
-#if OCAML_VERSION >= (4, 09, 0)
-  module Persistent_signature = Persistent_env.Persistent_signature
-#else
-  module Persistent_signature = Env.Persistent_signature
-#endif
-
   let cons_path path id =
     let comp = Ident.name id in
     match path with
@@ -354,13 +335,7 @@ end = struct
 
   let find_module id env =
     let name = Longident.Lident (Ident.name id) in
-#if OCAML_VERSION >= (4, 10, 0)
-    let path, md = Env.find_module_by_name name env in
-#else
-    let path = Env.lookup_module name env ~load:true in
-    let path, md = (path, Env.find_module path env) in
-#endif
-    (path, md)
+    lookup_module name env
 
   let scan_cmis =
     let new_cmis = ref [] in
@@ -386,7 +361,7 @@ end = struct
       let scan_module env id =
         let path, md = find_module id env in
         if path = Path.Pident id then
-          walk_mty pp (Longident.Lident (Ident.name id)) md.md_type
+          walk_mty pp (Longident.Lident (Ident.name id)) md
       in
       let rec scan_globals last = function
         | [] -> ()
@@ -596,14 +571,6 @@ type rewrite_rule = {
   (* Whether the rule is enabled or not. *)
 }
 
-#if OCAML_VERSION < (4, 11, 0)
-let longident_parse= Longident.parse
-#else
-let longident_parse str=
-  let lexbuf= Lexing.from_string str in
-  Parse.longident lexbuf
-#endif
-
 let longident_lwt_main_run = Longident.Ldot (Longident.Lident "Lwt_main", "run")
 let longident_async_thread_safe_block_on_async_exn =
   Longident.(Ldot (Ldot (Lident "Async", "Thread_safe"), "block_on_async_exn"))
@@ -643,15 +610,6 @@ let rewrite_rules = [
   }
 ]
 
-#if OCAML_VERSION >= (4, 10, 0)
-let lookup_type longident env =
-  Env.find_type_by_name longident env
-#else
-let lookup_type longident env =
-  let path = Env.lookup_type longident env in
-  (path, Env.find_type path env)
-#endif
-
 let rule_path rule =
   match rule.path_to_rewrite with
   | Some _ as x -> x
@@ -685,13 +643,6 @@ let rec is_persistent_path = function
 (* Check that the given long identifier is present in the environment
    and is persistent. *)
 let is_persistent_in_env longident =
-  let lookup_value=
-#if OCAML_VERSION >= (4, 10, 0)
-    Env.find_value_by_name
-#else
-    Env.lookup_value
-#endif
-  in
   try
     is_persistent_path (fst (lookup_value longident !Toploop.toplevel_env))
   with Not_found ->
@@ -1276,22 +1227,6 @@ end
 let typeof sid =
   let id  = longident_parse sid in
   let env = !Toploop.toplevel_env in
-#if OCAML_VERSION >= (4, 10, 0)
-  let lookup_value= Env.find_value_by_name
-  and lookup_label= Env.find_label_by_name
-  and lookup_modtype= Env.find_modtype_by_name
-  and lookup_module id env =
-    let path, decl = Env.find_module_by_name id env in
-    (path, decl.md_type)
-#else
-  let lookup_value= Env.lookup_value
-  and lookup_label= Env.lookup_label
-  and lookup_modtype= Env.lookup_modtype
-  and lookup_module id env =
-    let path = Env.lookup_module id env ~load:true in
-    (path, (Env.find_module path env).md_type)
-#endif
-  in
   let from_type_desc = function
     | Types.Tconstr (path, _, _) ->
       let typ_decl = Env.find_type path env in
@@ -1326,11 +1261,7 @@ let typeof sid =
       Some (Printtyp.tree_of_modtype_declaration id mty_decl)
     with Not_found ->
     try
-      #if OCAML_VERSION >= (4, 10, 0)
-      let cstr_desc = Env.find_constructor_by_name id env in
-      #else
-      let cstr_desc = Env.lookup_constructor id env in
-      #endif
+      let cstr_desc = lookup_constructor id env in
       match cstr_desc.Types.cstr_tag with
       | _ ->
         let (path, ty_decl) = from_type_desc (get_desc cstr_desc.Types.cstr_res) in
@@ -1369,22 +1300,13 @@ let emacs_mode = ref false
 let preload = ref []
 
 let prepare () =
-#if OCAML_VERSION >= (5, 0, 0)
-  Toploop.set_paths ~auto_include:Load_path.no_auto_include ();
-#else
-  Toploop.set_paths ();
-#endif
+  toploop_set_paths ();
   try
     let ok =
       List.for_all
         (function
           | `Packages l -> UTop.require l; true
-          | `Object fn ->
-#if OCAML_VERSION >= (4, 13, 0)
-            Toploop.load_file Format.err_formatter fn)
-#else
-            Topdirs.load_file Format.err_formatter fn)
-#endif
+          | `Object fn -> toploop_load_file Format.err_formatter fn)
         (List.rev !preload)
     in
     if ok then !Toploop.toplevel_startup_hook ();
@@ -1701,20 +1623,7 @@ let interact ?(search_path=[]) ?(build_dir="_build") ~unit ~loc:(fname, lnum, cn
           end
         | _ -> next e
   in
-#if OCAML_VERSION >= (4,09,0)
-  let next iterator e = Tast_iterator.default_iterator.expr iterator e in
-  let expr iterator = expr (next iterator) in
-  let iter = { Tast_iterator.default_iterator with expr } in
-  let search = iter.structure iter in
-#else
-  let module Search =
-    TypedtreeIter.MakeIterator(struct
-      include TypedtreeIter.DefaultIteratorArgument
-
-      let enter_expression = expr ignore
-     end) in
-    let search = Search.iter_structure in
-#endif
+  let search = iter_structure expr in
   try
     begin match cmt_infos.cmt_annots with
     | Implementation st -> search st
