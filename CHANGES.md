@@ -1,3 +1,10 @@
+2.12.0 (unreleased)
+-------------------
+
+* Mark `prompt_continue`, `prompt_comment`, `smart_accept`, `new_prompt_hooks`,
+  `at_new_prompt` as deprecated (they have been documented as such since 2012
+  and most of them are ignored) (#xxx @emillon)
+
 2.11.0 (2023-01-05)
 -------------------
 

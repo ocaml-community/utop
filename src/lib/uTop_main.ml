@@ -230,7 +230,7 @@ class read_phrase ~term = object(self)
         let input_utf8= Zed_string.to_utf8 input in
         (* Toploop does that: *)
         Location.reset ();
-        let eos_is_error = not !UTop.smart_accept in
+        let eos_is_error = not !(UTop.smart_accept[@alert "-deprecated"]) in
         try
           let result = parse_and_check input_utf8 eos_is_error in
           return_value <- Some result;
