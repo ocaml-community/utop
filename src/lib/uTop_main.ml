@@ -759,19 +759,20 @@ let print_error term msg =
 module Ops = struct
   type t =
     | Term of LTerm.t
-    | Test of In_channel.t
+    | Test of Stdlib.in_channel
 
   let read_phrase = function
     | Term t -> read_phrase t
     | Test ic ->
         let rec loop () =
           let r =
-            match In_channel.input_line ic with
-            | None -> `Eof
-            | Some s ->
+            match Stdlib.input_line ic with
+            | exception End_of_file -> `Eof
+            | s ->
+              let n = String.length s in
               begin
-                if String.starts_with s ~prefix:"#" then
-                  `Input (String.sub s 1 (String.length s - 1))
+                if n >= 1 && s.[0] = '#' then
+                  `Input (String.sub s 1 (n - 1))
                 else
                   `Output
               end
@@ -1391,7 +1392,10 @@ let print_version_num () =
 
 module Test = struct
   let run path =
-    In_channel.with_open_bin path (fun ic -> loop (Test ic))
+    let ic = Stdlib.open_in_bin path in
+    Fun.protect
+    (fun () -> loop (Test ic))
+    ~finally:(fun () -> Stdlib.close_in_noerr ic)
 end
 
 (* Config from command line *)
