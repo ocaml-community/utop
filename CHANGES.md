@@ -3,7 +3,9 @@
 
 * Mark `prompt_continue`, `prompt_comment`, `smart_accept`, `new_prompt_hooks`,
   `at_new_prompt` as deprecated (they have been documented as such since 2012
-  and most of them are ignored) (#xxx @emillon)
+  and most of them are ignored) (#415, @emillon)
+
+* Qualify `()` constructor in generated expressions. (#418, fixes #417, @emillon)
 
 2.11.0 (2023-01-05)
 -------------------

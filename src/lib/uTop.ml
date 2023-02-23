@@ -349,7 +349,7 @@ let check_phrase phrase =
         let env = !Toploop.toplevel_env in
         (* Construct "let _ () = let module _ = struct <items> end in ()" in order to test
            the typing and compilation of [items] without evaluating them. *)
-        let unit = with_loc loc (Longident.Lident "()") in
+        let unit = with_loc loc (Longident.Ldot (Lident "Unit", "()")) in
         let top_def =
           let open Ast_helper in
           with_default_loc loc
