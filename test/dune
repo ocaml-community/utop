@@ -1,0 +1,8 @@
+(rule
+  (with-outputs-to
+    demo.txt.corrected
+    (run %{bin:utop} -test demo.txt)))
+
+(alias
+  (name runtest)
+  (action (diff demo.txt demo.txt.corrected)))
