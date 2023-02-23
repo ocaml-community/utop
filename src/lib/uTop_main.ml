@@ -574,7 +574,6 @@ type rewrite_rule = {
 let longident_lwt_main_run = Longident.Ldot (Longident.Lident "Lwt_main", "run")
 let longident_async_thread_safe_block_on_async_exn =
   Longident.(Ldot (Ldot (Lident "Async", "Thread_safe"), "block_on_async_exn"))
-let longident_unit = Longident.Lident "()"
 
 let rewrite_rules = [
   (* Rewrite Lwt.t expressions to Lwt_main.run <expr> *)
