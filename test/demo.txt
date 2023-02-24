@@ -1,5 +1,5 @@
 # type t = () of unit;;
-Warning 65 [redefining-unit]
+Warning 65
 type t = () of unit
 # 0;;
 Error

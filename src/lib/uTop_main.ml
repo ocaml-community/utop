@@ -1393,21 +1393,20 @@ let print_version_num () =
 module Test = struct
   let map_loc f {Location.loc;txt} = {Location.loc; txt= f txt}
 
+  let shorten_warning_name s =
+    Scanf.sscanf s "%d" string_of_int
+
   let shorten_kind = function
-  | Location.Report_error -> Location.Report_error
-  | Report_warning _ -> Report_warning "A"
-  | Report_warning_as_error _ -> Report_warning_as_error "B"
-  | Report_alert _ -> Report_alert "C"
-  | Report_alert_as_error _ -> Report_alert "D"
+  | Location.Report_warning s -> Location.Report_warning (shorten_warning_name s)
+  | k -> k
 
   let short_warning_reporter loc warn =
     Option.map
-    (fun report ->
-            { report with Location.main = Location.mknoloc (fun _ -> ())
-            ; kind = shorten_kind report.Location.kind
-  }
-            )
-          (Location.default_warning_reporter loc warn)
+      (fun report ->
+        { report with
+          Location.kind = shorten_kind report.Location.kind }
+      )
+      (Location.default_warning_reporter loc warn)
 
   let short_report_printer () =
     let def = Location.batch_mode_printer in
@@ -1417,6 +1416,7 @@ module Test = struct
     { def with pp }
 
   let setup () =
+    Location.warning_reporter := short_warning_reporter;
     Location.report_printer := short_report_printer
 
   let run path =
