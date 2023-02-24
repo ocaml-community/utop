@@ -1391,6 +1391,34 @@ let print_version_num () =
   exit 0
 
 module Test = struct
+  let map_loc f {Location.loc;txt} = {Location.loc; txt= f txt}
+
+  let shorten_kind = function
+  | Location.Report_error -> Location.Report_error
+  | Report_warning _ -> Report_warning "A"
+  | Report_warning_as_error _ -> Report_warning_as_error "B"
+  | Report_alert _ -> Report_alert "C"
+  | Report_alert_as_error _ -> Report_alert "D"
+
+  let short_warning_reporter loc warn =
+    Option.map
+    (fun report ->
+            { report with Location.main = Location.mknoloc (fun _ -> ())
+            ; kind = shorten_kind report.Location.kind
+  }
+            )
+          (Location.default_warning_reporter loc warn)
+
+  let short_report_printer () =
+    let def = Location.batch_mode_printer in
+    let pp self ppf report =
+      Format.fprintf ppf "%a\n" (self.Location.pp_report_kind self report) report.kind;
+    in
+    { def with pp }
+
+  let setup () =
+    Location.report_printer := short_report_printer
+
   let run path =
     let ic = Stdlib.open_in_bin path in
     Fun.protect
@@ -1558,6 +1586,7 @@ let main_aux ~initial_env =
   match !test_file with
   | Some f -> begin
     common_init ~initial_env;
+    Test.setup ();
     Test.run f
   end
   | None ->
