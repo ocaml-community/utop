@@ -130,3 +130,12 @@ let iter_structure expr =
      end) in
   Search.iter_structure
 #endif
+
+(** Returns whether the given path is persistent. *)
+let rec is_persistent_path = function
+  | Path.Pident id -> Ident.persistent id
+  | Path.Pdot (p, _) -> is_persistent_path p
+  | Path.Papply (_, p) -> is_persistent_path p
+#if OCAML_VERSION >= (5, 1, 0)
+  | Path.Pextra_ty (p, _) -> is_persistent_path p
+#endif

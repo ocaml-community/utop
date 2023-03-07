@@ -634,12 +634,6 @@ let rule_path rule =
     with _ ->
       None
 
-(* Returns whether the given path is persistent. *)
-let rec is_persistent_path = function
-  | Path.Pident id -> Ident.persistent id
-  | Path.Pdot (p, _) -> is_persistent_path p
-  | Path.Papply (_, p) -> is_persistent_path p
-
 (* Check that the given long identifier is present in the environment
    and is persistent. *)
 let is_persistent_in_env longident =
@@ -1512,7 +1506,7 @@ let protocol_version = 1
 
 let main_aux ~initial_env =
   Arg.parse args file_argument usage;
-#if OCAML_VERSION >= (5, 0, 0)
+#if OCAML_VERSION >= (5, 0, 0) && OCAML_VERSION < (5, 1, 0)
   Topcommon.load_topdirs_signature ();
 #endif
   if not (prepare ()) then exit 2;
