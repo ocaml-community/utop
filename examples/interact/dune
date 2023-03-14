@@ -1,5 +1,4 @@
 (executable
  (name test_program)
- (flags :standard -safe-string)
  (link_flags -linkall)
  (libraries utop))

@@ -1,7 +1,6 @@
 (executables
  (names utop)
  (libraries utop)
- (flags :standard -safe-string)
  (modes byte)
  (link_flags -linkall))
 
