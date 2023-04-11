@@ -705,22 +705,12 @@ let rewrite phrase =
 let add_let binding_name def =
   let open Parsetree in
   match def with
-  | { pstr_desc = Pstr_eval (expr, attr); pstr_loc } ->
-    {
-      pstr_loc;
-      pstr_desc = Pstr_value (Asttypes.Nonrecursive, [
-        {
-          pvb_pat = {
-            ppat_desc = Ppat_var { txt = binding_name; loc = pstr_loc; };
-            ppat_loc_stack= [];
-            ppat_loc = pstr_loc;
-            ppat_attributes = [];
-          };
-          pvb_expr = expr;
-          pvb_attributes = attr;
-          pvb_loc = pstr_loc;
-        }]);
-    }
+  | { pstr_desc = Pstr_eval (expr, attrs); pstr_loc = loc } ->
+      Ast_helper.Str.value ~loc Nonrecursive
+      [
+        let pat = Ast_helper.Pat.var ~loc { txt = binding_name; loc } in
+        Ast_helper.Vb.mk ~loc ~attrs pat expr
+      ]
   | _ ->
     def
 
