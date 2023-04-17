@@ -1,5 +1,7 @@
-2.12.0 (unreleased)
+2.12.0 (2023-04-17)
 -------------------
+
+* Add support for OCaml 5.1 (#421, @emillon)
 
 * Mark `prompt_continue`, `prompt_comment`, `smart_accept`, `new_prompt_hooks`,
   `at_new_prompt` as deprecated (they have been documented as such since 2012
