@@ -14,6 +14,7 @@ homepage: "https://github.com/ocaml-community/utop"
 doc: "https://ocaml-community.github.io/utop/"
 bug-reports: "https://github.com/ocaml-community/utop/issues"
 depends: [
+  "dune" {>= "1.11"}
   "ocaml" {>= "4.08.0"}
   "base-unix"
   "base-threads"
@@ -25,7 +26,6 @@ depends: [
   "zed" {>= "3.2.0"}
   "react" {>= "1.0.0"}
   "cppo" {build & >= "1.1.2"}
-  "dune" {>= "1.0"}
 ]
 build: [
   ["dune" "subst"] {pinned}

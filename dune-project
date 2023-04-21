@@ -28,5 +28,4 @@
   lwt_react
   (zed (>= 3.2.0))
   (react (>= 1.0.0))
-  (cppo (and :build (>= 1.1.2)))
-  (dune (>= 1.0))))
+  (cppo (and :build (>= 1.1.2)))))
