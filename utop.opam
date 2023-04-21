@@ -25,7 +25,7 @@ depends: [
   "lwt_react"
   "zed" {>= "3.2.0"}
   "react" {>= "1.0.0"}
-  "cppo" {build & >= "1.1.2"}
+  "cppo" {>= "1.1.2"}
 ]
 build: [
   ["dune" "subst"] {pinned}
