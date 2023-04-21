@@ -1,6 +1,9 @@
 unreleased
 ----------
 
+* Fix regression with unit qualification when a `Unit` module is in scope with
+  no `()` constructor (#429, fixes #428, @emillon)
+
 * emacs: add completion-at-point implementation (#406, fixes #261, @j-shilling)
 
 2.12.0 (2023-04-17)
