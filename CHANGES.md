@@ -1,5 +1,5 @@
-unreleased
-----------
+2.12.1 (2023-04-21)
+-------------------
 
 * Fix regression with unit qualification when a `Unit` module is in scope with
   no `()` constructor (#429, fixes #428, @emillon)
