@@ -12,11 +12,7 @@
  (name utop)
  (synopsis "Universal toplevel for OCaml")
  (description
-  "\| utop is an improved toplevel (i.e., Read-Eval-Print Loop or REPL) for
-  "\| OCaml.  It can run in a terminal or in Emacs. It supports line
-  "\| edition, history, real-time and context sensitive completion, colors,
-  "\| and more.  It integrates with the Tuareg mode in Emacs.
-  )
+  "utop is an improved toplevel (i.e., Read-Eval-Print Loop or REPL) for OCaml. It can run in a terminal or in Emacs. It supports line edition, history, real-time and context sensitive completion, colors, and more. It integrates with the Tuareg mode in Emacs.")
  (depends
   (ocaml (>= 4.08.0))
   base-unix
