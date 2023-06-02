@@ -1,6 +1,9 @@
 2.13.0 (unreleased)
 -------------------
 
+* Load files from XDG directories (the legacy paths still work). (#431,
+  @Skyb0rg007)
+
 * Remove deprecated values `prompt_continue`, `prompt_comment`, `smart_accept`,
   `new_prompt_hooks`, `at_new_prompt` (#..., @emillon)
 

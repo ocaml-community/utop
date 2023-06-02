@@ -9,6 +9,27 @@
 
 open Lwt_react
 
+module Default_paths = struct
+  let ( / ) = Filename.concat
+  let xdg = Xdg.create ~env:Sys.getenv_opt ()
+
+  let resolve ~legacy ~filename =
+    if Sys.file_exists legacy then
+      legacy
+    else
+      filename
+
+  let history_file_name =
+    resolve
+      ~legacy:(LTerm_resources.home / ".utop-history")
+      ~filename:(Xdg.state_dir xdg / "utop-history")
+
+  let config_file_name =
+    resolve
+      ~legacy:(LTerm_resources.home / ".utoprc")
+      ~filename:(Xdg.config_dir xdg / "utoprc")
+end
+
 let size, set_size =
   let ev, set_size = E.create () in
   let init = S.const { LTerm_geom.rows = 25; LTerm_geom.cols = 80 } in
@@ -27,7 +48,7 @@ let ui, set_ui = S.create Console
 
 let error_style = ref LTerm_style.none
 
-(* Config from ~/.utoprc *)
+(* Config from $XDG_CONFIG_HOME/utop/utoprc *)
 let autoload = ref true
 
 let margin_function, set_margin_function =
