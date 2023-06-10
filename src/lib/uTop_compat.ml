@@ -89,7 +89,7 @@ let set_load_path path =
 
 let toploop_use_silently fmt name =
 #if OCAML_VERSION >= (4, 14, 0)
-  Toploop.use_silently fmt (File name)
+  Toploop.use_silently fmt (match name with "" -> Stdin | _ -> File name)
 #else
   Toploop.use_silently fmt name
 #endif
