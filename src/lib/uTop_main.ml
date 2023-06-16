@@ -433,19 +433,28 @@ let fix_string str =
     loop ofs
   end
 
+let reduce zstr =
+  let is_mono zc = Zed_char.size zc = 1 in
+  let subchar = Zed_char.of_utf8 "\026" in (* ASCII substitute character *)
+  Zed_string.map (fun zc -> if is_mono zc then zc else subchar) zstr
+
 let render_out_phrase term string =
   if String.length string >= 100 * 1024 then
     LTerm.fprint term string
   else begin
     let string = fix_string string in
     let styled = LTerm_text.of_utf8 string in
+    let reduced = if Array.length styled = String.length string then
+        string
+      else
+        Zed_string.to_utf8 (reduce (LTerm_text.to_string styled)) in
     let stylise loc token_style =
       for i = loc.idx1 to loc.idx2 - 1 do
         let ch, style = styled.(i) in
         styled.(i) <- (ch, LTerm_style.merge token_style style)
       done
     in
-    UTop_styles.stylise stylise (UTop_lexer.lex_string string);
+    UTop_styles.stylise stylise (UTop_lexer.lex_string reduced);
     LTerm.fprints term styled
   end
 
