@@ -2,4 +2,4 @@
 Warning 65
 type t = () of unit
 # 0;;
-Error
+- : int = 0
