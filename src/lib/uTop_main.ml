@@ -756,7 +756,52 @@ let print_error term msg =
   LTerm.set_style term LTerm_style.none >>= fun () ->
   LTerm.flush term
 
-let rec loop term =
+module Ops = struct
+  type t =
+    | Term of LTerm.t
+    | Test of Stdlib.in_channel
+
+  let read_phrase = function
+    | Term t -> read_phrase t
+    | Test ic ->
+        let rec loop () =
+          let r =
+            match Stdlib.input_line ic with
+            | exception End_of_file -> `Eof
+            | s ->
+              let n = String.length s in
+              begin
+                if n >= 1 && s.[0] = '#' then
+                  `Input (String.sub s 1 (n - 1))
+                else
+                  `Output
+              end
+          in
+          match r with
+          | `Eof -> exit 0
+          | `Input s -> s
+          | `Output -> loop ()
+        in
+        let input = loop () in
+        Printf.printf "#%s\n%!" input;
+        let r = parse_and_check input false in
+        Stdlib.flush Stdlib.stderr;
+        Lwt.return r
+
+  let print_error ops e = match ops with
+    | Term t -> print_error t e
+    | Test _ -> Printf.printf "%s%!" e; Lwt.return_unit
+
+  let flush = function
+    | Term t -> LTerm.flush t
+    | Test _ -> Lwt.return_unit
+
+  let render_out_phrase ops s = match ops with
+    | Term t -> render_out_phrase t s
+    | Test _ -> Printf.printf "%s%!" s;Lwt.return_unit
+end
+
+let rec loop ops =
   (* Reset completion. *)
   UTop_complete.reset ();
 
@@ -771,16 +816,16 @@ let rec loop term =
     Lwt_main.run (
       Lwt.finalize
         (fun () ->
-          read_phrase term >>= fun (result, warnings) ->
+          Ops.read_phrase ops >>= fun (result, warnings) ->
           (* Print warnings before errors. *)
           Lwt_io.print warnings >>= fun () ->
           match result with
             | UTop.Value phrase ->
                 return (Some phrase)
             | UTop.Error (locs, msg) ->
-                print_error term msg >>= fun () ->
+                Ops.print_error ops msg >>= fun () ->
                 return None)
-        (fun () -> LTerm.flush term)
+        (fun () -> Ops.flush ops)
     )
   in
   match phrase_opt with
@@ -819,10 +864,10 @@ let rec loop term =
            match phrase with
              | Parsetree.Ptop_def _ ->
                  (* The string is an output phrase, colorize it. *)
-                 Lwt_main.run (render_out_phrase term string)
+                 Lwt_main.run (Ops.render_out_phrase ops string)
              | Parsetree.Ptop_dir _ ->
                  (* The string is an error message. *)
-                 Lwt_main.run (print_error term string)
+                 Lwt_main.run (Ops.print_error ops string)
          with exn ->
            (* The only possible errors are directive errors. *)
            let msg = UTop.get_message Errors.report_error exn in
@@ -834,10 +879,10 @@ let rec loop term =
              with Not_found ->
                msg
            in
-           Lwt_main.run (print_error term msg));
-        loop term
+           Lwt_main.run (Ops.print_error ops msg));
+        loop ops
     | None ->
-        loop term
+        loop ops
 
 (* +-----------------------------------------------------------------+
    | Welcome message                                                 |
@@ -1345,8 +1390,46 @@ let print_version_num () =
   Printf.printf "%s\n" UTop.version;
   exit 0
 
+module Test = struct
+  let map_loc f {Location.loc;txt} = {Location.loc; txt= f txt}
+
+  let shorten_warning_name s =
+    Scanf.sscanf s "%d" string_of_int
+
+  let shorten_kind = function
+  | Location.Report_warning s -> Location.Report_warning (shorten_warning_name s)
+  | k -> k
+
+  let short_warning_reporter loc warn =
+    Option.map
+      (fun report ->
+        { report with
+          Location.kind = shorten_kind report.Location.kind }
+      )
+      (Location.default_warning_reporter loc warn)
+
+  let short_report_printer () =
+    let def = Location.batch_mode_printer in
+    let pp self ppf report =
+      Format.fprintf ppf "%a\n" (self.Location.pp_report_kind self report) report.kind;
+    in
+    { def with pp }
+
+  let setup () =
+    Location.warning_reporter := short_warning_reporter;
+    Location.report_printer := short_report_printer
+
+  let run path =
+    let ic = Stdlib.open_in_bin path in
+    Fun.protect
+    (fun () -> loop (Test ic))
+    ~finally:(fun () -> Stdlib.close_in_noerr ic)
+end
+
 (* Config from command line *)
 let autoload = ref true
+
+let test_file = ref None
 
 let args = Arg.align [
   "-absname", Arg.Set Clflags.absname, " Show absolute filenames in error message";
@@ -1402,6 +1485,7 @@ let args = Arg.align [
   "<package> Load this package";
   "-dparsetree", Arg.Set Clflags.dump_parsetree, " Dump OCaml AST after rewriting";
   "-dsource", Arg.Set Clflags.dump_source, " Dump OCaml source after rewriting";
+  "-test", Arg.String (fun s -> test_file := Some s), " Test mode (internal)";
 ]
 
 let () = Clflags.real_paths := false
@@ -1499,6 +1583,14 @@ let main_aux ~initial_env =
   Topcommon.load_topdirs_signature ();
 #endif
   if not (prepare ()) then exit 2;
+  match !test_file with
+  | Some f -> begin
+    common_init ~initial_env;
+    Test.setup ();
+    Test.run f
+  end
+  | None ->
+  begin
   if !emacs_mode then begin
     Printf.printf "protocol-version:%d\n%!" protocol_version;
     UTop_private.set_ui UTop_private.Emacs;
@@ -1523,7 +1615,7 @@ let main_aux ~initial_env =
       flush stdout;
       (* Main loop. *)
       try
-        loop term
+        loop (Ops.Term term)
       with LTerm_read_line.Interrupt ->
         ()
     end else begin
@@ -1535,6 +1627,7 @@ let main_aux ~initial_env =
   end;
   (* Don't let the standard toplevel run... *)
   exit 0
+  end
 
 let main_internal ~initial_env =
   try
