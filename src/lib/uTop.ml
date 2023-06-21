@@ -773,7 +773,18 @@ let split_words str =
   in
   List.rev (skip [] 0)
 
+let is_expunged = lazy (not (List.mem_assoc "Env" (Env.imports ())))
+
+let needs_full_toplevel = function
+  | "compiler-libs.common" -> true
+  | _ -> false
+
+let check_expunged library =
+  if Lazy.force is_expunged && needs_full_toplevel library then
+    Printf.eprintf "Library %S is part of the compiler libraries, but the current toplevel is expunged. This might not work. Please try in utop-full.\n%!" library
+
 let require packages =
+  List.iter check_expunged packages;
   try
     let eff_packages = Findlib.package_deep_ancestors !Topfind.predicates packages in
     Topfind.load eff_packages
