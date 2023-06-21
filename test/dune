@@ -1,0 +1,26 @@
+(rule
+  (with-outputs-to
+    demo.txt.corrected
+    (run %{bin:utop} -test %{dep:demo.txt})))
+
+(alias
+  (name runtest)
+  (action (diff demo.txt demo.txt.corrected)))
+
+(rule
+  (with-outputs-to
+    expunged.txt.corrected
+    (run %{bin:utop} -test %{dep:expunged.txt})))
+
+(alias
+  (name runtest)
+  (action (diff expunged.txt expunged.txt.corrected)))
+
+(rule
+  (with-outputs-to
+    expunged-full.txt.corrected
+    (run %{bin:utop-full} -test %{dep:expunged-full.txt})))
+
+(alias
+  (name runtest)
+  (action (diff expunged-full.txt expunged-full.txt.corrected)))

@@ -1,0 +1,5 @@
+# type t = () of unit;;
+Warning 65
+type t = () of unit
+# 0;;
+- : int = 0
