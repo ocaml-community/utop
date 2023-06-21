@@ -1,3 +1,2 @@
 (executable
- (name expunge)
- (libraries unix))
+ (name modules))
