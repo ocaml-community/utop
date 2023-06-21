@@ -15,3 +15,12 @@
 (alias
   (name runtest)
   (action (diff expunged.txt expunged.txt.corrected)))
+
+(rule
+  (with-outputs-to
+    expunged-full.txt.corrected
+    (run %{bin:utop-full} -test %{dep:expunged-full.txt})))
+
+(alias
+  (name runtest)
+  (action (diff expunged-full.txt expunged-full.txt.corrected)))

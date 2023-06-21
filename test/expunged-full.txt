@@ -1,0 +1,3 @@
+# #require "compiler-libs.common";;
+# Location.report_warning;;
+- : Warnings.loc -> Warnings.t -> Location.report option = <fun>
