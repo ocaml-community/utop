@@ -7,6 +7,7 @@ let test_fix_string =
   in
   ( "fix_string"
   , [ test ~name:"small" "x" ~expected:"x"
+    ; test ~name:"empty" "" ~expected:""
     ]
   )
 
