@@ -142,7 +142,7 @@ let parse_input_multi input =
   in
   (result, Buffer.contents buf)
 
-let parse_and_check input eos_is_error =
+let parse_and_check input ~eos_is_error =
   let buf = Buffer.create 32 in
   let result =
     UTop.collect_formatters buf [Format.err_formatter]
@@ -218,9 +218,8 @@ class read_phrase ~term = object(self)
         let input_utf8= Zed_string.to_utf8 input in
         (* Toploop does that: *)
         Location.reset ();
-        let eos_is_error = not !(UTop.smart_accept[@alert "-deprecated"]) in
         try
-          let result = parse_and_check input_utf8 eos_is_error in
+          let result = parse_and_check input_utf8 ~eos_is_error:false in
           return_value <- Some result;
           LTerm_history.add UTop.history input;
           let out, warnings = result in
@@ -1006,7 +1005,7 @@ module Emacs(M : sig end) = struct
   let process_input add_to_history eos_is_error =
     let input = read_data () in
     let input_zed= Zed_string.unsafe_of_utf8 input in
-    let result, warnings = parse_and_check input eos_is_error in
+    let result, warnings = parse_and_check input ~eos_is_error in
     match result with
       | UTop.Value phrase ->
           send "accept" "";

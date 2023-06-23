@@ -836,16 +836,6 @@ let () =
 let get_load_path () = Load_path.get_paths ()
 let set_load_path = UTop_compat.set_load_path
 
-(* +-----------------------------------------------------------------+
-   | Deprecated                                                      |
-   +-----------------------------------------------------------------+ *)
-
-let smart_accept = ref true
-let new_prompt_hooks = LTerm_dlist.create ()
-let at_new_prompt f = ignore (LTerm_dlist.add_l f new_prompt_hooks)
-let prompt_continue = ref (S.const [| |])
-let prompt_comment = ref (S.const [| |])
-
 module Private = struct
   let fix_string str =
     let len = String.length str in
