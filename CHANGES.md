@@ -1,3 +1,9 @@
+2.13.0 (unreleased)
+-------------------
+
+* Remove deprecated values `prompt_continue`, `prompt_comment`, `smart_accept`,
+  `new_prompt_hooks`, `at_new_prompt` (#..., @emillon)
+
 2.12.1 (2023-04-21)
 -------------------
 

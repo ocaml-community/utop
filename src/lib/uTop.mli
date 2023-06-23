@@ -349,23 +349,6 @@ val set_load_path : string list -> unit
 
 (**/**)
 
-(* These variables are not used and deprecated: *)
-
-val prompt_continue : LTerm_text.t React.signal ref
-[@@deprecated]
-
-val prompt_comment : LTerm_text.t React.signal ref
-[@@deprecated]
-
-val smart_accept : bool ref
-[@@deprecated]
-
-val new_prompt_hooks : (unit -> unit) LTerm_dlist.t
-[@@deprecated]
-
-val at_new_prompt : (unit -> unit) -> unit
-[@@deprecated]
-
 module Private : sig
   val fix_string : string -> string
 end
