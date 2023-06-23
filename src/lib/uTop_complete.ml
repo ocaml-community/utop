@@ -494,9 +494,9 @@ let names_of_module longident =
   try
     Longident_map.find longident !local_names_by_longident
   with Not_found ->
-    match lookup_env lookup_module longident !Toploop.toplevel_env with
-      | Some(path, module_type) ->
-          let names = names_of_module_type module_type in
+    match lookup_env Env.find_module_by_name longident !Toploop.toplevel_env with
+      | Some(path, {md_type; _}) ->
+          let names = names_of_module_type md_type in
           local_names_by_path := Path_map.add path names !local_names_by_path;
           local_names_by_longident := Longident_map.add longident names !local_names_by_longident;
           names
@@ -508,9 +508,9 @@ let fields_of_module longident =
   try
     Longident_map.find longident !local_fields_by_longident
   with Not_found ->
-    match lookup_env lookup_module longident !Toploop.toplevel_env with
-      | Some(path, module_type) ->
-          let fields = fields_of_module_type module_type in
+    match lookup_env Env.find_module_by_name longident !Toploop.toplevel_env with
+      | Some(path, {md_type; _}) ->
+          let fields = fields_of_module_type md_type in
           local_fields_by_path := Path_map.add path fields !local_fields_by_path;
           local_fields_by_longident := Longident_map.add longident fields !local_fields_by_longident;
           fields
@@ -521,10 +521,8 @@ let fields_of_module longident =
 let list_global_names () =
   let rec loop acc = function
     | Env.Env_empty -> acc
-#if OCAML_VERSION >= (4, 10, 0)
     | Env.Env_value_unbound _-> acc
     | Env.Env_module_unbound _-> acc
-#endif
     | Env.Env_value(summary, id, _) ->
         loop (add (Ident.name id) acc) summary
     | Env.Env_type(summary, id, decl) ->
@@ -545,13 +543,8 @@ let list_global_names () =
         loop (add (Ident.name id) acc) summary
     | Env.Env_constraints (summary, _) ->
         loop acc summary
-#if OCAML_VERSION >= (4, 10, 0)
     | Env.Env_copy_types summary ->
         loop acc summary
-#else
-    | Env.Env_copy_types (summary, _) ->
-        loop acc summary
-#endif
     | Env.Env_open(summary, path) ->
         match try Some (Path_map.find path !local_names_by_path) with Not_found -> None with
           | Some names ->
@@ -582,10 +575,8 @@ let replace x y set =
 let list_global_fields () =
   let rec loop acc = function
     | Env.Env_empty -> acc
-#if OCAML_VERSION >= (4, 10, 0)
     | Env.Env_value_unbound _-> acc
     | Env.Env_module_unbound _-> acc
-#endif
     | Env.Env_value(summary, id, _) ->
         loop (add (Ident.name id) acc) summary
     | Env.Env_type(summary, id, decl) ->
@@ -606,13 +597,8 @@ let list_global_fields () =
         loop (add (Ident.name id) acc) summary
     | Env.Env_constraints (summary, _) ->
         loop acc summary
-#if OCAML_VERSION >= (4, 10, 0)
     | Env.Env_copy_types summary ->
         loop acc summary
-#else
-    | Env.Env_copy_types (summary, _) ->
-        loop acc summary
-#endif
     | Env.Env_open(summary, path) ->
         match try Some (Path_map.find path !local_fields_by_path) with Not_found -> None with
           | Some fields ->
@@ -695,7 +681,7 @@ let rec find_object meths type_expr =
               None
 
 let methods_of_object longident meths =
-  match lookup_env lookup_value longident !Toploop.toplevel_env with
+  match lookup_env Env.find_value_by_name longident !Toploop.toplevel_env with
     | None ->
         []
     | Some (path, { val_type = type_expr }) ->
@@ -735,7 +721,7 @@ let rec labels_of_type acc type_expr =
         String_map.bindings acc
 
 let labels_of_function longident meths =
-  match lookup_env lookup_value longident !Toploop.toplevel_env with
+  match lookup_env Env.find_value_by_name longident !Toploop.toplevel_env with
     | None ->
         []
     | Some (path, { val_type = type_expr }) ->
@@ -746,7 +732,7 @@ let labels_of_function longident meths =
               labels_of_type String_map.empty type_expr
 
 let labels_of_newclass longident =
-  match lookup_env lookup_class longident !Toploop.toplevel_env with
+  match lookup_env Env.find_class_by_name longident !Toploop.toplevel_env with
     | None ->
         []
     | Some (path, { cty_new = None }) ->
@@ -830,7 +816,7 @@ let complete ~phrase_terminator ~input =
 
     | [(Symbol "#", _); (Lident "typeof", _); (String (tlen, false), loc)] ->
       let prefix = String.sub input (loc.ofs1 + tlen) (String.length input - loc.ofs1 - tlen) in
-      begin match longident_parse prefix with
+      begin match Parse.longident (Lexing.from_string prefix) with
       | Longident.Ldot (lident, last_prefix) ->
         let set = names_of_module lident in
         let compls = lookup last_prefix (String_set.elements set) in
