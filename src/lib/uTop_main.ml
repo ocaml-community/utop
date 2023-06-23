@@ -18,6 +18,7 @@ open UTop_compat
 open UTop_token
 open UTop_styles
 open UTop_private
+open UTop.Private
 
 let return, (>>=) = Lwt.return, Lwt.(>>=)
 
@@ -406,32 +407,6 @@ end = struct
       last_summary := summary;
       scan_summary last_summary' summary
 end
-
-(* +-----------------------------------------------------------------+
-   | Out phrase printing                                             |
-   +-----------------------------------------------------------------+ *)
-
-let fix_string str =
-  let len = String.length str in
-  let ofs, _, _ = Zed_utf8.next_error str 0 in
-  if ofs = len then
-    str
-  else begin
-    let buf = Buffer.create (len + 128) in
-    if ofs > 0 then Buffer.add_substring buf str 0 ofs;
-    let rec loop ofs =
-      Zed_utf8.add buf (Uchar.of_char str.[ofs]);
-      let ofs1 = ofs + 1 in
-      let ofs2, _, _ = Zed_utf8.next_error str ofs1 in
-      if ofs1 < ofs2 then
-        Buffer.add_substring buf str ofs1 (ofs2 - ofs1);
-      if ofs2 < len then
-        loop ofs2
-      else
-        Buffer.contents buf
-    in
-    loop ofs
-  end
 
 let render_out_phrase term string =
   if String.length string >= 100 * 1024 then
