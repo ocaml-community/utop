@@ -845,3 +845,27 @@ let new_prompt_hooks = LTerm_dlist.create ()
 let at_new_prompt f = ignore (LTerm_dlist.add_l f new_prompt_hooks)
 let prompt_continue = ref (S.const [| |])
 let prompt_comment = ref (S.const [| |])
+
+module Private = struct
+  let fix_string str =
+    let len = String.length str in
+    let ofs, _, _ = Zed_utf8.next_error str 0 in
+    if ofs = len then
+      str
+    else begin
+      let buf = Buffer.create (len + 128) in
+      if ofs > 0 then Buffer.add_substring buf str 0 ofs;
+      let rec loop ofs =
+        Zed_utf8.add buf (Uchar.of_char str.[ofs]);
+        let ofs1 = ofs + 1 in
+        let ofs2, _, _ = Zed_utf8.next_error str ofs1 in
+        if ofs1 < ofs2 then
+          Buffer.add_substring buf str ofs1 (ofs2 - ofs1);
+        if ofs2 < len then
+          loop ofs2
+        else
+          Buffer.contents buf
+      in
+      loop ofs
+    end
+end

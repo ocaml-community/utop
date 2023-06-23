@@ -365,3 +365,7 @@ val new_prompt_hooks : (unit -> unit) LTerm_dlist.t
 
 val at_new_prompt : (unit -> unit) -> unit
 [@@deprecated]
+
+module Private : sig
+  val fix_string : string -> string
+end

@@ -25,4 +25,5 @@
   lwt_react
   (zed (>= 3.2.0))
   (react (>= 1.0.0))
-  (cppo (>= 1.1.2))))
+  (cppo (>= 1.1.2))
+  (alcotest :with-test)))
