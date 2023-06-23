@@ -1,4 +1,5 @@
 (executable
  (name myutop)
+ (modes byte)
  (link_flags -linkall)
  (libraries utop))

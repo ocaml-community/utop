@@ -10,7 +10,7 @@ homepage: "https://github.com/ocaml-community/utop"
 doc: "https://ocaml-community.github.io/utop/"
 bug-reports: "https://github.com/ocaml-community/utop/issues"
 depends: [
-  "dune" {>= "1.11"}
+  "dune" {>= "2.0"}
   "ocaml" {>= "4.08.0"}
   "base-unix"
   "base-threads"

@@ -1,4 +1,5 @@
-(lang dune 1.11)
+(lang dune 2.0)
+(formatting (enabled_for dune))
 (name utop)
 
 (generate_opam_files)
