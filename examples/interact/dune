@@ -1,4 +1,5 @@
 (executable
  (name test_program)
+ (modes byte)
  (link_flags -linkall)
  (libraries utop))
