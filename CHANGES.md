@@ -1,4 +1,4 @@
-2.13.0 (unreleased)
+2.13.0 (2023-07-03)
 -------------------
 
 * Fix behavior of utop -stdin (#434, fixes #433, @tuohy)
