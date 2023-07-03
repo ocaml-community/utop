@@ -1,6 +1,10 @@
 2.13.0 (unreleased)
 -------------------
 
+* Fix behavior of utop -stdin (#434, fixes #433, @tuohy)
+
+* Handle bounds with `Zed.next_error` (#442, @tmattio)
+
 * Load files from XDG directories (the legacy paths still work). (#431,
   @Skyb0rg007)
 
