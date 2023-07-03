@@ -63,7 +63,7 @@ Customization
 ### Colors
 
 To add colors to utop, copy one of the files `utoprc-dark` or
-`utoprc-light` to `~/.utoprc`. `utoprc-dark` is for terminals with
+`utoprc-light` to `~/.config/utop/utoprc`. `utoprc-dark` is for terminals with
 dark colors (such as white on black) and `utoprc-light` is for
 terminals with light colors (such as black on white).
 

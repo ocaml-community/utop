@@ -4,7 +4,7 @@
  (wrapped false)
  (modes byte)
  (libraries compiler-libs.toplevel findlib.top lambda-term logs.lwt threads
-   zed)
+   xdg zed)
  (preprocess
   (action
    (run %{bin:cppo} -V OCAML:%{ocaml_version} %{input-file}))))

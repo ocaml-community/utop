@@ -12,6 +12,7 @@ open UTop_token
 let return, (>>=) = Lwt.return, Lwt.(>>=)
 
 module String_set = Set.Make (String)
+module Default_paths = UTop_private.Default_paths
 
 type styles = {
   mutable style_keyword : LTerm_style.t;
@@ -56,7 +57,7 @@ let styles = {
 }
 
 let load () =
-  let fn = Filename.concat LTerm_resources.home ".utoprc" in
+  let fn = Default_paths.config_file_name in
   Lwt.catch
     (fun () ->
       LTerm_resources.load fn >>= fun res ->

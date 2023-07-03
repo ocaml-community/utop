@@ -26,4 +26,5 @@
   (zed (>= 3.2.0))
   (react (>= 1.0.0))
   (cppo (>= 1.1.2))
-  (alcotest :with-test)))
+  (alcotest :with-test)
+  (xdg (>= 3.9.0))))

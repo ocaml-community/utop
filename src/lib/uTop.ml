@@ -23,9 +23,10 @@ let version = "%%VERSION%%"
 (* +-----------------------------------------------------------------+
    | History                                                         |
    +-----------------------------------------------------------------+ *)
+module Default_paths = UTop_private.Default_paths
 
 let history = LTerm_history.create []
-let history_file_name = ref (Some (Filename.concat LTerm_resources.home ".utop-history"))
+let history_file_name = ref (Some (Default_paths.history_file_name))
 let history_file_max_size = ref None
 let history_file_max_entries = ref None
 let stashable_session_history = UTop_history.create ()
