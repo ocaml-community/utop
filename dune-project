@@ -15,7 +15,7 @@
  (description
   "utop is an improved toplevel (i.e., Read-Eval-Print Loop or REPL) for OCaml. It can run in a terminal or in Emacs. It supports line edition, history, real-time and context sensitive completion, colors, and more. It integrates with the Tuareg mode in Emacs.")
  (depends
-  (ocaml (>= 4.08.0))
+  (ocaml (>= 4.11.0))
   base-unix
   base-threads
   (ocamlfind (>= 1.7.2))

@@ -333,19 +333,15 @@ end = struct
     | Mty_signature s -> walk_sig pp ~path s
     | _ -> ()
 
-  let find_module id env =
-    let name = Longident.Lident (Ident.name id) in
-    lookup_module name env
-
   let scan_cmis =
     let new_cmis = ref [] in
-    let default_load = !Persistent_signature.load in
+    let default_load = !Persistent_env.Persistent_signature.load in
     let load ~unit_name =
       let res = default_load ~unit_name in
       (match res with None -> () | Some x -> new_cmis := x.cmi :: !new_cmis);
       res
     in
-    Persistent_signature.load := load;
+    Persistent_env.Persistent_signature.load := load;
 
     fun pp ->
       List.iter (fun (cmi : Cmi_format.cmi_infos) ->
@@ -359,9 +355,10 @@ end = struct
     fun pp ->
       let env = !Toploop.toplevel_env in
       let scan_module env id =
-        let path, md = find_module id env in
+        let name = Longident.Lident (Ident.name id) in
+        let path, {md_type; _} = Env.find_module_by_name name env in
         if path = Path.Pident id then
-          walk_mty pp (Longident.Lident (Ident.name id)) md
+          walk_mty pp name md_type
       in
       let rec scan_globals last = function
         | [] -> ()
@@ -376,15 +373,9 @@ end = struct
         | Env.Env_module (s, id, _, _) ->
           scan_summary last s;
           scan_module env id
-#if OCAML_VERSION >= (4, 10, 0)
         | Env.Env_copy_types s
-#else
-        | Env.Env_copy_types (s, _)
-#endif
-#if OCAML_VERSION >= (4, 10, 0)
         | Env.Env_value_unbound (s, _, _)
         | Env.Env_module_unbound (s, _, _)
-#endif
         | Env.Env_persistent (s, _)
         | Env.Env_value (s, _, _)
         | Env.Env_type (s, _, _)
@@ -590,7 +581,7 @@ let rule_path rule =
     try
       let env = !Toploop.toplevel_env in
       let path =
-        match lookup_type rule.type_to_rewrite env with
+        match Env.find_type_by_name rule.type_to_rewrite env with
         | path, { Types.type_kind     = Types.Type_abstract
                 ; Types.type_private  = Asttypes.Public
                 ; Types.type_manifest = Some ty
@@ -611,7 +602,7 @@ let rule_path rule =
    and is persistent. *)
 let is_persistent_in_env longident =
   try
-    is_persistent_path (fst (lookup_value longident !Toploop.toplevel_env))
+    is_persistent_path (fst (Env.find_value_by_name longident !Toploop.toplevel_env))
   with Not_found ->
     false
 
@@ -1182,7 +1173,7 @@ end
    +-----------------------------------------------------------------+ *)
 
 let typeof sid =
-  let id  = longident_parse sid in
+  let id = Parse.longident (Lexing.from_string sid) in
   let env = !Toploop.toplevel_env in
   let from_type_desc = function
     | Types.Tconstr (path, _, _) ->
@@ -1192,33 +1183,33 @@ let typeof sid =
   in
   let out_sig_item =
     try
-      let (path, ty_decl) = lookup_type id env in
+      let (path, ty_decl) = Env.find_type_by_name id env in
       let id = Ident.create_local (Path.name path) in
       Some (Printtyp.tree_of_type_declaration id ty_decl Types.Trec_not)
     with Not_found ->
     try
-      let (path, val_descr) = lookup_value id env in
+      let (path, val_descr) = Env.find_value_by_name id env in
       let id = Ident.create_local (Path.name path) in
       Some (Printtyp.tree_of_value_description id val_descr)
     with Not_found ->
     try
-      let lbl_desc = lookup_label id env in
+      let lbl_desc = Env.find_label_by_name id env in
       let (path, ty_decl) = from_type_desc (get_desc lbl_desc.Types.lbl_res) in
       let id = Ident.create_local (Path.name path) in
       Some (Printtyp.tree_of_type_declaration id ty_decl Types.Trec_not)
     with Not_found ->
     try
-      let path, mod_typ = lookup_module id env in
+      let path, {Types.md_type; _} = Env.find_module_by_name id env in
       let id = Ident.create_local (Path.name path) in
-      Some (Printtyp.tree_of_module id mod_typ Types.Trec_not)
+      Some (Printtyp.tree_of_module id md_type Types.Trec_not)
     with Not_found ->
     try
-      let (path, mty_decl) = lookup_modtype id env in
+      let (path, mty_decl) = Env.find_modtype_by_name id env in
       let id = Ident.create_local (Path.name path) in
       Some (Printtyp.tree_of_modtype_declaration id mty_decl)
     with Not_found ->
     try
-      let cstr_desc = lookup_constructor id env in
+      let cstr_desc = Env.find_constructor_by_name id env in
       match cstr_desc.Types.cstr_tag with
       | _ ->
         let (path, ty_decl) = from_type_desc (get_desc cstr_desc.Types.cstr_res) in
@@ -1276,7 +1267,6 @@ let prepare () =
       Format.eprintf "Uncaught exception: %s\n" (Printexc.to_string exn);
       false
 
-#if OCAML_VERSION >= (4, 09, 0)
 external caml_sys_modify_argv : string array -> unit =
   "caml_sys_modify_argv"
 let override_argv () =
@@ -1284,14 +1274,6 @@ let override_argv () =
   let copy = Array.init len (fun i -> Sys.argv.(i+ !Arg.current)) in
   caml_sys_modify_argv copy;
   Arg.current := 0
-#else
-let override_argv () =
-  let len = Array.length Sys.argv - !Arg.current in
-  Array.blit Sys.argv !Arg.current Sys.argv 0 len;
-  Obj.truncate (Obj.repr Sys.argv) len;
-  Arg.current := 0
-#endif
-
 
 let run_script name =
   (* To prevent message from camlp4 *)
@@ -1551,6 +1533,12 @@ let walk dir ~init ~f =
   match Unix.lstat dir with
   | exception Unix.Unix_error(ENOENT, _, _) -> init
   | _ -> loop dir init
+
+let iter_structure expr =
+  let next iterator e = Tast_iterator.default_iterator.expr iterator e in
+  let expr iterator = expr (next iterator) in
+  let iter = { Tast_iterator.default_iterator with expr } in
+  iter.structure iter
 
 let interact ?(search_path=[]) ?(build_dir="_build") ~unit ~loc:(fname, lnum, cnum, _)
       ~values =
