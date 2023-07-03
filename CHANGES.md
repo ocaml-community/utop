@@ -9,7 +9,7 @@
   @Skyb0rg007)
 
 * Remove deprecated values `prompt_continue`, `prompt_comment`, `smart_accept`,
-  `new_prompt_hooks`, `at_new_prompt` (#..., @emillon)
+  `new_prompt_hooks`, `at_new_prompt` (#427, @emillon)
 
 * Require OCaml 4.11.0 or newer. (#444, @emillon)
 
