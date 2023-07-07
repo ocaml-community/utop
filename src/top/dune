@@ -33,7 +33,7 @@
 (rule
  (targets utop-expunged.bc)
  (action
-  (run %{ocaml_where}/expunge %{dep:utop.bc} %{targets}
+  (run %{ocaml_where}/expunge%{ext_exe} %{dep:utop.bc} %{targets}
     %{read-lines:modules.txt})))
 
 (install
