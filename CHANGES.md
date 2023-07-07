@@ -1,7 +1,7 @@
 2.13.1 (Pending)
 ----------------
 
-* Fix unavailable expunge on Windows (@jonahbeckford)
+* Fix unavailable expunge on Windows (#447, @jonahbeckford)
 
 2.13.0 (2023-07-03)
 -------------------
