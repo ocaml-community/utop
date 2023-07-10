@@ -173,6 +173,7 @@ and symbol idx acc = parse
 and cm_string idx= parse
   | '"'
       { (String (1, true), idx+1) }
+  | "\\\\"
   | "\\\""
       { let idx2, terminated= string (idx + 2) false lexbuf in
         (String (1, terminated), idx2)
@@ -222,6 +223,7 @@ and comment idx depth combining= parse
 and string idx combining= parse
   | '"'
       { (idx + 1, true) }
+  | "\\\\"
   | "\\\""
       { string (idx + 2) false lexbuf }
   | uchar as uchar
