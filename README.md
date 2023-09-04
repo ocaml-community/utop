@@ -18,7 +18,7 @@ Installation via opam
 The easiest and recommended way of installing utop is via
 [opam](https://opam.ocaml.org/):
 
-    $ opam install utop
+    opam install utop
 
 If you want to build it manually, refer to the opam file which lists the
 dependencies.
@@ -28,14 +28,14 @@ Installation from sources
 
 To build and install utop:
 
-    $ make
-    $ make install
+    make
+    make install
 
 ### Documentation and manual pages _(optional)_
 
 To build the documentation (currently broken):
 
-    $ make doc
+    make doc
 
 It will then be installed by `make install`.
 
@@ -43,14 +43,14 @@ It will then be installed by `make install`.
 
 To build and execute tests (currently broken):
 
-    $ make test
+    make test
 
 Usage
 -----
 
 To use utop, simply run:
 
-    $ utop
+    utop
 
 utop display a bar after the prompt which is used to show possible
 completions in real-time. You can navigate in it using `M-left` and
