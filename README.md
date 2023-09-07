@@ -52,10 +52,10 @@ To use utop, simply run:
 
     utop
 
-utop display a bar after the prompt which is used to show possible
-completions in real-time. You can navigate in it using `M-left` and
+utop displays a bar after the prompt which is used to show possible
+completions in real time. You can navigate in it using `M-left` and
 `M-right`, and select one completion using `M-down`. The `M` denotes
-the meta key, which is `Alt` most of the time.
+the meta key, which is `Alt` on most systems.
 
 Customization
 -------------
@@ -104,7 +104,7 @@ You can turn on the vi edit mode by `#edit_mode_vi`. It currently supports
 three vi modes: normal, insert, visual mode, and you can get/set content
 with vim-like registers.
 
-This special edit mode is evolving rapidly, see the CHANGES of lambda-term for the rapidly changing information.
+This special edit mode is evolving rapidly; see the CHANGES of lambda-term for the rapidly changing information.
 
 ### UTop API
 
@@ -133,7 +133,9 @@ started from within Emacs.
 The recommended way to install `utop.el` is via Emacs's built-in package manager `package.el`.
 
 `utop.el` is available on the community-maintained
-[MELPA Stable](https://stable.melpa.org) and [MELPA](https://melpa.org) `package.el` repositories. If you're not using them already, please follow the setup instructions [here](https://melpa.org/#/getting-started).
+[MELPA Stable](https://stable.melpa.org) and [MELPA](https://melpa.org) `package.el` repositories.
+If you're not using them already, please follow the setup instructions
+[here](https://melpa.org/#/getting-started).
 
 **Note:** Using MELPA Stable is recommended as it has the latest stable version.
 MELPA has a development snapshot for users who don't mind breakage but
@@ -260,13 +262,13 @@ correctly:
     Fatal error: cannot load shared library dlllwt-unix_stubs
     Reason: dlopen(dlllwt-unix_stubs.so, 138): image not found
 
-It shall point to the directory `stublibs` inside your ocaml installation.
+It should point to the directory `stublibs` inside your ocaml installation.
 
 Automatically installing toplevel printers
 ------------------------------------------
 
 Utop will automatically install toplevel printers for custom
-types if their interface file is marked with an
+types if their interface files are marked with an
 `[@@ocaml.toplevel_printer]` attribute.  Adding this annotation to
 your libraries will remove the need to have a separate `top` package
 to install the printers.
@@ -297,7 +299,7 @@ Creating a custom utop-enabled toplevel
 
 The recommended way to build a custom utop toplevel is via
 [Dune][dune]. The entry point of the custom utop must call
-`UTop_main.main`. For instance write the following `myutop.ml` file:
+`UTop_main.main`. For instance, write the following `myutop.ml` file:
 
 ```ocaml
 let () = UTop_main.main ()
@@ -312,14 +314,14 @@ and the following dune file:
  (libraries utop))
 ```
 
-then to build the toplevel, run:
+then, to build the toplevel, run:
 
 ```
 $ dune myutop.bc
 ```
 
 Note the `-linkall` in the link flags. By default OCaml doesn't link
-unused modules, however for a toplevel you don't know in advance what
+unused modules. However for a toplevel you don't know in advance what
 the user is going to use so you must link everything.
 
 If you want to include more libraries in your custom utop, simply add
@@ -341,7 +343,7 @@ supported.
 
 ### Manually, with ocamlfind
 
-This section describe methods using ocamlfind. These are no longer
+This section describe methods using `ocamlfind`. These are no longer
 tested, so there is no guarantee they still work.
 
 If you want to create a custom toplevel with utop instead of the
@@ -349,7 +351,7 @@ classic one you need to link it with utop and its dependencies and
 call `UTop_main.main` in the last linked unit. You also need to pass
 the `-thread` switch when linking the toplevel.
 
-The easiest way to do that is by using ocamlfind:
+The easiest way to do that is by using `ocamlfind`:
 
     $ ocamlfind ocamlmktop -o myutop -thread -linkpkg -package utop myutop_main.cmo
 
@@ -359,14 +361,14 @@ Where `myutop_main.ml` contains:
 let () = UTop_main.main ()
 ```
 
-You can also use the `ocamlc` sub-command instead of `ocamlmktop`, in
-this case you need to pass these thee extra arguments:
+You can also use the `ocamlc` sub-command instead of `ocamlmktop`. In
+this case you need to pass these three extra arguments:
 
 * `-linkall` to be sure all units are linked into the produced toplevel
 * `-package compiler-libs.toplevel`
 * `-predicates create_toploop`
 
-With the last option ocamlfind will generate a small ocaml unit,
+With the last option `ocamlfind` will generate a small ocaml unit,
 linked just before `myutop_main.cmo`, which will register at startup
 packages already linked in the toplevel so they are not loaded again
 by the `#require` directive. It does the same with the `ocamlmktop`
@@ -377,9 +379,9 @@ For example:
     $ ocamlfind ocamlc -o myutop -thread -linkpkg -linkall -predicates create_toploop \
         -package compiler-libs.toplevel,utop myutop.cmo
 
-Note that if you are not using ocamlfind, you will need to do that
+Note that if you are not using `ocamlfind`, you will need to do that
 yourself. You have to call `Topfind.don't_load` with the list of all
 packages linked with the toplevel.
 
-A full example using ocamlbuild is provided in the
+A full example using `ocamlbuild` is provided in the
 [examples/custom-utop](examples/custom-utop) directory.

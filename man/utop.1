@@ -25,13 +25,13 @@ utop \- Universal toplevel for OCaml
 .SH DESCRIPTION
 
 .B utop
-is a enhanced toplevel for OCaml with many features, including context
+is an enhanced toplevel for OCaml with many features, including context
 sensitive completion.
 
 When you start
 .B utop
 what you see is the prompt followed by a bar containing words. This is
-the completion bar, it contains the possible completion and is updated
+the completion bar: it contains the possible completion and is updated
 as you type. The highlighted word in the completion bar is the
 selected word. You can navigate using the keys Alt+Left and Alt+Right
 and you can complete using the currently selected word by pressing
@@ -51,9 +51,9 @@ utop supports completion on:
         * object methods
 
 Colors are by default configured for terminals with dark colors, such
-as white on black, so the prompt may looks too bright on light colors
+as white on black, so the prompt may look too bright on light-colored
 terminals. You can change that by setting the color profile of
-utop. For that type:
+utop. To do that, type:
 
         UTop.set_profile UTop.Light;;
 
@@ -80,7 +80,7 @@ file:
 
         (autoload 'utop "utop" "Toplevel for OCaml" t)
 
-then you can run utop by pressing M-x and typing "utop". utop support
+then you can run utop by pressing M-x and typing "utop". utop supports
 completion in emacs mode. Just press Tab to complete a word. You can
 also integrate it with the tuareg, caml or typerex mode. For that add
 the following lines to your
@@ -112,7 +112,7 @@ Show absolute filenames in error message.
 Add \fIdir\fR to the list of include directories.
 .TP
 .BI -init " file"
-Load \fIfile\fR instead of default init file.
+Load \fIfile\fR instead of the default init file.
 .TP
 .BI -labels
 Use commuting label mode.
@@ -127,10 +127,10 @@ Do not compile assertion checks.
 Ignore non-optional labels in types.
 .TP
 .BI -nostdlib
-Do not add default directory to the list of include directories.
+Do not add the default directory to the list of include directories.
 .TP
 .BI -ppx " command"
-Pipe abstract syntax trees through preprocessor \fIcommand\fR.
+Pipe abstract syntax trees through the preprocessor \fIcommand\fR.
 .TP
 .BI -principal
 Check principality of type inference.
