@@ -105,8 +105,12 @@ The default install also has a minor mode with the following key bindings:
         \fBC-c C-k\fR Kill a running utop process (\fItop-kill\fR)
         \fBC-c C-z\fR Switch to utop process (\fIutop-switch-to-repl\fR)
 
-You can enable the minor mode uxing \fBM-x utop-minor-mode\fR, or you can
-have it enabled by default with the following configuration:
+then you can run \fButop\fR by pressing \fBM-x\fR and typing "utop". \fButop\fR supports
+completion in Emacs mode. Just press \fBTab\fR to complete a word. You can
+also integrate it with the tuareg, caml or typerex mode. For that add
+the following lines to your
+.I ~/.emacs
+file:
 
         (autoload 'utop-minor-mode "utop" "Minor mode for utop" t)
         (add-hook 'tuareg-mode-hook 'utop-minor-mode)
