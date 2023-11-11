@@ -600,16 +600,7 @@ it is started."
        (setq utop-completion nil))
       ;; A new possible completion
       ("completion"
-       (catch 'done
-         (dolist (prefix utop-completion-prefixes)
-           ;; We need to handle specially prefixes like "List.m" as
-           ;; the responses from utop don't include the module prefix.
-           (let ((prefix (if (string-match-p "\\." prefix)
-                             (cadr (split-string prefix "\\."))
-                           prefix)))
-             (when (string-prefix-p prefix argument)
-               (push argument utop-completion)
-               (throw 'done t))))))
+       (push argument utop-completion))
       ;; End of completion
       ("completion-stop"
        (utop-set-state 'edit)
@@ -705,6 +696,15 @@ If ADD-TO-HISTORY is t then the input will be added to history."
 ;; | Completion                                                      |
 ;; +-----------------------------------------------------------------+
 
+(defun utop--completion-prefix ()
+  "The completion prefix"
+  ;; This is actually very wrong!
+  ;; I'm assuming the thing we wanna complete is the last thing on
+  ;; the last line in the prompt, which is usually true, but not given.
+  (let* ((last-line (car (last utop-completion-prefixes)))
+         (prefix    (car (last (string-split  last-line "\\.")))))
+    prefix))
+
 (defun utop-complete-input (input)
   "Send input to complete to utop."
   ;; Split it
@@ -744,7 +744,7 @@ If ADD-TO-HISTORY is t then the input will be added to history."
 
   (when (>= (length utop-capf-completion-candidates) 1)
     (list
-     utop-prompt-max
+     (- (point) (length (utop--completion-prefix)))
      (point)
      utop-capf-completion-candidates)))
 
