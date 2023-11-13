@@ -20,12 +20,21 @@ let toploop_all_directive_names () =
 #endif
 
 let set_load_path path =
-#if OCAML_VERSION >= (5, 0, 0)
-  Load_path.init path ~auto_include:Load_path.no_auto_include
-#else
+#if OCAML_VERSION >= (5, 2, 0) 
+  Load_path.init ~auto_include:Load_path.no_auto_include ~visible:path ~hidden:[]
+#elif OCAML_VERSION >= (5, 0, 0) 
+  Load_path.init path ~auto_include:Load_path.no_auto_include 
+#else 
   Load_path.init path
 #endif
 
+let get_load_path () = 
+#if OCAML_VERSION >= (5, 2, 0) 
+  Load_path.get_path_list ()
+#else
+  Load_path.get_paths ()
+#endif
+  
 let toploop_use_silently fmt name =
 #if OCAML_VERSION >= (4, 14, 0)
   Toploop.use_silently fmt (match name with "" -> Stdin | _ -> File name)

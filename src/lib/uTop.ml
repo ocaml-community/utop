@@ -289,8 +289,22 @@ let parse_default parse str eos_is_error =
           Error ([mkloc loc],
                  Printf.sprintf "Error: broken invariant in parsetree: %s" s)
       | Syntaxerr.Invalid_package_type (loc, s) ->
-          Error ([mkloc loc],
-                 Printf.sprintf "Invalid package type: %s" s)
+#if OCAML_VERSION >= (5,2,0) 
+           let s = match s with
+            | Syntaxerr.Parameterized_types ->
+                "parametrized types are not supported"
+            | Constrained_types ->
+                "constrained types are not supported"
+            | Private_types ->
+                "private types are not supported"
+            | Not_with_type ->
+                "only constraints are supported"
+            | Neither_identifier_nor_with_type ->
+                "only module type identifier and constraints are supported" 
+           in
+#endif
+           Error ([mkloc loc],
+             Printf.sprintf "Invalid package type: %s" s)    
 #if OCAML_VERSION >= (5, 0, 0)
       | Syntaxerr.Removed_string_set loc ->
           Error ([mkloc loc],
@@ -358,11 +372,14 @@ let check_phrase phrase =
           let open Ast_helper in
           with_default_loc loc
             (fun () ->
-               Str.eval
-                 (Exp.fun_ Nolabel None (Pat.construct unit None)
-                   (Exp.letmodule (with_loc loc (Some "_"))
-                      (Mod.structure (item :: items))
-                      (Exp.construct unit None))))
+              let pat = Pat.construct unit None in
+              let expr = Exp.letmodule (with_loc loc (Some "_")) (Mod.structure (item :: items)) (Exp.construct unit None) in           
+              Str.eval
+#if OCAML_VERSION >= (5, 2, 0)
+                (Exp.function_ [ { pparam_desc = Pparam_val (Nolabel, None, pat); pparam_loc = pat.ppat_loc; }] None (Pfunction_body expr)))
+#else
+                (Exp.fun_ Nolabel None pat expr))
+#endif
         in
         let check_phrase = Ptop_def [top_def] in
         try
@@ -828,7 +845,7 @@ let () =
    | Compiler-libs re-exports                                        |
    +-----------------------------------------------------------------+ *)
 
-let get_load_path () = Load_path.get_paths ()
+let get_load_path () = UTop_compat.get_load_path ()
 let set_load_path = UTop_compat.set_load_path
 
 module Private = struct

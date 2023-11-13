@@ -336,10 +336,15 @@ end = struct
   let scan_cmis =
     let new_cmis = ref [] in
     let default_load = !Persistent_env.Persistent_signature.load in
-    let load ~unit_name =
+#if OCAML_VERSION >= (5, 2, 0)
+    let load ~allow_hidden ~unit_name =
+      let res = default_load ~unit_name ~allow_hidden in
+#else
+   let load ~unit_name =
       let res = default_load ~unit_name in
+#endif
       (match res with None -> () | Some x -> new_cmis := x.cmi :: !new_cmis);
-      res
+      res 
     in
     Persistent_env.Persistent_signature.load := load;
 
@@ -567,8 +572,12 @@ let rewrite_rules = [
       with_default_loc loc (fun () ->
         Exp.apply
           (Exp.ident (with_loc loc longident_async_thread_safe_block_on_async_exn))
-          [(Nolabel, Exp.fun_ Nolabel None punit e)]
-      )
+          [(Nolabel, 
+#if OCAML_VERSION >= (5, 2, 0)
+                Exp.function_ [ { pparam_desc = Pparam_val (Nolabel, None, punit); pparam_loc = punit.ppat_loc; }] None (Pfunction_body e))])
+#else
+                Exp.fun_ Nolabel None punit e)])
+#endif
     );
     enabled = UTop.auto_run_async;
   }
@@ -582,7 +591,12 @@ let rule_path rule =
       let env = !Toploop.toplevel_env in
       let path =
         match Env.find_type_by_name rule.type_to_rewrite env with
-        | path, { Types.type_kind     = Types.Type_abstract
+        | path, { Types.type_kind     = 
+#if OCAML_VERSION >= (5, 2, 0)
+    Types.Type_abstract  _
+#else 
+    Types.Type_abstract
+#endif
                 ; Types.type_private  = Asttypes.Public
                 ; Types.type_manifest = Some ty
                 } -> begin
@@ -1545,7 +1559,12 @@ let interact ?(search_path=[]) ?(build_dir="_build") ~unit ~loc:(fname, lnum, cn
   let search_path = walk build_dir ~init:search_path ~f:(fun dir acc -> dir :: acc) in
   let cmt_fname =
     try
-      Misc.find_in_path_uncap search_path (unit ^ ".cmt")
+#if OCAML_VERSION >= (5, 2, 0)
+      Misc.find_in_path_normalized
+#else
+      Misc.find_in_path_uncap
+#endif   
+         search_path (unit ^ ".cmt")
     with Not_found ->
       Printf.ksprintf failwith "%s.cmt not found in search path!" unit
   in
@@ -1577,7 +1596,14 @@ let interact ?(search_path=[]) ?(build_dir="_build") ~unit ~loc:(fname, lnum, cn
     failwith "Couldn't find location in cmt file"
   with Found env ->
   try
-    List.iter Topdirs.dir_directory (search_path @ cmt_infos.cmt_loadpath);
+    let cmt_loadpath = 
+#if OCAML_VERSION >= (5, 2, 0)
+    cmt_infos.cmt_loadpath.visible
+#else
+    cmt_infos.cmt_loadpath
+#endif
+      in
+    List.iter Topdirs.dir_directory (search_path @ cmt_loadpath);
     let env = Envaux.env_of_only_summary env in
     List.iter (fun (V (name, v)) -> Toploop.setvalue name (Obj.repr v)) values;
     main_internal ~initial_env:(Some env)

@@ -394,7 +394,7 @@ let visible_modules () =
               (Sys.readdir (if dir = "" then Filename.current_dir_name else dir))
           with Sys_error _ ->
             acc)
-        String_set.empty @@ Load_path.get_paths ()
+        String_set.empty @@ (UTop_compat.get_load_path ())
     )
 
 let field_name { ld_id = id } = Ident.name id
@@ -406,10 +406,15 @@ let add_fields_of_type decl acc =
         acc
     | Type_record (fields, _) ->
         List.fold_left (fun acc field -> add (field_name field) acc) acc fields
+#if OCAML_VERSION >= (5, 2, 0)
+    | Type_abstract _ ->
+#else 
     | Type_abstract ->
+#endif
         acc
     | Type_open ->
         acc
+
 
 let add_names_of_type decl acc =
   match decl.type_kind with
@@ -421,7 +426,11 @@ let add_names_of_type decl acc =
         List.fold_left (fun acc cstr -> add (constructor_name cstr) acc) acc constructors
     | Type_record (fields, _) ->
         List.fold_left (fun acc field -> add (field_name field) acc) acc fields
+#if OCAML_VERSION >= (5, 2, 0)
+    | Type_abstract _ ->
+#else 
     | Type_abstract ->
+#endif
         acc
     | Type_open ->
         acc
@@ -839,7 +848,7 @@ let complete ~phrase_terminator ~input =
               (fun acc d -> add_files filter acc (Filename.concat d dir))
               String_map.empty
               (Filename.current_dir_name ::
-                (Load_path.get_paths ())
+                (UTop_compat.get_load_path ())
               )
 
           else
@@ -899,7 +908,7 @@ let complete ~phrase_terminator ~input =
               (fun acc d -> add_files filter acc (Filename.concat d dir))
               String_map.empty
               (Filename.current_dir_name ::
-                (Load_path.get_paths ())
+                (UTop_compat.get_load_path ())
               )
           else
             add_files filter String_map.empty (Filename.dirname file)
