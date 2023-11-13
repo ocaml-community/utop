@@ -5,3 +5,4 @@
 (context (opam (switch utop-414)))
 (context (opam (switch utop-500)))
 (context (opam (switch utop-510)))
+(context (opam (switch utop-520)))

@@ -1,3 +1,9 @@
+unreleased
+----------
+
+* Add support for OCaml 5.2 (#470, fixes #466, @leostera, @ManasJayanth,
+  @huwaireb)
+
 2.13.1 (2023-07-07)
 -------------------
 
