@@ -75,6 +75,18 @@ with Emacs to provide an enhanced environment."
   :type 'string
   :safe 'stringp)
 
+(defcustom utop-starting-directory 'current-directory
+  "Directory in which utop will be started.
+
+Can be the `current-directory' (default) to use the current buffer's directory or
+`project-root' to use the project root as implied by project.el. For most
+users, `current-directory' is completely sufficient.
+However, if using an .ocamlinit file in the root directory,
+it may be desirable to run the project from the root directory."
+
+  :type '(choice (const :tag "Project root" project-root)
+                 (const :tag "Current directory" current-directory)))
+
 (defcustom utop-edit-command t
   "Whether to read the command from the minibuffer before running utop.
 
@@ -1073,9 +1085,16 @@ defaults to 0."
   ;; Set the state to done to allow utop to be restarted if
   ;; start-process fails
   (setq utop-state 'done)
+  (let ((default-directory
+      (cond ((eq utop-starting-directory 'project-root)
+	      (project-root (project-current)))
+	     ((eq utop-starting-directory 'current-directory)
+	      default-directory)
+	     (t
+	      (error "Wrong value for `utop-starting-directory', please check this variable documentation and set it to a proper value")))))
 
-  ;; Create the sub-process
-  (setq utop-process (apply 'start-process "utop" (current-buffer) (car arguments) (cdr arguments)))
+    ;; Create the sub-process
+    (setq utop-process (apply 'start-process "utop" (current-buffer) (car arguments) (cdr arguments))))
 
   ;; Set the initial state: we are waiting for ocaml to send the
   ;; initial prompt
