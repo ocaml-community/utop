@@ -1086,12 +1086,14 @@ defaults to 0."
   ;; start-process fails
   (setq utop-state 'done)
   (let ((default-directory
-      (cond ((eq utop-starting-directory 'project-root)
-	      (project-root (project-current)))
-	     ((eq utop-starting-directory 'current-directory)
-	      default-directory)
-	     (t
-	      (error "Wrong value for `utop-starting-directory', please check this variable documentation and set it to a proper value")))))
+	 (cond ((eq utop-starting-directory 'project-root)
+		(if (project-current)
+		    (project-root (project-current))
+		  (error "`utop-starting-directory' is set to project-root but not currently inside a project")))
+		((eq utop-starting-directory 'current-directory)
+		 default-directory)
+		(t
+		 (error "Wrong value for `utop-starting-directory', please check this variable documentation and set it to a proper value")))))
 
     ;; Create the sub-process
     (setq utop-process (apply 'start-process "utop" (current-buffer) (car arguments) (cdr arguments))))
