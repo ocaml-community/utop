@@ -288,9 +288,8 @@ let parse_default parse str eos_is_error =
       | Syntaxerr.Ill_formed_ast (loc, s) ->
           Error ([mkloc loc],
                  Printf.sprintf "Error: broken invariant in parsetree: %s" s)
-      | Syntaxerr.Invalid_package_type (loc, s) ->
-          Error ([mkloc loc],
-                 Printf.sprintf "Invalid package type: %s" s)
+      | Syntaxerr.Invalid_package_type (loc, err) ->
+          Error ([mkloc loc], UTop_compat.invalid_package_error_to_string err)
 #if OCAML_VERSION >= (5, 0, 0)
       | Syntaxerr.Removed_string_set loc ->
           Error ([mkloc loc],
@@ -358,11 +357,12 @@ let check_phrase phrase =
           let open Ast_helper in
           with_default_loc loc
             (fun () ->
-               Str.eval
-                 (Exp.fun_ Nolabel None (Pat.construct unit None)
-                   (Exp.letmodule (with_loc loc (Some "_"))
+              let punit = (Pat.construct unit None) in
+              let body = (Exp.letmodule ~loc:loc
+                      (with_loc loc (Some "_"))
                       (Mod.structure (item :: items))
-                      (Exp.construct unit None))))
+                      (Exp.construct unit None)) in
+              Str.eval (UTop_compat.Exp.fun_ ~loc punit body))
         in
         let check_phrase = Ptop_def [top_def] in
         try
@@ -828,7 +828,8 @@ let () =
    | Compiler-libs re-exports                                        |
    +-----------------------------------------------------------------+ *)
 
-let get_load_path () = Load_path.get_paths ()
+let get_load_path = UTop_compat.get_load_path
+
 let set_load_path = UTop_compat.set_load_path
 
 module Private = struct
