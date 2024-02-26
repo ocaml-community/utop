@@ -1,5 +1,5 @@
-unreleased
-----------
+2.14.0 (2024-02-26)
+-------------------
 
 * Add support for OCaml 5.2 (#470, fixes #466, @leostera, @ManasJayanth,
   @huwaireb)
