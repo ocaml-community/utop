@@ -10,7 +10,7 @@ homepage: "https://github.com/ocaml-community/utop"
 doc: "https://ocaml-community.github.io/utop/"
 bug-reports: "https://github.com/ocaml-community/utop/issues"
 depends: [
-  "dune" {>= "2.0"}
+  "dune" {>= "2.7"}
   "ocaml" {>= "4.11.0"}
   "base-unix"
   "base-threads"
@@ -24,9 +24,10 @@ depends: [
   "cppo" {>= "1.1.2"}
   "alcotest" {with-test}
   "xdg" {>= "3.9.0"}
+  "odoc" {with-doc}
 ]
 build: [
-  ["dune" "subst"] {pinned}
+  ["dune" "subst"] {dev}
   [
     "dune"
     "build"
