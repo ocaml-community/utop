@@ -5,7 +5,7 @@
 \"
 \" This file is a part of utop.
 
-.TH UTOP 1 "August 2011"
+.TH UTOP 1
 
 .SH NAME
 utop \- Universal toplevel for OCaml
@@ -25,23 +25,23 @@ utop \- Universal toplevel for OCaml
 .SH DESCRIPTION
 
 .B utop
-is a enhanced toplevel for OCaml with many features, including context
+is an enhanced toplevel for OCaml with many features, including context
 sensitive completion.
 
 When you start
 .B utop
 what you see is the prompt followed by a bar containing words. This is
-the completion bar, it contains the possible completion and is updated
+the completion bar: it contains the possible completion and is updated
 as you type. The highlighted word in the completion bar is the
-selected word. You can navigate using the keys Alt+Left and Alt+Right
-and you can complete using the currently selected word by pressing
-Alt+Tab (you can configure these bindings in the file
+selected word. You can navigate using the keys \fBM-Left\fR and \fBM-Right\fR
+and select one completion using \fBM-down\fR. Here \fBM\fR represents the meta key,
+which is \fBAlt\fR on most systems. You can configure these bindings in the file
 .I ~/.config/lambda-term-inputrc
-, see
+- see
 .BR lambda-term-inputrc (5)
-for details).
+for details.
 
-utop supports completion on:
+\fButop\fR supports completion on:
 
         * directives and directive arguments
         * identifiers
@@ -51,9 +51,9 @@ utop supports completion on:
         * object methods
 
 Colors are by default configured for terminals with dark colors, such
-as white on black, so the prompt may looks too bright on light colors
+as white on black, so the prompt may look too bright on light-colored
 terminals. You can change that by setting the color profile of
-utop. For that type:
+utop. To do that, type:
 
         UTop.set_profile UTop.Light;;
 
@@ -61,7 +61,7 @@ You can then add this line to your
 .I ~/.config/utop/init.ml
 file.
 
-To turn off utop's advanced prompt features, add the following to init.ml
+To turn off \fButop\fR's advanced prompt features, add the following to \fIinit.ml\fR
 to turn off respectively (a) colors and the upper information line, and
 (b) the lower boxed list of possible completions:
 
@@ -74,14 +74,39 @@ file. See
 .BR utoprc (5)
 for that.
 
-Finally utop can run in emacs. For that you have to add the following line to your
-.I ~/.emacs
-file:
+Vi edit mode is enabled by the command
 
-        (autoload 'utop "utop" "Toplevel for OCaml" t)
+        #edit_mode_vi
 
-then you can run utop by pressing M-x and typing "utop". utop support
-completion in emacs mode. Just press Tab to complete a word. You can
+It currently supports three vi modes: normal, insert, visual mode, and you can
+get/set content with vim-like registers.
+
+.I utop.el
+is a package that provides
+.B utop
+integration with Emacs. The package allows you to run
+.B utop
+inside Emacs and to evaluate code in it straight from your source buffers
+(with the help of \fIutop-minor-mode\fR).
+The recommended way to install
+.I utop.el
+is via Emacs's built-in package manager \fBpackage.el\fR.
+More detailed installation and configuration instructions may be found
+on the project's code repository at \fIhttps://github.com/ocaml-community/utop\fR.
+
+You can start \fButop\fR inside Emacs with \fBM-x utop\fR.
+
+The default install also has a minor mode with the following key bindings:
+
+        \fBC-c C-s\fR Start a utop buffer (\fIutop\fR)
+        \fBC-x C-e\fR Evaluate the current phrase (\fIutop-eval-phrase\fR)
+        \fBC-x C-r\fR Evaluate the selected region (\fIutop-eval-region\fR)
+        \fBC-c C-b\fR Evaluate the current buffer (\fIutop-eval-buffer\fR)
+        \fBC-c C-k\fR Kill a running utop process (\fItop-kill\fR)
+        \fBC-c C-z\fR Switch to utop process (\fIutop-switch-to-repl\fR)
+
+then you can run \fButop\fR by pressing \fBM-x\fR and typing "utop". \fButop\fR supports
+completion in Emacs mode. Just press \fBTab\fR to complete a word. You can
 also integrate it with the tuareg, caml or typerex mode. For that add
 the following lines to your
 .I ~/.emacs
@@ -93,7 +118,7 @@ file:
 .SH OPTIONS
 See
 .B utop --help
-for the the list of available options. There is considerable overlap
+for the full list of available options. There is considerable overlap
 with options available for
 .BR ocaml (1).
 
@@ -112,7 +137,7 @@ Show absolute filenames in error message.
 Add \fIdir\fR to the list of include directories.
 .TP
 .BI -init " file"
-Load \fIfile\fR instead of default init file.
+Load \fIfile\fR instead of the default init file.
 .TP
 .BI -labels
 Use commuting label mode.
@@ -127,10 +152,10 @@ Do not compile assertion checks.
 Ignore non-optional labels in types.
 .TP
 .BI -nostdlib
-Do not add default directory to the list of include directories.
+Do not add the default directory to the list of include directories.
 .TP
 .BI -ppx " command"
-Pipe abstract syntax trees through preprocessor \fIcommand\fR.
+Pipe abstract syntax trees through the preprocessor \fIcommand\fR.
 .TP
 .BI -principal
 Check principality of type inference.

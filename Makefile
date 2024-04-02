@@ -17,7 +17,6 @@ reinstall:
 	$(MAKE) uninstall
 	$(MAKE) install
 
-
 .PHONY: examples
 examples:
 	dune build @examples
@@ -39,3 +38,21 @@ cinaps:
 clean:
 	rm -rf _build *.install
 	find . -name .merlin -delete
+
+.PHONY: create-switches
+create-switches:
+	opam switch create utop-412 4.12.0
+	opam switch create utop-413 4.13.1
+	opam switch create utop-414 4.14.1
+	opam switch create utop-500 5.0.0
+	opam switch create utop-510 5.1.0
+	opam switch create utop-520 5.2.0+trunk
+
+.PHONY: install-switches
+install-switches:
+	opam install --switch utop-412 --deps-only --with-test -y .
+	opam install --switch utop-413 --deps-only --with-test -y .
+	opam install --switch utop-414 --deps-only --with-test -y .
+	opam install --switch utop-500 --deps-only --with-test -y .
+	opam install --switch utop-510 --deps-only --with-test -y .
+	opam install --switch utop-520 --deps-only --with-test -y .
