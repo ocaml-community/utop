@@ -53,7 +53,10 @@ let init_history () =
         return ()
     | Some fn ->
         Lwt.catch
-          (fun () -> LTerm_history.load UTop.history fn)
+          (fun () ->
+            let dn = Filename.dirname fn in
+            if not (Sys.file_exists dn) then Unix.mkdir dn 0o700;
+            LTerm_history.load UTop.history fn)
           (function
           | Unix.Unix_error (error, func, arg) ->
               Logs_lwt.err (fun m -> m "cannot load history from %S: %s: %s"
