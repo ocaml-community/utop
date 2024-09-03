@@ -66,6 +66,15 @@ let rec is_persistent_path = function
   | Path.Pextra_ty (p, _) -> is_persistent_path p
 #endif
 
+#if OCAML_VERSION >= (5, 2, 0)
+let inline_code =
+#if OCAML_VERSION >= (5, 3, 0)
+  (Format_doc.compat Misc.Style.inline_code)
+#else
+  Misc.Style.inline_code
+#endif
+#endif
+
 let invalid_package_error_to_string err =
 #if OCAML_VERSION >= (5, 2, 0)
   (* NOTE: from https://github.com/ocaml/ocaml/blob/9b059b1e7a66e9d2f04d892a4de34c418cd96f69/parsing/parse.ml#L149 *)
@@ -78,11 +87,11 @@ let invalid_package_error_to_string err =
       Format.fprintf ppf  "private types are not supported"
     | Not_with_type ->
       Format.fprintf ppf "only %a constraints are supported"
-        Misc.Style.inline_code "with type t ="
+        inline_code "with type t ="
     | Neither_identifier_nor_with_type ->
         Format.fprintf ppf
           "only module type identifier and %a constraints are supported"
-          Misc.Style.inline_code "with type"
+          inline_code "with type"
   in
   let buf = Buffer.create 128 in
   let fmt = Format.formatter_of_buffer buf in
@@ -119,7 +128,7 @@ let find_in_path_normalized =
       Misc.find_in_path_normalized
 #else
       Misc.find_in_path_uncap
-#endif   
+#endif
 
 let visible_paths_for_cmt_infos (cmt_infos: Cmt_format.cmt_infos) =
 #if OCAML_VERSION >= (5, 2, 0)
