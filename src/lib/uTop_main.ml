@@ -1165,6 +1165,13 @@ end
    | Extra macros                                                    |
    +-----------------------------------------------------------------+ *)
 
+module Printtyp =
+#if OCAML_VERSION >= (5, 3, 0)
+  Out_type
+#else
+  Printtyp
+#endif
+
 let typeof sid =
   let id = Parse.longident (Lexing.from_string sid) in
   let env = !Toploop.toplevel_env in
@@ -1218,7 +1225,11 @@ let typeof sid =
   | Some osig ->
     let buf = Buffer.create 128 in
     let pp = Format.formatter_of_buffer buf in
+#if OCAML_VERSION >= (5, 3, 0)
+    Format.fprintf pp "%a" (Format_doc.compat !Toploop.print_out_signature) [osig];
+#else
     !Toploop.print_out_signature pp [osig];
+#endif
     Format.pp_print_newline pp ();
     let str = Buffer.contents buf in
     Lwt_main.run (Lazy.force LTerm.stdout >>= fun term -> render_out_phrase term str)
@@ -1584,6 +1595,10 @@ let () =
   Location.register_error_of_exn
     (function
       | Envaux.Error err ->
+#if OCAML_VERSION >= (5,3,0)
+        Some (Location.error_of_printer_file Envaux.report_error_doc err)
+#else
         Some (Location.error_of_printer_file Envaux.report_error err)
+#endif
       | _ -> None
     )
