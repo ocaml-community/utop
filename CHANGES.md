@@ -1,3 +1,8 @@
+2.15.0 (2024-11-25)
+------------------
+
+* Add support for OCaml 5.3 (#489, @anmonteiro, @anmonteiro, @Octachron)
+
 2.14.0 (2024-02-26)
 -------------------
 
