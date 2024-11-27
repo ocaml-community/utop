@@ -22,12 +22,12 @@ module Default_paths = struct
   let history_file_name =
     resolve
       ~legacy:(LTerm_resources.home / ".utop-history")
-      ~filename:(Xdg.state_dir xdg / "utop-history")
+      ~filename:(Xdg.state_dir xdg / "utop" / "utop-history")
 
   let config_file_name =
     resolve
       ~legacy:(LTerm_resources.home / ".utoprc")
-      ~filename:(Xdg.config_dir xdg / "utoprc")
+      ~filename:(Xdg.config_dir xdg / "utop" / "utoprc")
 end
 
 let size, set_size =
