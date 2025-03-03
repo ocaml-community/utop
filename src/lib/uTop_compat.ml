@@ -5,6 +5,37 @@ let get_desc x =
   x.Types.desc
 #endif
 
+(* Transform a non-empty list of strings into a long-identifier. *)
+let longident_of_list p = match Longident.unflatten p with
+  | None ->
+      invalid_arg "UTop_complete.longident_of_list"
+  | Some x -> x
+
+let ldot ?(loc=Location.none) p s =
+#if OCAML_VERSION >= (5, 4, 0)
+   Longident.Ldot(Location.mkloc p loc, Location.mkloc s loc)
+#else
+  Longident.Ldot(p,s)
+#endif
+
+let destruct_ldot p s =
+#if OCAML_VERSION >= (5, 4, 0)
+   p.Location.txt, s.Location.txt
+#else
+  p, s
+#endif
+
+(* Check whether an identifier is a valid one. *)
+let is_valid_identifier id =
+#if OCAML_VERSION >= (5, 3, 0)
+  Misc.Utf8_lexeme.is_valid_identifier id
+#else
+  id <> "" &&
+    (match id.[0] with
+       | 'A' .. 'Z' | 'a' .. 'z' |  '_' -> true
+       | _ -> false)
+#endif
+
 let toploop_get_directive name =
 #if OCAML_VERSION >= (4, 13, 0)
   Toploop.get_directive name
@@ -150,4 +181,3 @@ let add_cmi_hook f =
     res
   in
   Persistent_env.Persistent_signature.load := load
-

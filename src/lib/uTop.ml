@@ -184,10 +184,12 @@ let collect_formatters buf pps f =
     raise exn
 
 let discard_formatters pps f =
+  match pps with [] -> f () | fpp :: pps_rest ->
   (* First flush all formatters. *)
   List.iter (fun pp -> Format.pp_print_flush pp ()) pps;
   (* Save all formatter functions. *)
-  let save = List.map (fun pp -> Format.pp_get_formatter_out_functions pp ()) pps in
+  let h = Format.pp_get_formatter_out_functions fpp () in
+  let save = h :: List.map (fun pp -> Format.pp_get_formatter_out_functions pp ()) pps_rest in
   let restore () =
     List.iter2
       (fun pp out_functions ->
@@ -197,9 +199,10 @@ let discard_formatters pps f =
   in
   (* Output functions. *)
   let out_functions = {
+      h with (* OCaml 5.4 added a new field *)
     Format.out_string = (fun _ _ _ -> ()); out_flush = ignore;
-    out_newline = ignore; out_spaces = ignore ; out_indent = ignore
-  } in
+    out_newline = ignore; out_spaces = ignore ; out_indent = ignore;
+  }[@warning "-23"] in
   (* Replace formatter functions. *)
   List.iter (fun pp -> Format.pp_set_formatter_out_functions pp out_functions) pps;
   try
@@ -350,8 +353,7 @@ let check_phrase phrase =
         (* Construct "let _ () = let module _ = struct <items> end in ()" in order to test
            the typing and compilation of [items] without evaluating them. *)
         let unit =
-          let (%.) a b = Longident.Ldot (a, b) in
-          with_loc loc (Lident "Stdlib" %. "Unit" %. "()")
+          with_loc loc (UTop_compat.longident_of_list ["Stdlib"; "Unit"; "()"])
         in
         let top_def =
           let open Ast_helper in
