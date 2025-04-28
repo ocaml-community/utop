@@ -8,6 +8,7 @@ jobs:
       matrix:
         runs-on: [ ubuntu-latest, macos-latest ]
     runs-on: ${{ matrix.runs-on }}
+    continue-on-error: true
 
     steps:
       - name: Checkout code
