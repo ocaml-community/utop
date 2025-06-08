@@ -310,7 +310,11 @@ end = struct
     let comp = Ident.name id in
     match path with
     | None -> Longident.Lident comp
+#if OCAML_VERSION >= (5, 4, 0)
+    | Some path -> Longident.Ldot ({ loc = Location.none; txt = path}, { loc = Location.none; txt = comp })
+#else
     | Some path -> Longident.Ldot (path, comp)
+#endif
 
   let is_auto_printer_attribute (attr : Parsetree.attribute) =
     let name = attr.attr_name in
@@ -529,14 +533,30 @@ type rewrite_rule = {
   (* Whether the rule is enabled or not. *)
 }
 
+let loc = Location.none
+#if OCAML_VERSION >= (5, 4, 0)
+let longident_lwt_main_run =
+  Longident.Ldot
+    ({ loc; txt = Longident.Lident "Lwt_main" },
+      { loc; txt =  "run" })
+let longident_async_thread_safe_block_on_async_exn =
+  Longident.(Ldot
+    ({ loc; txt = Ldot ({ loc; txt = Lident "Async" }, { loc; txt = "Thread_safe" })},
+     { loc; txt = "block_on_async_exn" }))
+#else
 let longident_lwt_main_run = Longident.Ldot (Longident.Lident "Lwt_main", "run")
 let longident_async_thread_safe_block_on_async_exn =
   Longident.(Ldot (Ldot (Lident "Async", "Thread_safe"), "block_on_async_exn"))
+#endif
 
 let rewrite_rules = [
   (* Rewrite Lwt.t expressions to Lwt_main.run <expr> *)
   {
+#if OCAML_VERSION >= (5, 4, 0)
+    type_to_rewrite = Longident.(Ldot ({ loc; txt = Lident "Lwt" }, { loc; txt = "t" }));
+#else
     type_to_rewrite = Longident.(Ldot (Lident "Lwt", "t"));
+#endif
     path_to_rewrite = None;
     required_values = [longident_lwt_main_run];
     rewrite = (fun loc e ->
@@ -551,7 +571,13 @@ let rewrite_rules = [
   (* Rewrite Async.Defered.t expressions to
      Async.Thread_safe.block_on_async_exn (fun () -> <expr>). *)
   {
-    type_to_rewrite = Longident.(Ldot (Ldot (Lident "Async", "Deferred"), "t"));
+    type_to_rewrite =
+#if OCAML_VERSION >= (5, 4, 0)
+      Longident.(Ldot
+        ({ loc; txt = Ldot ({ loc; txt = Lident "Async"}, { loc; txt = "Deferred" }) }, { loc; txt = "t" }));
+#else
+    Longident.(Ldot (Ldot (Lident "Async", "Deferred"), "t"));
+#endif
     path_to_rewrite = None;
     required_values = [longident_async_thread_safe_block_on_async_exn];
     rewrite = (fun loc e ->
@@ -1171,6 +1197,15 @@ module Printtyp =
 #else
   Printtyp
 #endif
+module Types =
+#if OCAML_VERSION >= (5, 4, 0)
+  struct
+    include Types
+    include Data_types
+  end
+#else
+  Types
+#endif
 
 let typeof sid =
   let id = Parse.longident (Lexing.from_string sid) in
@@ -1523,7 +1558,12 @@ exception Found of Env.t
 let get_required_label name args =
   match List.find (fun (lab, _) -> lab = Asttypes.Labelled name) args with
   | _, x -> x
+#if OCAML_VERSION >= (5, 4, 0)
+  | exception Not_found -> Typedtree.Omitted ()
+#else
   | exception Not_found -> None
+#endif
+
 
 let walk dir ~init ~f =
   let rec loop dir acc =
@@ -1562,7 +1602,11 @@ let interact ?(search_path=[]) ?(build_dir="_build") ~unit ~loc:(fname, lnum, cn
               match get_required_label "loc"    args,
                     get_required_label "values" args
               with
+#if OCAML_VERSION >= (5, 4, 0)
+              | Arg l, Arg v ->
+#else
               | Some l, Some v ->
+#endif
                 let pos = l.exp_loc.loc_start in
                 if pos.pos_fname = fname &&
                    pos.pos_lnum = lnum   &&

@@ -198,7 +198,10 @@ let discard_formatters pps f =
   (* Output functions. *)
   let out_functions = {
     Format.out_string = (fun _ _ _ -> ()); out_flush = ignore;
-    out_newline = ignore; out_spaces = ignore ; out_indent = ignore
+    out_newline = ignore; out_spaces = ignore ; out_indent = ignore ;
+#if OCAML_VERSION >= (5, 4, 0)
+    out_width = (fun _ ~pos:_ ~len:_ -> 0)
+#endif
   } in
   (* Replace formatter functions. *)
   List.iter (fun pp -> Format.pp_set_formatter_out_functions pp out_functions) pps;
@@ -350,7 +353,11 @@ let check_phrase phrase =
         (* Construct "let _ () = let module _ = struct <items> end in ()" in order to test
            the typing and compilation of [items] without evaluating them. *)
         let unit =
+#if OCAML_VERSION >= (5, 4, 0)
+          let (%.) a b = Longident.Ldot ({ loc; txt = a}, { loc; txt = b }) in
+#else
           let (%.) a b = Longident.Ldot (a, b) in
+#endif
           with_loc loc (Lident "Stdlib" %. "Unit" %. "()")
         in
         let top_def =

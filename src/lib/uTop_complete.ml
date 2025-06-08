@@ -18,6 +18,7 @@ module String_set = Set.Make(String)
 module String_map = Map.Make(String)
 
 let set_of_list = List.fold_left (fun set x -> String_set.add x set) String_set.empty
+let mkloc txt = { Asttypes.loc = Location.none; txt }
 
 (* +-----------------------------------------------------------------+
    | Utils                                                           |
@@ -30,7 +31,11 @@ let longident_of_list = function
   | component :: rest ->
       let rec loop acc = function
         | [] -> acc
+#if OCAML_VERSION >= (5, 4, 0)
+        | component :: rest -> loop (Longident.Ldot(mkloc acc, mkloc component)) rest
+#else
         | component :: rest -> loop (Longident.Ldot(acc, component)) rest
+#endif
       in
       loop (Longident.Lident component) rest
 
@@ -408,7 +413,7 @@ let add_fields_of_type decl acc =
         List.fold_left (fun acc field -> add (field_name field) acc) acc fields
 #if OCAML_VERSION >= (5, 2, 0)
     | Type_abstract _ ->
-#else 
+#else
     | Type_abstract ->
 #endif
         acc
@@ -427,7 +432,7 @@ let add_names_of_type decl acc =
         List.fold_left (fun acc field -> add (field_name field) acc) acc fields
 #if OCAML_VERSION >= (5, 2, 0)
     | Type_abstract _ ->
-#else 
+#else
     | Type_abstract ->
 #endif
         acc
@@ -826,9 +831,15 @@ let complete ~phrase_terminator ~input =
       let prefix = String.sub input (loc.ofs1 + tlen) (String.length input - loc.ofs1 - tlen) in
       begin match Parse.longident (Lexing.from_string prefix) with
       | Longident.Ldot (lident, last_prefix) ->
+#if OCAML_VERSION >= (5, 4, 0)
+        let set = names_of_module lident.txt in
+        let compls = lookup last_prefix.txt (String_set.elements set) in
+        let start = loc.idx1 + 1 + (String.length prefix - String.length last_prefix.txt) in
+#else
         let set = names_of_module lident in
         let compls = lookup last_prefix (String_set.elements set) in
         let start = loc.idx1 + 1 + (String.length prefix - String.length last_prefix) in
+#endif
         (start, List.map (fun w -> (w, "")) compls)
       | _ ->
         let set = global_names () in
