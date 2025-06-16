@@ -11,9 +11,9 @@ let longident_of_list p = match Longident.unflatten p with
       invalid_arg "UTop_complete.longident_of_list"
   | Some x -> x
 
-let ldot ?(loc=Location.none) p s =
+let ldot ?loc:(_loc=Location.none) p s =
 #if OCAML_VERSION >= (5, 4, 0)
-   Longident.Ldot(Location.mkloc p loc, Location.mkloc s loc)
+  Longident.Ldot(Location.mkloc p _loc, Location.mkloc s _loc)
 #else
   Longident.Ldot(p,s)
 #endif
