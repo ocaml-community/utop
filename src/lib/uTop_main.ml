@@ -1173,18 +1173,17 @@ module Printtyp =
 #endif
 
 #if OCAML_VERSION >= (5,4,0)
-let lbl_res lbl = get_desc lbl.Data_types.lbl_res
-let cstr_res c = get_desc c.Data_types.cstr_res
-let cstr_tag c = c.Data_types.cstr_tag
-let present_arg x = match x with
+  module Data_types = Data_types
+  let present_arg = function
   | Typedtree.Arg x -> Some x
   | Typedtree.Omitted () -> None
 #else
-let lbl_res lbl = get_desc lbl.Types.lbl_res
-let cstr_res c = get_desc c.Types.cstr_res
-let cstr_tag c = c.Types.cstr_tag
-let present_arg x = x
+  module Data_types = Types
+  let present_arg x = x
 #endif
+let lbl_res lbl = get_desc lbl.Data_types.lbl_res
+let cstr_res c = get_desc c.Data_types.cstr_res
+let cstr_tag c = c.Data_types.cstr_tag
 
 let typeof sid =
   let id = Parse.longident (Lexing.from_string sid) in
