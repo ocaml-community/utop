@@ -23,13 +23,6 @@ let set_of_list = List.fold_left (fun set x -> String_set.add x set) String_set.
    | Utils                                                           |
    +-----------------------------------------------------------------+ *)
 
-(* Check whether an identifier is a valid one. *)
-let is_valid_identifier id =
-  id <> "" &&
-    (match id.[0] with
-       | 'A' .. 'Z' | 'a' .. 'z' |  '_' -> true
-       | _ -> false)
-
 let add id set = if is_valid_identifier id then String_set.add id set else set
 
 let lookup_env f x env =
@@ -376,7 +369,7 @@ let visible_modules () =
             Array.fold_left
               (fun acc fname ->
                 if Filename.check_suffix fname ".cmi" then
-                  String_set.add (String.capitalize_ascii (Filename.chop_suffix fname ".cmi")) acc
+                  String_set.add (lax_modname_from_cmi fname) acc
                 else
                   acc)
               acc

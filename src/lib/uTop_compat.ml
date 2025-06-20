@@ -26,14 +26,18 @@ let destruct_ldot p s =
 #endif
 
 (* Check whether an identifier is a valid one. *)
-let is_valid_identifier id =
 #if OCAML_VERSION >= (5, 3, 0)
+let is_valid_identifier id =
   Misc.Utf8_lexeme.is_valid_identifier id
+let lax_modname_from_cmi = Unit_info.lax_modname_from_source
 #else
+let is_valid_identifier id =
   id <> "" &&
     (match id.[0] with
        | 'A' .. 'Z' | 'a' .. 'z' |  '_' -> true
        | _ -> false)
+let lax_modname_from_cmi fname =
+  String.capitalize_ascii (Filename.chop_suffix fname ".cmi")
 #endif
 
 let toploop_get_directive name =
