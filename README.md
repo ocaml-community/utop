@@ -120,7 +120,7 @@ Integration with Emacs
 The package allows you to run `utop` inside Emacs and to evaluate
 code in it straight from your source buffers (with the help of `utop-minor-mode`).
 
-Those features are covered in more details in the ["Usage"](#usage-emacs) section.
+Those features are covered in more details in the ["Usage"](#emacs-usage) section.
 
 ### Requirements
 
