@@ -1454,6 +1454,7 @@ let load_inputrc () =
 let protocol_version = 1
 
 let main_aux ~initial_env =
+  Clflags.debug := true;
   Arg.parse args file_argument usage;
 #if OCAML_VERSION >= (5, 0, 0) && OCAML_VERSION < (5, 1, 0)
   Topcommon.load_topdirs_signature ();
@@ -1465,7 +1466,6 @@ let main_aux ~initial_env =
     let module Emacs = Emacs (struct end) in
     Printf.printf "Welcome to utop version %s (using OCaml version %s)!\n\n%!" UTop.version Sys.ocaml_version;
     common_init ~initial_env;
-    Clflags.debug := true;
     Emacs.loop ()
   end else begin
     UTop_private.set_ui UTop_private.Console;
@@ -1484,7 +1484,6 @@ let main_aux ~initial_env =
       flush stdout;
       (* Main loop. *)
       try
-        Clflags.debug := true;
         loop term
       with LTerm_read_line.Interrupt ->
         ()
