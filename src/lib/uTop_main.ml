@@ -1454,6 +1454,7 @@ let load_inputrc () =
 let protocol_version = 1
 
 let main_aux ~initial_env =
+  Clflags.debug := true;
   Arg.parse args file_argument usage;
 #if OCAML_VERSION >= (5, 0, 0) && OCAML_VERSION < (5, 1, 0)
   Topcommon.load_topdirs_signature ();
