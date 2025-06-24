@@ -23,24 +23,6 @@ let set_of_list = List.fold_left (fun set x -> String_set.add x set) String_set.
    | Utils                                                           |
    +-----------------------------------------------------------------+ *)
 
-(* Transform a non-empty list of strings into a long-identifier. *)
-let longident_of_list = function
-  | [] ->
-      invalid_arg "UTop_complete.longident_of_list"
-  | component :: rest ->
-      let rec loop acc = function
-        | [] -> acc
-        | component :: rest -> loop (Longident.Ldot(acc, component)) rest
-      in
-      loop (Longident.Lident component) rest
-
-(* Check whether an identifier is a valid one. *)
-let is_valid_identifier id =
-  id <> "" &&
-    (match id.[0] with
-       | 'A' .. 'Z' | 'a' .. 'z' |  '_' -> true
-       | _ -> false)
-
 let add id set = if is_valid_identifier id then String_set.add id set else set
 
 let lookup_env f x env =
@@ -387,7 +369,7 @@ let visible_modules () =
             Array.fold_left
               (fun acc fname ->
                 if Filename.check_suffix fname ".cmi" then
-                  String_set.add (String.capitalize_ascii (Filename.chop_suffix fname ".cmi")) acc
+                  String_set.add (lax_modname_from_cmi fname) acc
                 else
                   acc)
               acc
@@ -826,6 +808,7 @@ let complete ~phrase_terminator ~input =
       let prefix = String.sub input (loc.ofs1 + tlen) (String.length input - loc.ofs1 - tlen) in
       begin match Parse.longident (Lexing.from_string prefix) with
       | Longident.Ldot (lident, last_prefix) ->
+        let lident, last_prefix = destruct_ldot lident last_prefix in
         let set = names_of_module lident in
         let compls = lookup last_prefix (String_set.elements set) in
         let start = loc.idx1 + 1 + (String.length prefix - String.length last_prefix) in

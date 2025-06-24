@@ -310,7 +310,7 @@ end = struct
     let comp = Ident.name id in
     match path with
     | None -> Longident.Lident comp
-    | Some path -> Longident.Ldot (path, comp)
+    | Some path -> ldot path comp
 
   let is_auto_printer_attribute (attr : Parsetree.attribute) =
     let name = attr.attr_name in
@@ -529,14 +529,14 @@ type rewrite_rule = {
   (* Whether the rule is enabled or not. *)
 }
 
-let longident_lwt_main_run = Longident.Ldot (Longident.Lident "Lwt_main", "run")
+let longident_lwt_main_run = longident_of_list ["Lwt_main"; "run"]
 let longident_async_thread_safe_block_on_async_exn =
-  Longident.(Ldot (Ldot (Lident "Async", "Thread_safe"), "block_on_async_exn"))
+  longident_of_list ["Async"; "Thread_safe"; "block_on_async_exn"]
 
 let rewrite_rules = [
   (* Rewrite Lwt.t expressions to Lwt_main.run <expr> *)
   {
-    type_to_rewrite = Longident.(Ldot (Lident "Lwt", "t"));
+    type_to_rewrite = longident_of_list ["Lwt"; "t"];
     path_to_rewrite = None;
     required_values = [longident_lwt_main_run];
     rewrite = (fun loc e ->
@@ -551,7 +551,7 @@ let rewrite_rules = [
   (* Rewrite Async.Defered.t expressions to
      Async.Thread_safe.block_on_async_exn (fun () -> <expr>). *)
   {
-    type_to_rewrite = Longident.(Ldot (Ldot (Lident "Async", "Deferred"), "t"));
+    type_to_rewrite = longident_of_list ["Async"; "Deferred"; "t"];
     path_to_rewrite = None;
     required_values = [longident_async_thread_safe_block_on_async_exn];
     rewrite = (fun loc e ->
@@ -1172,6 +1172,19 @@ module Printtyp =
   Printtyp
 #endif
 
+#if OCAML_VERSION >= (5,4,0)
+  module Data_types = Data_types
+  let present_arg = function
+  | Typedtree.Arg x -> Some x
+  | Typedtree.Omitted () -> None
+#else
+  module Data_types = Types
+  let present_arg x = x
+#endif
+let lbl_res lbl = get_desc lbl.Data_types.lbl_res
+let cstr_res c = get_desc c.Data_types.cstr_res
+let cstr_tag c = c.Data_types.cstr_tag
+
 let typeof sid =
   let id = Parse.longident (Lexing.from_string sid) in
   let env = !Toploop.toplevel_env in
@@ -1194,7 +1207,7 @@ let typeof sid =
     with Not_found ->
     try
       let lbl_desc = Env.find_label_by_name id env in
-      let (path, ty_decl) = from_type_desc (get_desc lbl_desc.Types.lbl_res) in
+      let (path, ty_decl) = from_type_desc (lbl_res lbl_desc) in
       let id = Ident.create_local (Path.name path) in
       Some (Printtyp.tree_of_type_declaration id ty_decl Types.Trec_not)
     with Not_found ->
@@ -1210,9 +1223,9 @@ let typeof sid =
     with Not_found ->
     try
       let cstr_desc = Env.find_constructor_by_name id env in
-      match cstr_desc.Types.cstr_tag with
+      match cstr_tag cstr_desc with
       | _ ->
-        let (path, ty_decl) = from_type_desc (get_desc cstr_desc.Types.cstr_res) in
+        let (path, ty_decl) = from_type_desc (cstr_res cstr_desc) in
         let id = Ident.create_local (Path.name path) in
         Some (Printtyp.tree_of_type_declaration id ty_decl Types.Trec_not)
     with Not_found ->
@@ -1523,7 +1536,7 @@ exception Found of Env.t
 
 let get_required_label name args =
   match List.find (fun (lab, _) -> lab = Asttypes.Labelled name) args with
-  | _, x -> x
+  | _, x -> present_arg x
   | exception Not_found -> None
 
 let walk dir ~init ~f =
