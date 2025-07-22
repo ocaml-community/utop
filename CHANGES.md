@@ -1,3 +1,14 @@
+2.16.0 (2025-07-22)
+------------------
+
+* Add support for OCaml 5.4 (#500, @Octachron, @anmonteiro)
+* restore backtrace (#503, fixes #501, @ysalmon)
+* support camlp$n preprocessor (#486, fixes #485, @aqjune)
+* utop configuration and state files (utoprc, utop-history) are now always in the relevant
+  utop subdirectory (#484, fixes #478, #481 and #499, @tuohy).
+* fix emacs completion for qualified paths (Module.M.some_name) (#497, fix #455, @juergenhoetzel, @bbatsov)
+* implicit bindings for emacs mode (#465, fix #412, @bencef)
+
 2.15.0 (2024-11-25)
 ------------------
 
