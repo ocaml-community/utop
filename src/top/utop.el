@@ -604,11 +604,10 @@ it is started."
          (dolist (prefix utop-completion-prefixes)
            ;; We need to handle specially prefixes like "List.m" as
            ;; the responses from utop don't include the module prefix.
-           (let ((prefix (if (string-match-p "\\." prefix)
-                             (cadr (split-string prefix "\\."))
-                           prefix)))
-             (when (string-prefix-p prefix argument)
-               (push argument utop-completion)
+           (let* ((pos (string-match  "[^.]*$" prefix))
+                  (module-prefix (substring prefix 0 pos)))
+             (when (string-prefix-p (substring prefix pos) argument)
+               (push (concat module-prefix argument) utop-completion)
                (throw 'done t))))))
       ;; End of completion
       ("completion-stop"
