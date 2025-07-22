@@ -747,10 +747,10 @@ let rec loop term =
   match phrase_opt with
     | Some phrase ->
         (* Rewrite toplevel expressions. *)
-        let count = S.value UTop_private.count in
         let phrase = rewrite phrase in
         let phrase =
           if UTop.get_create_implicits () then
+            let count = S.value UTop_private.count in
             let binding_name = Printf.sprintf "_%d" count in
             bind_expressions binding_name phrase
           else
@@ -971,6 +971,14 @@ module Emacs(M : sig end) = struct
   let process_checked_phrase phrase =
     (* Rewrite toplevel expressions. *)
     let phrase = rewrite phrase in
+    let phrase =
+      if UTop.get_create_implicits () then
+        let count = S.value UTop_private.count in
+        let binding_name = Printf.sprintf "_%d" count in
+        bind_expressions binding_name phrase
+      else
+        phrase
+    in
     try
       Env.reset_cache_toplevel ();
       ignore (execute_phrase true Format.std_formatter phrase);
