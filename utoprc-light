@@ -1,6 +1,6 @@
 ! -*- conf-xdefaults -*-
 
-! Copy this file to $XDG_CONFIG_HOME/utoprc (~/.config/utoprc)
+! Copy this file to $XDG_CONFIG_HOME/utop/utoprc (~/.config/utop/utoprc)
 
 ! Common resources
 
