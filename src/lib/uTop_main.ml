@@ -380,7 +380,11 @@ end = struct
         | Env.Env_class (s, _, _)
         | Env.Env_cltype (s, _, _)
         | Env.Env_open (s, _)
-        | Env.Env_functor_arg (s, _)
+#if OCAML_VERSION >= (5, 5, 0)
+        | Env.Env_not_aliasable(s, _)
+#else
+        | Env.Env_functor_arg(s, _)
+#endif
         | Env.Env_constraints (s, _) ->
           scan_summary last s
       in

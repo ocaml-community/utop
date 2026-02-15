@@ -390,12 +390,16 @@ let add_fields_of_type decl acc =
         List.fold_left (fun acc field -> add (field_name field) acc) acc fields
 #if OCAML_VERSION >= (5, 2, 0)
     | Type_abstract _ ->
-#else 
+#else
     | Type_abstract ->
 #endif
         acc
     | Type_open ->
         acc
+#if OCAML_VERSION >= (5, 5, 0)
+    | Type_external _ ->
+        acc
+#endif
 
 let add_names_of_type decl acc =
   match decl.type_kind with
@@ -409,12 +413,17 @@ let add_names_of_type decl acc =
         List.fold_left (fun acc field -> add (field_name field) acc) acc fields
 #if OCAML_VERSION >= (5, 2, 0)
     | Type_abstract _ ->
-#else 
+#else
     | Type_abstract ->
 #endif
         acc
     | Type_open ->
         acc
+#if OCAML_VERSION >= (5, 5, 0)
+    | Type_external _ ->
+        acc
+#endif
+
 
 let path_of_mty_alias = function
   | Mty_alias path -> path
@@ -527,7 +536,11 @@ let list_global_names () =
         loop (add (Ident.name id) acc) summary
     | Env.Env_cltype(summary, id, _) ->
         loop (add (Ident.name id) acc) summary
+#if OCAML_VERSION >= (5, 5, 0)
+    | Env.Env_not_aliasable(summary, id) ->
+#else
     | Env.Env_functor_arg(summary, id) ->
+#endif
         loop (add (Ident.name id) acc) summary
     | Env.Env_persistent (summary, id) ->
         loop (add (Ident.name id) acc) summary
@@ -575,7 +588,11 @@ let list_global_fields () =
         loop (add (Ident.name id) acc) summary
     | Env.Env_module(summary, id, _, _) ->
         loop (add (Ident.name id) acc) summary
+#if OCAML_VERSION >= (5, 5, 0)
+    | Env.Env_not_aliasable(summary, id) ->
+#else
     | Env.Env_functor_arg(summary, id) ->
+#endif
         loop (add (Ident.name id) acc) summary
     | Env.Env_modtype(summary, id, _) ->
         loop (add (Ident.name id) acc) summary
