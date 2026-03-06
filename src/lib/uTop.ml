@@ -360,10 +360,15 @@ let check_phrase phrase =
           with_default_loc loc
             (fun () ->
               let punit = (Pat.construct unit None) in
+#if OCAML_VERSION >= (5, 5, 0)
+              let si = Str.module_ ~loc (Mb.mk ~loc (with_loc loc (Some "_")) (Mod.structure (item :: items))) in
+              let body = (Exp.struct_item ~loc si (Exp.construct unit None)) in
+#else
               let body = (Exp.letmodule ~loc:loc
                       (with_loc loc (Some "_"))
                       (Mod.structure (item :: items))
                       (Exp.construct unit None)) in
+#endif
               Str.eval (UTop_compat.Exp.fun_ ~loc punit body))
         in
         let check_phrase = Ptop_def [top_def] in
