@@ -288,8 +288,13 @@ To add support for a new OCaml major mode, add an entry to this alist:
 
 (defun utop-compat-lookup (slot)
   "Look up a phrase function for the current major mode.
-SLOT should be `car' for next-phrase or `cdr' for discover-phrase."
-  (let ((entry (assq major-mode utop-mode-compat-alist)))
+SLOT should be `car' for next-phrase or `cdr' for discover-phrase.
+Also checks parent modes via `derived-mode-parent'."
+  (let ((mode major-mode)
+        entry)
+    (while (and mode (not entry))
+      (setq entry (assq mode utop-mode-compat-alist))
+      (setq mode (get mode 'derived-mode-parent)))
     (if entry
         (funcall slot (cdr entry))
       (error "utop doesn't support the major mode \"%s\".
