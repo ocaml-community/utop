@@ -16,8 +16,8 @@
 ;;
 ;; utop.el has two components - a nice OCaml REPL with auto-completion and a
 ;; minor mode (`utop-minor-mode'), which extends OCaml major modes
-;; (e.g. `tuareg-mode', `caml-mode', `neocaml-mode') with commands to evaluate
-;; forms directly in the REPL.
+;; (e.g. `tuareg-mode', `caml-mode') with commands to evaluate forms directly
+;; in the REPL.  Other modes can integrate via `utop-mode-compat-alist'.
 ;;
 ;; See the "Integration with Emacs" section of the README for more info.
 

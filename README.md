@@ -8,7 +8,10 @@ OCaml. It can run in a terminal or
 in Emacs. It supports line editing, history, real-time and context
 sensitive completion, colors, and more.
 
-It integrates with the Tuareg, caml, neocaml, ReasonML and typerex modes in Emacs.
+It includes built-in Emacs integration and works with Tuareg, caml,
+ReasonML and typerex modes. Other modes like
+[neocaml](https://github.com/bbatsov/neocaml) can also integrate
+via `utop-mode-compat-alist`.
 
 ![Screenshot](screenshot.png)
 
@@ -240,11 +243,11 @@ have it enabled by default with the following configuration:
 
 If you plan to use utop with another major-mode than tuareg, replace
 `tuareg-mode-hook` by the appropriate hook. The utop minor mode will work out of
-the box with these modes: `tuareg-mode`, `caml-mode`, `neocaml-mode`,
-`reason-mode` and `typerex-mode`. Modes derived from any of these will
-also work automatically.
+the box with these modes: `tuareg-mode`, `caml-mode`, `reason-mode` and
+`typerex-mode`. Modes derived from any of these will also work automatically.
 
-For other modes you can register support via `utop-mode-compat-alist`:
+Other modes (e.g. `neocaml-mode`) can register support via
+`utop-mode-compat-alist`:
 
 ```elisp
 (add-to-list 'utop-mode-compat-alist
