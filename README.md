@@ -8,7 +8,7 @@ OCaml. It can run in a terminal or
 in Emacs. It supports line editing, history, real-time and context
 sensitive completion, colors, and more.
 
-It integrates with the Tuareg, caml, ReasonML and typerex modes in Emacs.
+It integrates with the Tuareg, caml, neocaml, ReasonML and typerex modes in Emacs.
 
 ![Screenshot](screenshot.png)
 
@@ -240,12 +240,20 @@ have it enabled by default with the following configuration:
 
 If you plan to use utop with another major-mode than tuareg, replace
 `tuareg-mode-hook` by the appropriate hook. The utop minor mode will work out of
-the box with these modes: `tuareg-mode`, `caml-mode`, `reason-mode` and
-`typerex-mode`. For other modes you will need to set the following three
-variables:
+the box with these modes: `tuareg-mode`, `caml-mode`, `neocaml-mode`,
+`reason-mode` and `typerex-mode`. Modes derived from any of these will
+also work automatically.
 
-- `utop-skip-blank-and-comments`
-- `utop-skip-to-end-of-phrase`
+For other modes you can register support via `utop-mode-compat-alist`:
+
+```elisp
+(add-to-list 'utop-mode-compat-alist
+             '(my-ocaml-mode . (my-next-phrase . my-discover-phrase)))
+```
+
+Alternatively, you can set the following buffer-local variables:
+
+- `utop-next-phrase-beginning`
 - `utop-discover-phrase`
 
 You can also complete text in a buffer using the environment of the
