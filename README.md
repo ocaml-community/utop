@@ -145,7 +145,12 @@ terminals with light colors (such as black on white).
 
 You can customize the prompt of utop by setting the reference
 `UTop.prompt`. Several built-in prompt styles are available via
-directives — see the [Directives](#directives) table above.
+directives — see the [Directives](#directives) table above. To make a
+prompt change permanent, add the directive to `~/.config/utop/init.ml`:
+
+```ocaml
+#utop_prompt_simple;;
+```
 
 ### Key bindings
 
