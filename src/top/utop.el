@@ -5,7 +5,7 @@
 ;; URL: https://github.com/ocaml-community/utop
 ;; Licence: BSD3
 ;; Version: 1.11
-;; Package-Requires: ((emacs "26") (tuareg "2.2.0"))
+;; Package-Requires: ((emacs "26"))
 ;; Keywords: ocaml languages
 
 ;; This file is a part of utop.
@@ -16,8 +16,8 @@
 ;;
 ;; utop.el has two components - a nice OCaml REPL with auto-completion and a
 ;; minor mode (`utop-minor-mode'), which extends OCaml major modes
-;; (e.g. `caml-mode' and `tuareg-mode') with commands to evaluate forms directly
-;; in the REPL.
+;; (e.g. `tuareg-mode', `caml-mode', `neocaml-mode') with commands to evaluate
+;; forms directly in the REPL.
 ;;
 ;; See the "Integration with Emacs" section of the README for more info.
 
@@ -27,7 +27,8 @@
 (require 'pcase)
 (require 'seq)
 (require 'tabulated-list)
-(require 'tuareg)
+(declare-function tuareg-discover-phrase "tuareg" (&optional pos))
+(declare-function tuareg-skip-blank-and-comments "tuareg" ())
 
 ;; +-----------------------------------------------------------------+
 ;; | License                                                         |
@@ -267,6 +268,7 @@ modes you need to set these variables:
 
 (defun utop-tuareg-next-phrase ()
   "Move to the next phrase after point."
+  (require 'tuareg)
   (let* ((pos (save-excursion
                 (when (looking-at-p "[;[:blank:]]*$")
                   (skip-chars-backward ";[:blank:]")
@@ -288,9 +290,14 @@ modes you need to set these variables:
                           caml-skip-to-end-of-phrase
                           reason-next-phrase))))
 
+(defun utop-tuareg-discover-phrase ()
+  "Discover the phrase at point using tuareg."
+  (require 'tuareg)
+  (tuareg-discover-phrase))
+
 (defun utop-compat-discover-phrase ()
   (funcall
-   (utop-compat-resolve '(tuareg-discover-phrase
+   (utop-compat-resolve '(utop-tuareg-discover-phrase
                           typerex-discover-phrase
                           caml-find-phrase
                           reason-discover-phrase))))
