@@ -261,7 +261,8 @@ backend")
 Each entry is (MODE :next-phrase FN :discover-phrase FN).
 
 :next-phrase FN should move point to the beginning of the next phrase.
-:discover-phrase FN should return a triple (begin-pos end-pos end-pos-with-comments).
+:discover-phrase FN should return a triple
+\(begin-pos end-pos end-pos-with-comments).
 
 To add support for a new OCaml major mode, add an entry to this alist:
 
