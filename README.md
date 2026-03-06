@@ -15,7 +15,7 @@ It integrates with the Tuareg, caml, ReasonML and typerex modes in Emacs.
 Features
 --------
 
-- **Context-sensitive completion** — utop uses the compiler internals to
+- **Context-sensitive completion** — utop uses the compiler libraries to
   provide completions for function names, argument labels, constructors,
   record fields, and method names. Suggestions are displayed dynamically
   as you type.
