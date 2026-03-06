@@ -249,20 +249,25 @@ backend")
 ;; +-----------------------------------------------------------------+
 
 (defvar utop-mode-compat-alist
-  '((tuareg-mode  . (utop-tuareg-next-phrase . utop-tuareg-discover-phrase))
-    (typerex-mode . (typerex-skip-to-end-of-phrase . typerex-discover-phrase))
-    (caml-mode    . (caml-skip-to-end-of-phrase . caml-find-phrase))
-    (reason-mode  . (reason-next-phrase . reason-discover-phrase)))
+  '((tuareg-mode  :next-phrase utop-tuareg-next-phrase
+                  :discover-phrase utop-tuareg-discover-phrase)
+    (typerex-mode :next-phrase typerex-skip-to-end-of-phrase
+                  :discover-phrase typerex-discover-phrase)
+    (caml-mode    :next-phrase caml-skip-to-end-of-phrase
+                  :discover-phrase caml-find-phrase)
+    (reason-mode  :next-phrase reason-next-phrase
+                  :discover-phrase reason-discover-phrase))
   "Alist mapping major modes to their phrase navigation functions.
-Each entry is (MODE . (NEXT-PHRASE-FN . DISCOVER-PHRASE-FN)).
+Each entry is (MODE :next-phrase FN :discover-phrase FN).
 
-NEXT-PHRASE-FN should move point to the beginning of the next phrase.
-DISCOVER-PHRASE-FN should return a triple (begin-pos end-pos end-pos-with-comments).
+:next-phrase FN should move point to the beginning of the next phrase.
+:discover-phrase FN should return a triple (begin-pos end-pos end-pos-with-comments).
 
 To add support for a new OCaml major mode, add an entry to this alist:
 
   (add-to-list \\='utop-mode-compat-alist
-               \\='(my-ocaml-mode . (my-next-phrase . my-discover-phrase)))")
+               \\='(my-ocaml-mode :next-phrase my-next-phrase
+                                :discover-phrase my-discover-phrase))")
 
 (defun utop-tuareg-next-phrase ()
   "Move to the next phrase after point."
@@ -286,9 +291,9 @@ To add support for a new OCaml major mode, add an entry to this alist:
   (require 'tuareg)
   (tuareg-discover-phrase))
 
-(defun utop-compat-lookup (slot)
+(defun utop-compat-lookup (prop)
   "Look up a phrase function for the current major mode.
-SLOT should be `car' for next-phrase or `cdr' for discover-phrase.
+PROP should be a keyword like :next-phrase or :discover-phrase.
 Also checks parent modes via `derived-mode-parent'."
   (let ((mode major-mode)
         entry)
@@ -296,17 +301,19 @@ Also checks parent modes via `derived-mode-parent'."
       (setq entry (assq mode utop-mode-compat-alist))
       (setq mode (get mode 'derived-mode-parent)))
     (if entry
-        (funcall slot (cdr entry))
+        (or (plist-get (cdr entry) prop)
+            (error "utop mode compat entry for \"%s\" is missing %s"
+                   (car entry) prop))
       (error "utop doesn't support the major mode \"%s\".
 To add support, either customize `utop-mode-compat-alist' or
 set `utop-next-phrase-beginning' and `utop-discover-phrase'
 as buffer-local variables" major-mode))))
 
 (defun utop-compat-next-phrase-beginning ()
-  (funcall (utop-compat-lookup #'car)))
+  (funcall (utop-compat-lookup :next-phrase)))
 
 (defun utop-compat-discover-phrase ()
-  (funcall (utop-compat-lookup #'cdr)))
+  (funcall (utop-compat-lookup :discover-phrase)))
 
 ;; +-----------------------------------------------------------------+
 ;; | Utils                                                           |

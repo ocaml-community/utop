@@ -248,7 +248,8 @@ For other modes you can register support via `utop-mode-compat-alist`:
 
 ```elisp
 (add-to-list 'utop-mode-compat-alist
-             '(my-ocaml-mode . (my-next-phrase . my-discover-phrase)))
+             '(my-ocaml-mode :next-phrase my-next-phrase
+                             :discover-phrase my-discover-phrase))
 ```
 
 Alternatively, you can set the following buffer-local variables:
