@@ -4,13 +4,39 @@ utop — a universal toplevel (i.e., REPL) for OCaml
 ==================================================
 
 utop is an improved toplevel (i.e., Read-Eval-Print Loop) for
-OCaml. It can run in a terminal or
-in Emacs. It supports line editing, history, real-time and context
-sensitive completion, colors, and more.
+OCaml. It can run in a terminal or in Emacs. It supports line
+editing, history, real-time and context sensitive completion, colors,
+and more.
 
 It integrates with the Tuareg, caml, ReasonML and typerex modes in Emacs.
 
 ![Screenshot](screenshot.png)
+
+Features
+--------
+
+- **Context-sensitive completion** — utop uses the compiler libraries to
+  provide completions for function names, argument labels, constructors,
+  record fields, and method names. Suggestions are displayed dynamically
+  as you type.
+- **Syntax highlighting** in the terminal (can be enabled via `utoprc`).
+- **Automatic Lwt/Async evaluation** — toplevel expressions that return
+  `Lwt.t` or `Async.Deferred.t` values are automatically run, so you
+  don't have to wrap them in `Lwt_main.run` or
+  `Thread_safe.block_on_async_exn` yourself. This can be toggled with
+  `UTop.set_auto_run_lwt` and `UTop.set_auto_run_async`.
+- **`#typeof` directive** — inspect the types of values, modules, and
+  module types directly from the REPL (e.g. `#typeof "List";;`).
+- **Short paths by default** — type output uses `-short-paths` so you see
+  concise type names instead of fully-qualified internal paths.
+- **Automatic toplevel printer installation** — libraries that annotate
+  their pretty-printers with `[@@ocaml.toplevel_printer]` get their
+  printers loaded automatically (see [below](#automatically-installing-toplevel-printers)).
+- **Vi edit mode** — an optional vi-style editing mode
+  (see [below](#vi-edit-mode)).
+- Built on [Lambda-term](https://github.com/ocaml-community/lambda-term)
+  and [Zed](https://github.com/ocaml-community/zed), two OCaml libraries
+  for terminal UI and text editing.
 
 Installation via opam
 ---------------------
@@ -52,10 +78,58 @@ To use utop, simply run:
 
     utop
 
+### The prompt
+
+The default prompt in the terminal displays a two-line header:
+
+```
+─( 10:30:42 )─< command 1 >───────────────────────{ counter: 0 }─
+utop #
+```
+
+- **Time** — the current time when the command was entered.
+- **Command number** — incremented after each toplevel phrase is evaluated.
+- **Counter** — the Emacs-style keyboard macro counter (see `C-x C-k C-c`
+  in the Lambda-term documentation). When you are recording a macro, a
+  `macro: N` indicator also appears showing the number of recorded keystrokes.
+- **Key sequence** — if you are in the middle of a multi-key chord, the keys
+  entered so far are displayed in the header.
+
+You can switch to a simpler prompt with `#utop_prompt_simple;;` (shows
+`utop [N]: `) or a bare prompt with `#utop_prompt_dummy;;` (shows `# `).
+Use `#utop_prompt_fancy_light;;` or `#utop_prompt_fancy_dark;;` to switch
+the color profile of the default prompt.
+
+### Completion bar
+
 utop displays a bar after the prompt which is used to show possible
 completions in real time. You can navigate in it using `M-left` and
 `M-right`, and select one completion using `M-down`. The `M` denotes
 the meta key, which is `Alt` on most systems.
+
+You can disable the completion bar with:
+
+```ocaml
+UTop.set_show_box false
+```
+
+### Directives
+
+In addition to the standard OCaml toplevel directives, utop provides:
+
+| Directive                    | Description                                                    |
+|------------------------------|----------------------------------------------------------------|
+| `#utop_bindings`             | List all current key bindings                                  |
+| `#utop_macro`                | Display the currently recorded macro                           |
+| `#utop_stash`                | Save all valid commands from the session to a file             |
+| `#utop_save`                 | Save the session with a simple prompt to a file                |
+| `#utop_prompt_simple`        | Switch to a minimal `utop [N]:` prompt                         |
+| `#utop_prompt_dummy`         | Switch to a bare `#` prompt (no colors, no info line)          |
+| `#utop_prompt_fancy_light`   | Use the fancy prompt with a light color profile                |
+| `#utop_prompt_fancy_dark`    | Use the fancy prompt with a dark color profile                 |
+| `#typeof "X"`                | Show the type of a value, module, or module type               |
+| `#topfind_log`               | Display messages recorded from findlib                         |
+| `#topfind_verbose`           | Toggle findlib verbosity                                       |
 
 Customization
 -------------
@@ -70,17 +144,12 @@ terminals with light colors (such as black on white).
 ### Prompt
 
 You can customize the prompt of utop by setting the reference
-`UTop.prompt`.
+`UTop.prompt`. Several built-in prompt styles are available via
+directives — see the [Directives](#directives) table above. To make a
+prompt change permanent, add the directive to `~/.config/utop/init.ml`:
 
-To turn off all colors and remove the line above the prompt
-that lists time, etc., add this to ~/.config/utop/init.ml:
-```OCaml
-#utop_prompt_dummy;;
-```
-To turn off the line of boxes listing possible completions that appears under
-the prompt, add this to ~/.config/utop/init.ml:
-```OCaml
-UTop.set_show_box false
+```ocaml
+#utop_prompt_simple;;
 ```
 
 ### Key bindings
@@ -109,7 +178,7 @@ This special edit mode is evolving rapidly; see the CHANGES of lambda-term for t
 ### UTop API
 
 UTop exposes several more settings through its API; see
-[documentation](http://ocaml-community.github.io/utop).
+[documentation](https://ocaml-community.github.io/utop).
 
 Integration with Emacs
 ----------------------
@@ -194,28 +263,8 @@ should add this to your `~/.emacs`:
 (setq utop-command "opam exec -- dune utop . -- -emacs")
 ```
 
-This was tested with opam 2.1. For older versions of opam, you can
-copy&paste this to your `~/.emacs`:
-
-```elisp
-;; Setup environment variables using opam
-(dolist (var (car (read-from-string (shell-command-to-string "opam config env --sexp"))))
-  (setenv (car var) (cadr var)))
-
-;; Update the Emacs path
-(setq exec-path (append (parse-colon-path (getenv "PATH"))
-                        (list exec-directory)))
-
-;; Update the Emacs load path
-(add-to-list 'load-path (expand-file-name "../../share/emacs/site-lisp"
-                                          (getenv "OCAML_TOPLEVEL_PATH")))
-
-;; Automatically load utop.el
-(autoload 'utop "utop" "Toplevel for OCaml" t)
-```
-
 ### Usage
-<a href="emacs-usage"></a>
+<a id="emacs-usage"></a>
 
 You can start utop inside Emacs with: `M-x utop`.
 
@@ -252,8 +301,8 @@ You can also complete text in a buffer using the environment of the
 toplevel. For that bind the function `utop-edit-complete` to the key
 you want.
 
-Common error
-------------
+Troubleshooting
+---------------
 
 If you get this error when running utop in a terminal or in Emacs this
 means that the environment variable `CAML_LD_LIBRARY_PATH` is not set
@@ -307,7 +356,7 @@ let () = UTop_main.main ()
 
 and the following dune file:
 
-```elisp
+```dune
 (executable
  (name myutop)
  (link_flags -linkall)
@@ -330,7 +379,7 @@ them to the `(libraries ...)` field.
 Additionally, if you want to install this toplevel, add the two
 following fields to the executable stanza:
 
-```elisp
+```dune
   (public_name myutop)
   (modes byte)
 ```
