@@ -5,7 +5,7 @@
 ;; URL: https://github.com/ocaml-community/utop
 ;; Licence: BSD3
 ;; Version: 1.11
-;; Package-Requires: ((emacs "26") (tuareg "2.2.0"))
+;; Package-Requires: ((emacs "26"))
 ;; Keywords: ocaml languages
 
 ;; This file is a part of utop.
@@ -16,8 +16,8 @@
 ;;
 ;; utop.el has two components - a nice OCaml REPL with auto-completion and a
 ;; minor mode (`utop-minor-mode'), which extends OCaml major modes
-;; (e.g. `caml-mode' and `tuareg-mode') with commands to evaluate forms directly
-;; in the REPL.
+;; (e.g. `tuareg-mode', `caml-mode') with commands to evaluate forms directly
+;; in the REPL.  Other modes can integrate via `utop-mode-compat-alist'.
 ;;
 ;; See the "Integration with Emacs" section of the README for more info.
 
@@ -27,7 +27,8 @@
 (require 'pcase)
 (require 'seq)
 (require 'tabulated-list)
-(require 'tuareg)
+(declare-function tuareg-discover-phrase "tuareg" (&optional pos))
+(declare-function tuareg-skip-blank-and-comments "tuareg" ())
 
 ;; +-----------------------------------------------------------------+
 ;; | License                                                         |
@@ -247,26 +248,31 @@ backend")
 ;; | Compatibility with different ocaml major modes                  |
 ;; +-----------------------------------------------------------------+
 
-(defun utop-compat-resolve (choices)
-  "Resolve a symbol based on the current major mode. CHOICES is a
-list of 3 function symbols: (tuareg-symbol typerex-symbol caml-symbol)."
-  (nth
-   (pcase major-mode
-     ('tuareg-mode 0)
-     ('typerex-mode 1)
-     ('caml-mode 2)
-     ('reason-mode 3)
-     (major-mode (error (format "utop doesn't support the major mode \"%s\". It
-supports caml, tuareg, typerex and reason modes by default. For other
-modes you need to set these variables:
+(defvar utop-mode-compat-alist
+  '((tuareg-mode  :next-phrase utop-tuareg-next-phrase
+                  :discover-phrase utop-tuareg-discover-phrase)
+    (typerex-mode :next-phrase typerex-skip-to-end-of-phrase
+                  :discover-phrase typerex-discover-phrase)
+    (caml-mode    :next-phrase caml-skip-to-end-of-phrase
+                  :discover-phrase caml-find-phrase)
+    (reason-mode  :next-phrase reason-next-phrase
+                  :discover-phrase reason-discover-phrase))
+  "Alist mapping major modes to their phrase navigation functions.
+Each entry is (MODE :next-phrase FN :discover-phrase FN).
 
-- `utop-next-phrase-beginning'
-- `utop-discover-phrase'
-" major-mode))))
-   choices))
+:next-phrase FN should move point to the beginning of the next phrase.
+:discover-phrase FN should return a triple
+\(begin-pos end-pos end-pos-with-comments).
+
+To add support for a new OCaml major mode, add an entry to this alist:
+
+  (add-to-list \\='utop-mode-compat-alist
+               \\='(my-ocaml-mode :next-phrase my-next-phrase
+                                :discover-phrase my-discover-phrase))")
 
 (defun utop-tuareg-next-phrase ()
   "Move to the next phrase after point."
+  (require 'tuareg)
   (let* ((pos (save-excursion
                 (when (looking-at-p "[;[:blank:]]*$")
                   (skip-chars-backward ";[:blank:]")
@@ -281,19 +287,34 @@ modes you need to set these variables:
         (goto-char (match-end 0)))
       (tuareg-skip-blank-and-comments))))
 
+(defun utop-tuareg-discover-phrase ()
+  "Discover the phrase at point using tuareg."
+  (require 'tuareg)
+  (tuareg-discover-phrase))
+
+(defun utop-compat-lookup (prop)
+  "Look up a phrase function for the current major mode.
+PROP should be a keyword like :next-phrase or :discover-phrase.
+Also checks parent modes via `derived-mode-parent'."
+  (let ((mode major-mode)
+        entry)
+    (while (and mode (not entry))
+      (setq entry (assq mode utop-mode-compat-alist))
+      (setq mode (get mode 'derived-mode-parent)))
+    (if entry
+        (or (plist-get (cdr entry) prop)
+            (error "utop mode compat entry for \"%s\" is missing %s"
+                   (car entry) prop))
+      (error "utop doesn't support the major mode \"%s\".
+To add support, either customize `utop-mode-compat-alist' or
+set `utop-next-phrase-beginning' and `utop-discover-phrase'
+as buffer-local variables" major-mode))))
+
 (defun utop-compat-next-phrase-beginning ()
-  (funcall
-   (utop-compat-resolve '(utop-tuareg-next-phrase
-                          typerex-skip-to-end-of-phrase
-                          caml-skip-to-end-of-phrase
-                          reason-next-phrase))))
+  (funcall (utop-compat-lookup :next-phrase)))
 
 (defun utop-compat-discover-phrase ()
-  (funcall
-   (utop-compat-resolve '(tuareg-discover-phrase
-                          typerex-discover-phrase
-                          caml-find-phrase
-                          reason-discover-phrase))))
+  (funcall (utop-compat-lookup :discover-phrase)))
 
 ;; +-----------------------------------------------------------------+
 ;; | Utils                                                           |
