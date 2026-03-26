@@ -1,3 +1,9 @@
+2.17.0 (2026-03-26)
+------------------
+
+* Add support for OCaml 5.5 (#510 @anmonteiro)
+* Add support for neocaml or other major modes in utop.el (#511, @bbatsov)
+
 2.16.0 (2025-07-22)
 ------------------
 
