@@ -266,6 +266,12 @@ should add this to your `~/.emacs`:
 (setq utop-command "opam exec -- dune utop . -- -emacs")
 ```
 
+Utop in emacs also supports TAB-completion. If your version of emacs includes `company` completion will appear at the code point. Otherwise completion will appear in a separate buffer. In the case of `company` a hook **must** be added to enable `company` as a minor mode when running utop in major mode. To enable please add the following to your `~/.emacs`:
+
+```elisp
+  (add-hook 'utop-mode-hook 'company-mode)
+```
+
 ### Usage
 <a id="emacs-usage"></a>
 
