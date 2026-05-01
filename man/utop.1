@@ -68,6 +68,10 @@ to turn off respectively (a) colors and the upper information line, and
         #utop_prompt_dummy;;
         UTop.set_show_box false
 
+To disable \fButop\fR's welcome message, add the folowing to \fIinit.ml\fR:
+
+        UTop.set_show_welcome false;;
+
 You can enable basic syntax highlighting in utop by writing a
 .I ~/.utoprc
 file. See
