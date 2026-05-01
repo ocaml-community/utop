@@ -69,6 +69,7 @@ let make_variable ?eq x =
 let hide_reserved, get_hide_reserved, set_hide_reserved = make_variable true
 let create_implicits, get_create_implicits, set_create_implicits = make_variable false
 let show_box, get_show_box, set_show_box = make_variable true
+let show_welcome, get_show_welcome, set_show_welcome = make_variable true
 let phrase_terminator, get_phrase_terminator, set_phrase_terminator = make_variable ";;"
 let auto_run_lwt, get_auto_run_lwt, set_auto_run_lwt = make_variable true
 let auto_run_async, get_auto_run_async, set_auto_run_async = make_variable true

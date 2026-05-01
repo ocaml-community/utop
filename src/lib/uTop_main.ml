@@ -839,6 +839,7 @@ let welcome term =
 
   LTerm.flush term
 
+
 (* +-----------------------------------------------------------------+
    | Classic mode                                                    |
    +-----------------------------------------------------------------+ *)
@@ -1503,10 +1504,10 @@ let main_aux ~initial_env =
       UTop_private.set_size (S.const (LTerm.size term));
       (* Load user data. *)
       Lwt_main.run (Lwt.join [UTop_styles.load (); load_inputrc ()]);
-      (* Display a welcome message. *)
-      Lwt_main.run (welcome term);
       (* Common initialization. *)
       common_init ~initial_env;
+      (* Display a welcome message, if enabled. *)
+      if UTop.get_show_welcome () then Lwt_main.run (welcome term);
       (* Print help message. *)
       print_string "\nType #utop_help for help about using utop.\n\n";
       flush stdout;
