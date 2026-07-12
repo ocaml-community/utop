@@ -5,19 +5,25 @@
 \"
 \" This file is a part of utop.
 
-.TH UTOPRC 5 "August 2011"
+.TH UTOPRC 5 "July 12, 2026"
 
 .SH NAME
 utoprc \- Configuration file of utop
 
 .SH SYNOPSIS
-.B ~/.utoprc
+.B $XDG_CONFIG_HOME/utop/utoprc
 
 .SH DESCRIPTION
 
 This manual page describes the format of the
+.I $XDG_CONFIG_HOME/utop/utoprc
+file (usually
+.IR ~/.config/utop/utoprc ).
+The legacy location
 .I ~/.utoprc
-file. This is a text file which contains the configuration of
+is still honored if that file exists.
+
+This is a text file which contains the configuration of
 utop. Comments start with a '!' and empty lines are
 ignored. Configuration lines are of the form:
 
@@ -117,13 +123,29 @@ gnome-terminal or konsole, you can enable 256 colors by setting the
 environment variable TERM to "xterm-256color".
 
 .SH FILES
+.I $XDG_CONFIG_HOME/utop/utoprc
+.RS
+.RE
 .I ~/.utoprc
+(legacy)
 
 .SH EXAMPLE
+
+utop ships with two ready-to-use configurations:
+.I utoprc-dark
+for terminals with dark background colors and
+.I utoprc-light
+for terminals with light background colors. Copy one of them to
+.I $XDG_CONFIG_HOME/utop/utoprc
+to use it.
+
 profile:                  dark
 .RS
 .RE
 identifier.foreground:    none
+.RS
+.RE
+module.foreground:        x-palegreen
 .RS
 .RE
 comment.foreground:       x-chocolate1
@@ -150,7 +172,10 @@ char.foreground:          x-light-salmon
 quotation.foreground:     x-purple
 .RS
 .RE
-error.foreground:         x-red
+error.foreground:         red
+.RS
+.RE
+directive.foreground:     x-lightsteelblue
 .RS
 .RE
 parenthesis.background:   blue

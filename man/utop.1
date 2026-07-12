@@ -5,7 +5,7 @@
 \"
 \" This file is a part of utop.
 
-.TH UTOP 1
+.TH UTOP 1 "July 12, 2026"
 
 .SH NAME
 utop \- Universal toplevel for OCaml
@@ -69,8 +69,10 @@ to turn off respectively (a) colors and the upper information line, and
         UTop.set_show_box false
 
 You can enable basic syntax highlighting in utop by writing a
-.I ~/.utoprc
-file. See
+.I $XDG_CONFIG_HOME/utop/utoprc
+file (usually
+.IR ~/.config/utop/utoprc ).
+See
 .BR utoprc (5)
 for that.
 
@@ -102,12 +104,13 @@ The default install also has a minor mode with the following key bindings:
         \fBC-x C-e\fR Evaluate the current phrase (\fIutop-eval-phrase\fR)
         \fBC-x C-r\fR Evaluate the selected region (\fIutop-eval-region\fR)
         \fBC-c C-b\fR Evaluate the current buffer (\fIutop-eval-buffer\fR)
-        \fBC-c C-k\fR Kill a running utop process (\fItop-kill\fR)
+        \fBC-c C-k\fR Kill a running utop process (\fIutop-kill\fR)
         \fBC-c C-z\fR Switch to utop process (\fIutop-switch-to-repl\fR)
 
 then you can run \fButop\fR by pressing \fBM-x\fR and typing "utop". \fButop\fR supports
 completion in Emacs mode. Just press \fBTab\fR to complete a word. You can
-also integrate it with the tuareg, caml or typerex mode. For that add
+also integrate it with the tuareg, caml, reason or typerex mode. Other
+modes can register support via \fIutop-mode-compat-alist\fR. For that add
 the following lines to your
 .I ~/.emacs
 file:
@@ -125,7 +128,7 @@ with options available for
 A commonly used option is
 \fB-require\fI package\fR
 to load \fIpackage\fR into the execution environment. It is equivalent
-to using \fb#require\fR from inside
+to using \fB#require\fR from inside
 .BR utop (1).
 
 .PP
@@ -161,7 +164,7 @@ Pipe abstract syntax trees through the preprocessor \fIcommand\fR.
 Check principality of type inference.
 .TP
 .BI -safe-string
-Make strings immutable.
+Make strings immutable (only available with OCaml < 5.0).
 .TP
 .BI -short-paths
 Shorten paths in types (the default).
@@ -233,18 +236,33 @@ Display this list of options.
 Display this list of options.
 
 .SH FILES
-.I ~/.config/utop/init.ml
+.I $XDG_CONFIG_HOME/utop/init.ml
 .RS
-The initialization file of the toplevel.
-.RE
+The initialization file of the toplevel (usually
+.IR ~/.config/utop/init.ml ).
+A
+.I .ocamlinit
+file in the current directory or a
 .I ~/.ocamlinit
-.RS
-The alternative initialization file of the toplevel.
+file is also picked up.
 .RE
-.I ~/.utoprc
+.I $XDG_CONFIG_HOME/utop/utoprc
 .RS
-The configuration file for utop. See
+The configuration file for utop (usually
+.IR ~/.config/utop/utoprc ).
+See
 .BR utoprc (5).
+The legacy location
+.I ~/.utoprc
+is still honored if that file exists.
+.RE
+.I $XDG_STATE_HOME/utop/utop-history
+.RS
+The history file (usually
+.IR ~/.local/state/utop/utop-history ).
+The legacy location
+.I ~/.utop-history
+is still honored if that file exists.
 .RE
 .I ~/.config/lambda-term-inputrc
 .RS
