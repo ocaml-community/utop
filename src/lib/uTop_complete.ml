@@ -28,8 +28,15 @@ let add id set = if is_valid_identifier id then String_set.add id set else set
 let lookup_env f x env =
   try
     Some (f x env)
-  with Not_found | Env.Error _ ->
-    None
+  with
+    | Not_found ->
+        None
+#if OCAML_VERSION >= (5, 6, 0)
+    | Env.Error.In_context _ ->
+#else
+    | Env.Error _ ->
+#endif
+        None
 
 (* +-----------------------------------------------------------------+
    | Parsing                                                         |
