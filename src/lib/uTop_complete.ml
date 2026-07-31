@@ -25,12 +25,6 @@ let set_of_list = List.fold_left (fun set x -> String_set.add x set) String_set.
 
 let add id set = if is_valid_identifier id then String_set.add id set else set
 
-let lookup_env f x env =
-  try
-    Some (f x env)
-  with Not_found | Env.Error _ ->
-    None
-
 (* +-----------------------------------------------------------------+
    | Parsing                                                         |
    +-----------------------------------------------------------------+ *)
