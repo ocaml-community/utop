@@ -169,6 +169,7 @@ and symbol idx acc = parse
           let loc = mkloc idx (idx + 1) (lexeme_start lexbuf) (lexeme_end lexbuf) in
           tokens loc.idx2 ((Error, loc) :: acc) lexbuf
       }
+  | "" { raise (Failure "lexing: empty token") }
 
 and cm_string idx= parse
   | '"'
