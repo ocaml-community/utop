@@ -116,6 +116,14 @@ You can disable the completion bar with:
 UTop.set_show_box false
 ```
 
+### Welcome Message
+
+You can disable the welcome message with:
+
+```ocaml
+UTop.set_show_welcome false
+```
+
 ### Directives
 
 In addition to the standard OCaml toplevel directives, utop provides:

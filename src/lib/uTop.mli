@@ -91,6 +91,15 @@ val get_show_box : unit -> bool
 val set_show_box : bool -> unit
   (** Modifies {!show_box}. *)
 
+val show_welcome : bool signal
+  (** If [true] (the default) the welcome message is displayed. *)
+
+val get_show_welcome : unit -> bool
+  (** Returns the value of {!show_welcome}. *)
+
+val set_show_welcome : bool -> unit
+  (** Modifies {!show_welcome}. *)
+
 val set_margin_function : (LTerm_geom.size -> int option) -> unit
   (** Margin of the standard and error formatters as a function of the screen size.
 
