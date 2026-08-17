@@ -1,4 +1,5 @@
 (test
  (name test_lib)
  (modes byte)
+ (deps (package utop))
  (libraries alcotest utop))
