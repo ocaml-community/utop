@@ -185,3 +185,17 @@ let add_cmi_hook f =
     res
   in
   Persistent_env.Persistent_signature.load := load
+
+#if OCAML_VERSION >= (5, 6, 0)
+let lookup_env f x env =
+  try
+    Some (f x env)
+  with Not_found | Env.Error.In_context _ ->
+    None
+#else
+let lookup_env f x env =
+  try
+    Some (f x env)
+  with Not_found | Env.Error _ ->
+    None
+#endif
