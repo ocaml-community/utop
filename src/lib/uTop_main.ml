@@ -1481,7 +1481,7 @@ let load_inputrc () =
 
 let protocol_version = 1
 
-let main_aux ~initial_env =
+let main_aux ~initial_env : unit =
   Clflags.debug := true;
   Arg.parse args file_argument usage;
 #if OCAML_VERSION >= (5, 0, 0) && OCAML_VERSION < (5, 1, 0)
@@ -1525,7 +1525,7 @@ let main_aux ~initial_env =
   (* Don't let the standard toplevel run... *)
   exit 0
 
-let main_internal ~initial_env =
+let main_internal ~initial_env : unit =
   try
     main_aux ~initial_env
   with exn ->
@@ -1574,7 +1574,7 @@ let iter_structure expr =
   iter.structure iter
 
 let interact ?(search_path=[]) ?(build_dir="_build") ~unit ~loc:(fname, lnum, cnum, _)
-      ~values =
+      ~values () =
   let search_path = walk build_dir ~init:search_path ~f:(fun dir acc -> dir :: acc) in
   let cmt_fname =
     try
