@@ -1,3 +1,11 @@
+2.18.0 (2026-11-11)
+-------------------
+
+* Add OCaml 5.6 support (#519 @kit-ty-kate @anmonteiro)
+* Allow running the tests with dune >= 3.25 (#520 @anmonteiro)
+* Add ability to toggle off welcome message using new `{set,get,}show_welcome`
+  functions (#514 @jg791)
+
 2.17.0 (2026-03-26)
 ------------------
 

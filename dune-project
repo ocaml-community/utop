@@ -1,4 +1,5 @@
 (lang dune 2.7)
+(version 2.18.0)
 (formatting (enabled_for dune))
 (name utop)
 
